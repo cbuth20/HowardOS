@@ -1,0 +1,94 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    /* Howard Brand Colors */
+    --brand-primary: #758C7C;      /* Sage green */
+    --brand-navy: #465352;         /* Dark teal-gray */
+    --brand-sage: #758C7C;         /* Sage green */
+    --brand-slate: #8A9DAA;        /* Slate blue */
+    --brand-terracotta: #D3986F;   /* Terracotta/tan */
+
+    /* Neutral colors - Enhanced */
+    --neutral-black: #101010;
+    --neutral-white: #FFFFFF;
+    --neutral-cream: #FBF4EA;      /* Howard cream */
+    --neutral-border: #E0E0E0;
+    --neutral-border-dark: #C4C4C4;
+
+    /* Accent colors */
+    --accent-sage: #758C7C;        /* Sage green */
+    --accent-slate: #8A9DAA;       /* Slate blue */
+    --accent-terracotta: #D3986F;  /* Terracotta */
+
+    /* Semantic colors - Enhanced */
+    --bg-default: var(--neutral-white);
+    --bg-subtle: var(--neutral-cream);
+    --bg-overlay: rgba(16, 16, 16, 0.6);
+
+    --text-primary: var(--brand-navy);
+    --text-secondary: #5A6868;
+    --text-muted: var(--brand-slate);
+    --text-inverse: var(--neutral-white);
+
+    --state-success: var(--brand-sage);
+    --state-success-light: #E8F0ED;
+    --state-warning: var(--brand-terracotta);
+    --state-warning-light: #F9F1E8;
+    --state-error: #C85A54;
+    --state-error-light: #F9E8E7;
+    --state-info: var(--brand-slate);
+    --state-info-light: #EEF1F4;
+
+    /* Border radius */
+    --radius: 0.5rem;
+    --radius-lg: 0.75rem;
+    --radius-xl: 1rem;
+
+    /* Shadows */
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+  }
+
+  * {
+    @apply border-neutral-border;
+  }
+
+  body {
+    @apply bg-background-subtle text-text-primary;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-weight: 300; /* Roboto Light */
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif font-semibold;
+  }
+
+  /* Specific heading styles */
+  h1 {
+    @apply text-4xl;
+  }
+
+  h2 {
+    @apply text-3xl;
+  }
+
+  h3 {
+    @apply text-2xl;
+  }
+
+  h4 {
+    @apply text-xl;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+}
