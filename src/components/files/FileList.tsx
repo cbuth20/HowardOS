@@ -1,11 +1,13 @@
 'use client'
 
 import { useState } from 'react'
-import { FileIcon, Download, Trash2, Share2 } from 'lucide-react'
+import { FileIcon, Download, Trash2, Share2, Eye } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import { Button } from '@/components/ui/Button'
 import { ShareFileModal } from './ShareFileModal'
+import { FileViewer } from './FileViewer'
 import { Avatar } from '@/components/ui/Avatar'
+import { authFetch } from '@/lib/utils/auth-fetch'
 import toast from 'react-hot-toast'
 
 interface File {
@@ -32,6 +34,7 @@ interface FileListProps {
 export function FileList({ files, canDelete = false, canShare = false, onRefresh }: FileListProps) {
   const [deletingId, setDeletingId] = useState<string | null>(null)
   const [shareModalOpen, setShareModalOpen] = useState(false)
+  const [viewerModalOpen, setViewerModalOpen] = useState(false)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
 
   const formatFileSize = (bytes: number) => {
@@ -49,7 +52,7 @@ export function FileList({ files, canDelete = false, canShare = false, onRefresh
 
   const handleDownload = async (fileId: string, fileName: string) => {
     try {
-      const response = await fetch(`/api/files/download?id=${fileId}`)
+      const response = await authFetch(`/api/files-download?id=${fileId}`)
 
       if (!response.ok) {
         throw new Error('Download failed')
@@ -80,7 +83,7 @@ export function FileList({ files, canDelete = false, canShare = false, onRefresh
     setDeletingId(fileId)
 
     try {
-      const response = await fetch(`/api/files?id=${fileId}`, {
+      const response = await authFetch(`/api/files?id=${fileId}`, {
         method: 'DELETE',
       })
 
@@ -108,8 +111,28 @@ export function FileList({ files, canDelete = false, canShare = false, onRefresh
     )
   }
 
+  const handleViewFile = (file: File) => {
+    setSelectedFile(file)
+    setViewerModalOpen(true)
+  }
+
   return (
     <>
+      {/* File Viewer Modal */}
+      {selectedFile && (
+        <FileViewer
+          isOpen={viewerModalOpen}
+          onClose={() => {
+            setViewerModalOpen(false)
+            setSelectedFile(null)
+          }}
+          fileId={selectedFile.id}
+          fileName={selectedFile.name}
+          mimeType={selectedFile.mime_type}
+          fileSize={selectedFile.size}
+        />
+      )}
+
       {/* Share Modal */}
       {selectedFile && (
         <ShareFileModal
@@ -132,11 +155,14 @@ export function FileList({ files, canDelete = false, canShare = false, onRefresh
           key={file.id}
           className="flex items-center justify-between p-4 bg-white border border-neutral-border rounded-lg hover:bg-background-hover hover:border-brand-primary/30 hover:shadow-sm transition-all"
         >
-          {/* File Info */}
-          <div className="flex items-center gap-4 flex-1 min-w-0">
+          {/* File Info - Clickable */}
+          <div
+            className="flex items-center gap-4 flex-1 min-w-0 cursor-pointer"
+            onClick={() => handleViewFile(file)}
+          >
             {getFileIcon(file.mime_type)}
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-text-primary truncate">
+              <p className="font-medium text-text-primary truncate hover:text-brand-primary transition-colors">
                 {file.name}
               </p>
               <div className="flex items-center gap-3 text-sm text-text-muted">
@@ -160,6 +186,14 @@ export function FileList({ files, canDelete = false, canShare = false, onRefresh
 
           {/* Actions */}
           <div className="flex items-center gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => handleViewFile(file)}
+              title="View file"
+            >
+              <Eye className="w-4 h-4" />
+            </Button>
             <Button
               variant="ghost"
               size="sm"

@@ -4,6 +4,7 @@ import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, FileIcon, Loader2 } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
+import { getAuthHeaders } from '@/lib/utils/auth-fetch'
 import toast from 'react-hot-toast'
 
 interface FileUploadProps {
@@ -41,8 +42,11 @@ export function FileUpload({ folderPath = '/', onUploadComplete }: FileUploadPro
         formData.append('file', file)
         formData.append('folderPath', folderPath)
 
-        const response = await fetch('/api/files/upload', {
+        const authHeaders = await getAuthHeaders()
+
+        const response = await fetch('/api/files-upload', {
           method: 'POST',
+          headers: authHeaders,
           body: formData,
           // Let browser set Content-Type with boundary automatically
         })

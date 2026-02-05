@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Mail, User, Shield } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { authFetch } from '@/lib/utils/auth-fetch'
 import toast from 'react-hot-toast'
 
 interface InviteUserModalProps {
@@ -40,7 +41,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
       if (!profile) throw new Error('Profile not found')
 
       // Call API to create user invitation
-      const response = await fetch('/api/users/invite', {
+      const response = await authFetch('/api/users-invite', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

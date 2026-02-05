@@ -22,6 +22,9 @@ const crimsonText = Crimson_Text({
 export const metadata: Metadata = {
   title: 'HowardOS - Client Portal',
   description: 'Multi-tenant client portal with file sharing and task management',
+  icons: {
+    icon: '/favicon.svg',
+  },
 }
 
 export default function RootLayout({

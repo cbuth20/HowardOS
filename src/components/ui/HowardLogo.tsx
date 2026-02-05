@@ -1,3 +1,5 @@
+import Image from 'next/image'
+
 interface HowardLogoProps {
   className?: string
   variant?: 'full' | 'icon'
@@ -7,37 +9,26 @@ interface HowardLogoProps {
 export function HowardLogo({ className = '', variant = 'full', showText = true }: HowardLogoProps) {
   if (variant === 'icon') {
     return (
-      <svg
-        viewBox="0 0 40 40"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+      <Image
+        src="/icons/h-mark.svg"
+        alt="Howard"
+        width={40}
+        height={40}
         className={className}
-      >
-        {/* H monogram with clean, geometric design */}
-        <rect width="40" height="40" rx="8" fill="#758C7C" />
-        <path
-          d="M12 10h3v8h7v-8h3v20h-3v-9h-7v9h-3V10z"
-          fill="#FFFFFF"
-        />
-      </svg>
+      />
     )
   }
 
   return (
     <div className={`flex items-center gap-3 ${className}`}>
       {/* Icon */}
-      <svg
-        viewBox="0 0 40 40"
-        fill="none"
-        xmlns="http://www.w3.org/2000/svg"
+      <Image
+        src="/icons/h-mark.svg"
+        alt="Howard"
+        width={40}
+        height={40}
         className="w-10 h-10"
-      >
-        <rect width="40" height="40" rx="8" fill="#758C7C" />
-        <path
-          d="M12 10h3v8h7v-8h3v20h-3v-9h-7v9h-3V10z"
-          fill="#FFFFFF"
-        />
-      </svg>
+      />
 
       {/* Text */}
       {showText && (

@@ -5,6 +5,7 @@ import { Modal } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import { Share2, Check } from 'lucide-react'
+import { authFetch } from '@/lib/utils/auth-fetch'
 import toast from 'react-hot-toast'
 
 interface Client {
@@ -44,7 +45,7 @@ export function ShareFileModal({
 
   const fetchClients = async () => {
     try {
-      const response = await fetch('/api/users/clients')
+      const response = await authFetch('/api/users-clients')
       if (!response.ok) throw new Error('Failed to fetch clients')
 
       const data = await response.json()
@@ -60,7 +61,7 @@ export function ShareFileModal({
 
   const fetchCurrentShares = async () => {
     try {
-      const response = await fetch(`/api/files/share?fileId=${fileId}`)
+      const response = await authFetch(`/api/files-share?fileId=${fileId}`)
       if (!response.ok) throw new Error('Failed to fetch shares')
 
       const data = await response.json()
@@ -106,7 +107,7 @@ export function ShareFileModal({
 
     setSharing(true)
     try {
-      const response = await fetch('/api/files/share', {
+      const response = await authFetch('/api/files-share', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

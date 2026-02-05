@@ -54,7 +54,19 @@ export default function FilesPage() {
     setLoading(true)
     try {
       const viewParam = profile?.role === 'admin' ? view : 'my-files'
-      const response = await fetch(`/api/files?folderPath=/&view=${viewParam}`)
+
+      // Get session token
+      const { data: { session } } = await supabase.auth.getSession()
+      if (!session) {
+        toast.error('Not authenticated')
+        return
+      }
+
+      const response = await fetch(`/api/files?folderPath=/&view=${viewParam}`, {
+        headers: {
+          'Authorization': `Bearer ${session.access_token}`,
+        },
+      })
 
       if (!response.ok) {
         throw new Error('Failed to fetch files')

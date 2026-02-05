@@ -61,9 +61,9 @@ export default async function DashboardPage() {
     .limit(5) as { data: TaskData[] | null }
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sticky Topbar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-neutral-border shadow-sm">
+      <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
         <div className="px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
@@ -141,18 +141,30 @@ export default async function DashboardPage() {
 
         {/* Analytics Dashboard */}
         <div className="mb-8">
-          <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border overflow-hidden">
+          <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border">
             <div className="p-6 border-b border-neutral-border">
               <h2 className="text-lg font-semibold text-text-primary">Analytics Dashboard</h2>
               <p className="text-sm text-text-muted mt-1">Real-time performance metrics</p>
             </div>
             <div className="p-6">
-              <div id="dashboard-273667" style={{ position: 'relative', overflow: 'hidden', height: '1000px' }}>
+              <div
+                style={{
+                  width: '100%',
+                  height: '600px',
+                  overflowY: 'scroll',
+                  overflowX: 'hidden',
+                  border: '1px solid #E0E0E0',
+                  borderRadius: '8px'
+                }}
+              >
                 <iframe
                   src="https://app.reachreporting.com/embed/-4CV2UoMvusB--r7?theme=light"
-                  style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', border: 'none' }}
-                  className="rr-embed"
-                  data-rr-id="273667"
+                  style={{
+                    width: '100%',
+                    height: '2000px',
+                    border: 'none',
+                    display: 'block'
+                  }}
                   title="Analytics Dashboard"
                 />
               </div>
@@ -229,39 +241,6 @@ export default async function DashboardPage() {
         </div>
       </div>
 
-      {/* Reach Reporting iframe script */}
-      <Script id="reach-reporting-script" strategy="afterInteractive">
-        {`
-          function rrSendScroll() {
-            var iframes = document.getElementsByClassName("rr-embed");
-            var de = document.documentElement;
-            for (var i = 0; i < iframes.length; i += 1) {
-              var box = iframes[i].getBoundingClientRect();
-              var top = box.top + window.pageYOffset - de.clientTop;
-              var message = JSON.stringify({
-                channel: "rr",
-                id: parseInt(iframes[i].getAttribute("data-rr-id"), 10),
-                scrollY: window.scrollY,
-                offsetTop: top
-              });
-              iframes[i].contentWindow.postMessage(message, "*");
-            }
-          }
-
-          window.addEventListener("message", function(e) {
-            try {
-              var d = JSON.parse(e.data);
-              var c = d.channel;
-              if (c === "rr") {
-                document.getElementById("dashboard-" + d.id).style.height = d.height + "px";
-                rrSendScroll();
-              }
-            } catch {}
-          });
-
-          window.addEventListener("scroll", rrSendScroll);
-        `}
-      </Script>
     </div>
   )
 }
