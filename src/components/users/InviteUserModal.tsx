@@ -35,7 +35,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
         .from('profiles')
         .select('org_id')
         .eq('id', currentUser.id)
-        .single()
+        .single() as { data: { org_id: string } | null }
 
       if (!profile) throw new Error('Profile not found')
 

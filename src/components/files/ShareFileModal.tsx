@@ -64,7 +64,7 @@ export function ShareFileModal({
       if (!response.ok) throw new Error('Failed to fetch shares')
 
       const data = await response.json()
-      const sharedUserIds = new Set(
+      const sharedUserIds = new Set<string>(
         data.permissions?.map((p: any) => p.user_id) || []
       )
       setSelectedUserIds(sharedUserIds)

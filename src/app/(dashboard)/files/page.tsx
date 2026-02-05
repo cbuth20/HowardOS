@@ -40,7 +40,7 @@ export default function FilesPage() {
         .from('profiles')
         .select('role, org_id')
         .eq('id', user.id)
-        .single()
+        .single() as { data: UserProfile | null }
       setProfile(data)
 
       // Auto-set view based on role

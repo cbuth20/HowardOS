@@ -30,7 +30,7 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const supabase = createClient()
+  const supabase = createClient() as any
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -102,7 +102,11 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
       }
 
       // Update profile
-      const updateData: any = {
+      const updateData: {
+        full_name: string
+        is_onboarded: boolean
+        avatar_url?: string
+      } = {
         full_name: fullName,
         is_onboarded: true,
       }
@@ -111,6 +115,7 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
         updateData.avatar_url = avatarUrl
       }
 
+      // @ts-ignore - Database types not properly inferred
       const { error } = await supabase
         .from('profiles')
         .update(updateData)

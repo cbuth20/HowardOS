@@ -1,4 +1,4 @@
-import { Handler } from '@netlify/functions'
+import { Handler, HandlerResponse } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 import { Readable } from 'stream'
 import busboy from 'busboy'
@@ -13,7 +13,7 @@ const headers = {
   'Content-Type': 'application/json',
 }
 
-export const handler: Handler = async (event) => {
+export const handler: Handler = async (event): Promise<HandlerResponse> => {
   if (event.httpMethod === 'OPTIONS') {
     return { statusCode: 200, headers, body: '' }
   }

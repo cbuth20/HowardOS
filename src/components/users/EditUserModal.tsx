@@ -33,7 +33,7 @@ export function EditUserModal({ isOpen, onClose, user, onComplete }: EditUserMod
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const supabase = createClient()
+  const supabase = createClient() as any
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]

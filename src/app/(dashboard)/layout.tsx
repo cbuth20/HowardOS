@@ -3,6 +3,15 @@ import { redirect } from 'next/navigation'
 import { Sidebar } from '@/components/layout/Sidebar'
 // import { OnboardingCheck } from '@/components/onboarding/OnboardingCheck'
 
+interface ProfileData {
+  role: 'admin' | 'client'
+  full_name: string | null
+  avatar_url: string | null
+  organizations: {
+    name: string
+  } | null
+}
+
 export default async function DashboardLayout({
   children,
 }: {
@@ -20,16 +29,16 @@ export default async function DashboardLayout({
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, organizations(name)')
+    .select('role, full_name, avatar_url, organizations(name)')
     .eq('id', user.id)
-    .single()
+    .single() as { data: ProfileData | null }
 
   return (
     <div className="flex h-screen bg-white">
       <Sidebar
         userRole={profile?.role}
         orgName={profile?.organizations?.name}
-        userName={profile?.full_name}
+        userName={profile?.full_name || undefined}
         userEmail={user.email || ''}
         userAvatar={profile?.avatar_url}
       />

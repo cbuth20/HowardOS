@@ -1,18 +1,20 @@
-import { Handler } from '@netlify/functions'
+import { Handler, HandlerResponse } from '@netlify/functions'
 import { createClient } from '@supabase/supabase-js'
 
 const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
 const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
 
-export const handler: Handler = async (event) => {
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Headers': 'Content-Type, Authorization',
+  'Access-Control-Allow-Methods': 'GET, OPTIONS',
+}
+
+export const handler: Handler = async (event): Promise<HandlerResponse> => {
   if (event.httpMethod === 'OPTIONS') {
     return {
       statusCode: 200,
-      headers: {
-        'Access-Control-Allow-Origin': '*',
-        'Access-Control-Allow-Headers': 'Content-Type, Authorization',
-        'Access-Control-Allow-Methods': 'GET, OPTIONS',
-      },
+      headers: corsHeaders,
       body: '',
     }
   }
@@ -20,7 +22,7 @@ export const handler: Handler = async (event) => {
   if (event.httpMethod !== 'GET') {
     return {
       statusCode: 405,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Method not allowed' }),
     }
   }
@@ -30,7 +32,7 @@ export const handler: Handler = async (event) => {
     if (!authHeader) {
       return {
         statusCode: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Unauthorized' }),
       }
     }
@@ -44,7 +46,7 @@ export const handler: Handler = async (event) => {
     if (authError || !user) {
       return {
         statusCode: 401,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Unauthorized' }),
       }
     }
@@ -58,7 +60,7 @@ export const handler: Handler = async (event) => {
     if (!profile) {
       return {
         statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Profile not found' }),
       }
     }
@@ -69,7 +71,7 @@ export const handler: Handler = async (event) => {
     if (!fileId) {
       return {
         statusCode: 400,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'File ID required' }),
       }
     }
@@ -84,7 +86,7 @@ export const handler: Handler = async (event) => {
     if (fileError || !file) {
       return {
         statusCode: 404,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'File not found' }),
       }
     }
@@ -93,7 +95,7 @@ export const handler: Handler = async (event) => {
     if (file.org_id !== profile.org_id) {
       return {
         statusCode: 403,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Permission denied' }),
       }
     }
@@ -106,7 +108,7 @@ export const handler: Handler = async (event) => {
     if (downloadError || !fileData) {
       return {
         statusCode: 500,
-        headers: { 'Content-Type': 'application/json' },
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
         body: JSON.stringify({ error: 'Failed to download file' }),
       }
     }
@@ -130,10 +132,10 @@ export const handler: Handler = async (event) => {
     return {
       statusCode: 200,
       headers: {
+        ...corsHeaders,
         'Content-Type': file.mime_type || 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${encodeURIComponent(file.name)}"`,
         'Content-Length': buffer.length.toString(),
-        'Access-Control-Allow-Origin': '*',
       },
       body: buffer.toString('base64'),
       isBase64Encoded: true,
@@ -141,7 +143,7 @@ export const handler: Handler = async (event) => {
   } catch (error: any) {
     return {
       statusCode: 500,
-      headers: { 'Content-Type': 'application/json' },
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       body: JSON.stringify({ error: 'Internal server error', message: error.message }),
     }
   }

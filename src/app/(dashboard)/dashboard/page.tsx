@@ -1,6 +1,30 @@
 import { createClient } from '@/lib/supabase/server'
 import Script from 'next/script'
 
+interface ProfileData {
+  full_name: string | null
+  email: string
+  role: 'admin' | 'client'
+  organizations: {
+    name: string
+  } | null
+}
+
+interface FileData {
+  id: string
+  name: string
+  created_at: string
+  mime_type: string
+}
+
+interface TaskData {
+  id: string
+  title: string
+  status: string
+  priority: string
+  due_date: string | null
+}
+
 export default async function DashboardPage() {
   const supabase = await createClient()
 
@@ -10,9 +34,9 @@ export default async function DashboardPage() {
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('*, organizations(name)')
+    .select('full_name, email, role, organizations(name)')
     .eq('id', user!.id)
-    .single()
+    .single() as { data: ProfileData | null }
 
   // Get some basic stats
   const { count: filesCount } = await supabase
@@ -28,13 +52,13 @@ export default async function DashboardPage() {
     .from('files')
     .select('id, name, created_at, mime_type')
     .order('created_at', { ascending: false })
-    .limit(5)
+    .limit(5) as { data: FileData[] | null }
 
   const { data: recentTasks } = await supabase
     .from('tasks')
     .select('id, title, status, priority, due_date')
     .order('created_at', { ascending: false })
-    .limit(5)
+    .limit(5) as { data: TaskData[] | null }
 
   return (
     <div className="flex-1 flex flex-col">

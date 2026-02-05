@@ -51,7 +51,7 @@ export default function UsersPage() {
         .from('profiles')
         .select('role')
         .eq('id', user.id)
-        .single()
+        .single() as { data: { role: string } | null }
       setCurrentUserRole(data?.role || '')
     }
   }
@@ -67,7 +67,7 @@ export default function UsersPage() {
         .from('profiles')
         .select('org_id, role')
         .eq('id', user.id)
-        .single()
+        .single() as { data: { org_id: string; role: 'admin' | 'client' } | null }
 
       if (!profile) return
 
