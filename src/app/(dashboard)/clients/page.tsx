@@ -8,6 +8,10 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { InviteUserModal } from '@/components/users/InviteUserModal'
 import { EditUserModal } from '@/components/users/EditUserModal'
+import { ClientOrgTasks } from '@/components/clients/ClientOrgTasks'
+import { TaskModal } from '@/components/tasks/TaskModal'
+import { TaskFormData } from '@/types/tasks'
+import { authFetch } from '@/lib/utils/auth-fetch'
 import {
   Users,
   Link as LinkIcon,
@@ -80,11 +84,19 @@ export default function ClientsPage() {
   const [creatingOrg, setCreatingOrg] = useState(false)
   const [uploadingLogo, setUploadingLogo] = useState(false)
 
+  // Task modal states
+  const [showTaskModal, setShowTaskModal] = useState(false)
+  const [users, setUsers] = useState<any[]>([])
+  const [allOrganizations, setAllOrganizations] = useState<any[]>([])
+  const [currentProfile, setCurrentProfile] = useState<any>(null)
+
   const supabase = createClient()
 
   useEffect(() => {
     loadOrganizations()
     loadAllUsers()
+    loadProfile()
+    loadUsersForTasks()
   }, [])
 
   const loadOrganizations = async () => {
@@ -204,6 +216,79 @@ export default function ClientsPage() {
       toast.error(error.message || 'Failed to save URL')
     } finally {
       setSavingUrl(false)
+    }
+  }
+
+  const loadProfile = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, org_id, role')
+        .eq('id', user.id)
+        .single()
+
+      setCurrentProfile(data)
+    } catch (error) {
+      console.error('Error loading profile:', error)
+    }
+  }
+
+  const loadUsersForTasks = async () => {
+    try {
+      const { data } = await supabase
+        .from('profiles')
+        .select('id, full_name, email, avatar_url, role, org_id')
+        .order('full_name')
+
+      setUsers(data || [])
+
+      const { data: orgs } = await supabase
+        .from('organizations')
+        .select('id, name, slug')
+        .order('name')
+
+      setAllOrganizations(orgs || [])
+    } catch (error) {
+      console.error('Error loading users:', error)
+    }
+  }
+
+  const handleCreateTaskForOrg = () => {
+    setShowTaskModal(true)
+  }
+
+  const handleTaskSave = async (formData: TaskFormData & { target_org_id?: string }) => {
+    try {
+      const taskData = {
+        ...formData,
+        target_org_id: selectedOrg?.id, // Set the org context
+      }
+
+      const response = await authFetch('/api/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(taskData),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to create task')
+      }
+
+      toast.success('Task created')
+      setShowTaskModal(false)
+      // Trigger refresh in ClientOrgTasks component by re-rendering
+      if (selectedOrg) {
+        loadOrganizations()
+      }
+    } catch (error: any) {
+      console.error('Error creating task:', error)
+      toast.error(error.message || 'Failed to create task')
+      throw error
     }
   }
 
@@ -793,10 +878,12 @@ export default function ClientsPage() {
               </div>
             )}
 
-            {activeTab === 'tasks' && (
-              <div className="py-8 text-center">
-                <p className="text-text-muted">Task management coming soon</p>
-              </div>
+            {activeTab === 'tasks' && selectedOrg && (
+              <ClientOrgTasks
+                orgId={selectedOrg.id}
+                orgName={selectedOrg.name}
+                onCreateTask={handleCreateTaskForOrg}
+              />
             )}
 
             {activeTab === 'users' && (
@@ -973,6 +1060,17 @@ export default function ClientsPage() {
           </div>
         </form>
       </Modal>
+
+      {/* Task Modal */}
+      <TaskModal
+        isOpen={showTaskModal}
+        onClose={() => setShowTaskModal(false)}
+        task={null}
+        onSave={handleTaskSave}
+        users={users}
+        organizations={allOrganizations}
+        profile={currentProfile}
+      />
 
     </>
   )
