@@ -5,6 +5,7 @@ import {
   DragEndEvent,
   DragOverlay,
   PointerSensor,
+  TouchSensor,
   useSensor,
   useSensors,
   closestCorners,
@@ -35,6 +36,12 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskClick, canEditTask }: Tas
     useSensor(PointerSensor, {
       activationConstraint: {
         distance: 8,
+      },
+    }),
+    useSensor(TouchSensor, {
+      activationConstraint: {
+        delay: 250,
+        tolerance: 5,
       },
     })
   )
@@ -81,7 +88,7 @@ export function TaskBoard({ tasks, onTaskUpdate, onTaskClick, canEditTask }: Tas
       onDragEnd={handleDragEnd}
       onDragCancel={handleDragCancel}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-3 md:gap-4 overflow-x-auto pb-4 snap-x snap-mandatory md:snap-none -mx-6 px-6 md:mx-0 md:px-0">
         {columns.map((column) => (
           <TaskColumn
             key={column.status}

@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
-import { Sidebar } from '@/components/layout/Sidebar'
+import { DashboardLayoutClient } from '@/components/layout/DashboardLayoutClient'
 // import { OnboardingCheck } from '@/components/onboarding/OnboardingCheck'
 
 interface ProfileData {
@@ -34,17 +34,14 @@ export default async function DashboardLayout({
     .single() as { data: ProfileData | null }
 
   return (
-    <div className="flex h-screen bg-white">
-      <Sidebar
-        userRole={profile?.role}
-        orgName={profile?.organizations?.name}
-        userName={profile?.full_name || undefined}
-        userEmail={user.email || ''}
-        userAvatar={profile?.avatar_url}
-      />
-      <main className="flex-1 flex flex-col overflow-hidden">
-        {children}
-      </main>
+    <DashboardLayoutClient
+      userRole={profile?.role}
+      orgName={profile?.organizations?.name}
+      userName={profile?.full_name || undefined}
+      userEmail={user.email || ''}
+      userAvatar={profile?.avatar_url}
+    >
+      {children}
       {/* Temporarily disabled until storage and DB are set up */}
       {/* <OnboardingCheck
         user={{
@@ -56,6 +53,6 @@ export default async function DashboardLayout({
         }}
         orgName={profile?.organizations?.name || ''}
       /> */}
-    </div>
+    </DashboardLayoutClient>
   )
 }

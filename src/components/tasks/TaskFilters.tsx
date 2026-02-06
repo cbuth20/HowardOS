@@ -47,35 +47,37 @@ export function TaskFilters({
   ]
 
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mb-4 pb-3 border-b border-neutral-border">
+    <div className="flex flex-col sm:flex-row gap-3 mb-3 md:mb-4 pb-3 border-b border-neutral-border">
       {/* View Tabs */}
-      <div className="flex gap-1.5 flex-wrap">
-        {availableTabs.map((tab) => (
-          <button
-            key={tab.value}
-            onClick={() => onTabChange(tab.value)}
-            className={`
-              px-3 py-1.5 rounded-md text-xs font-medium transition-colors
-              ${
-                activeTab === tab.value
-                  ? 'bg-brand-primary text-white'
-                  : 'bg-white text-text-primary border border-neutral-border hover:bg-muted-DEFAULT'
-              }
-            `}
-          >
-            {tab.label}
-          </button>
-        ))}
+      <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
+        <div className="flex gap-1.5 min-w-min">
+          {availableTabs.map((tab) => (
+            <button
+              key={tab.value}
+              onClick={() => onTabChange(tab.value)}
+              className={`
+                px-3 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 min-h-[36px]
+                ${
+                  activeTab === tab.value
+                    ? 'bg-brand-primary text-white'
+                    : 'bg-white text-text-primary border border-neutral-border hover:bg-muted-DEFAULT active:bg-muted-DEFAULT'
+                }
+              `}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Assignee Filter (Admin only) */}
       {userRole === 'admin' && (
-        <div className="sm:ml-auto sm:w-48">
+        <div className="sm:ml-auto w-full sm:w-48">
           <Select
             value={assigneeFilter || ''}
             onChange={(e) => onAssigneeChange(e.target.value || null)}
             options={assigneeOptions}
-            className="text-xs py-1.5"
+            className="text-xs"
           />
         </div>
       )}

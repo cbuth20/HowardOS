@@ -14,7 +14,8 @@ import {
   ChevronUp,
   Loader2,
   User,
-  Building2
+  Building2,
+  X
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -28,6 +29,8 @@ interface SidebarProps {
   userName?: string
   userEmail?: string
   userAvatar?: string | null
+  isOpen?: boolean
+  onClose?: () => void
 }
 
 interface Organization {
@@ -44,7 +47,7 @@ interface Organization {
   }>
 }
 
-export function Sidebar({ userRole = 'client', orgName, userName, userEmail, userAvatar }: SidebarProps) {
+export function Sidebar({ userRole = 'client', orgName, userName, userEmail, userAvatar, isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
@@ -55,6 +58,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
   const [loadingOrgs, setLoadingOrgs] = useState(false)
   const [switching, setSwitching] = useState<string | null>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
+  const sidebarRef = useRef<HTMLDivElement>(null)
 
   const DEV_PASSWORD = 'password'
 
@@ -197,8 +201,65 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
     item.roles.includes(userRole)
   )
 
+  // Close sidebar when clicking outside on mobile
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (sidebarRef.current && !sidebarRef.current.contains(event.target as Node)) {
+        if (window.innerWidth < 768 && isOpen && onClose) {
+          onClose()
+        }
+      }
+    }
+
+    if (isOpen) {
+      document.addEventListener('mousedown', handleClickOutside)
+    }
+
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside)
+    }
+  }, [isOpen, onClose])
+
+  // Close sidebar when route changes on mobile
+  useEffect(() => {
+    if (window.innerWidth < 768 && onClose) {
+      onClose()
+    }
+  }, [pathname, onClose])
+
   return (
-    <aside className="w-64 bg-background-subtle border-r border-neutral-border flex flex-col h-screen">
+    <>
+      {/* Mobile Overlay */}
+      {isOpen && onClose && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={onClose}
+        />
+      )}
+
+      {/* Sidebar */}
+      <aside
+        ref={sidebarRef}
+        className={`
+          w-64 bg-background-subtle border-r border-neutral-border flex flex-col h-screen
+          fixed md:static inset-y-0 left-0 z-50
+          transform transition-transform duration-300 ease-in-out
+          ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
+        `}
+      >
+      {/* Mobile Close Button */}
+      {onClose && (
+        <div className="md:hidden p-4 flex justify-end">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-neutral-gray-100 rounded-md transition-colors"
+            aria-label="Close menu"
+          >
+            <X className="w-5 h-5 text-text-secondary" />
+          </button>
+        </div>
+      )}
+
       {/* User Profile Dropdown */}
       <div className="p-4">
         <div className="relative" ref={userMenuRef}>
@@ -371,5 +432,6 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
 
       </div>
     </aside>
+    </>
   )
 }

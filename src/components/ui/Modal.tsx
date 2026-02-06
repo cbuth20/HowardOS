@@ -48,7 +48,7 @@ export function Modal({
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+    <div className="fixed inset-0 z-50 flex items-center justify-center p-0 md:p-4">
       {/* Backdrop */}
       <div
         className="absolute inset-0 bg-neutral-black/60 backdrop-blur-sm"
@@ -58,19 +58,19 @@ export function Modal({
 
       {/* Modal */}
       <div
-        className={`relative bg-white rounded-lg shadow-xl border border-neutral-border w-full ${sizeStyles[size]} max-h-[90vh] overflow-hidden flex flex-col`}
+        className={`relative bg-white md:rounded-lg shadow-xl border-0 md:border border-neutral-border w-full h-full md:h-auto ${sizeStyles[size]} md:max-h-[90vh] overflow-hidden flex flex-col`}
         role="dialog"
         aria-modal="true"
         style={{ backgroundColor: '#FFFFFF' }}
       >
         {/* Header */}
         {title && (
-          <div className="flex items-center justify-between p-6 border-b border-neutral-border bg-white">
-            <h2 className="text-lg font-semibold text-text-primary">{title}</h2>
+          <div className="flex items-center justify-between p-4 md:p-6 border-b border-neutral-border bg-white flex-shrink-0">
+            <h2 className="text-base md:text-lg font-semibold text-text-primary">{title}</h2>
             {!hideCloseButton && (
               <button
                 onClick={onClose}
-                className="text-text-muted hover:text-text-primary transition-colors"
+                className="text-text-muted hover:text-text-primary transition-colors p-1"
               >
                 <X className="w-5 h-5" />
               </button>
@@ -79,7 +79,7 @@ export function Modal({
         )}
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-6 bg-white">
+        <div className="flex-1 overflow-y-auto p-4 md:p-6 bg-white">
           {children}
         </div>
       </div>
@@ -94,7 +94,7 @@ export interface ModalFooterProps {
 
 export function ModalFooter({ children, className = '' }: ModalFooterProps) {
   return (
-    <div className={`flex items-center justify-end gap-3 p-6 border-t border-neutral-border ${className}`}>
+    <div className={`flex items-center justify-end gap-2 md:gap-3 p-4 md:p-6 border-t border-neutral-border flex-shrink-0 ${className}`}>
       {children}
     </div>
   )

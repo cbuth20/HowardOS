@@ -274,7 +274,7 @@ export default function TasksPage() {
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sticky Topbar */}
       <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
-        <div className="px-8 py-4">
+        <div className="px-4 md:px-8 py-3 md:py-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
               <CheckSquare className="w-6 h-6 text-brand-primary" />
@@ -285,16 +285,17 @@ export default function TasksPage() {
                 </p>
               </div>
             </div>
-            <Button onClick={openCreateModal}>
-              <Plus className="w-4 h-4 mr-2" />
-              New Task
+            <Button onClick={openCreateModal} size="sm" className="md:text-sm">
+              <Plus className="w-4 h-4 md:mr-2" />
+              <span className="hidden md:inline">New Task</span>
+              <span className="md:hidden">New</span>
             </Button>
           </div>
         </div>
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 overflow-auto p-6">
+      <div className="flex-1 overflow-auto p-4 md:p-6">
         <TaskFilters
           activeTab={activeTab}
           onTabChange={setActiveTab}

@@ -248,7 +248,7 @@ export function TaskModal({
         />
 
         {/* Status and Priority */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Select
             label="Status"
             value={formData.status}
@@ -318,7 +318,7 @@ export function TaskModal({
         )}
 
         {/* Assignee and Due Date */}
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <Select
             label="Assigned To"
             value={formData.assigned_to || ''}

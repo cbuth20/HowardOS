@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Roboto, Crimson_Text } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
 import './globals.css'
@@ -25,6 +25,12 @@ export const metadata: Metadata = {
   icons: {
     icon: '/favicon.svg',
   },
+}
+
+export const viewport: Viewport = {
+  width: 'device-width',
+  initialScale: 1,
+  maximumScale: 5,
 }
 
 export default function RootLayout({

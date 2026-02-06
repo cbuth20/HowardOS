@@ -20,7 +20,7 @@ export function TaskColumn({ status, title, tasks, onTaskClick, canEditTask }: T
   })
 
   return (
-    <div className="flex-1 min-w-[240px]">
+    <div className="flex-1 min-w-[280px] md:min-w-[240px] snap-center md:snap-align-none">
       {/* Column Header */}
       <div className="flex items-center justify-between mb-3 pb-2 border-b border-neutral-border">
         <h2 className="font-semibold text-text-primary text-base">

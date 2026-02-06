@@ -11,13 +11,18 @@
   "workspace": {
     "packageJson": {
       "dependencies": [
+        "npm:@dnd-kit/core@^6.3.1",
+        "npm:@dnd-kit/sortable@10",
+        "npm:@dnd-kit/utilities@^3.2.2",
         "npm:@netlify/functions@^2.8.0",
         "npm:@supabase/ssr@0.5",
         "npm:@supabase/supabase-js@^2.45.0",
+        "npm:@types/busboy@^1.5.0",
         "npm:@types/node@20",
         "npm:@types/react-dom@19",
         "npm:@types/react@19",
         "npm:autoprefixer@^10.4.0",
+        "npm:busboy@^1.6.0",
         "npm:date-fns@3",
         "npm:eslint-config-next@^15.1.0",
         "npm:eslint@9",
