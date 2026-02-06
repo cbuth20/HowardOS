@@ -200,53 +200,54 @@ export default function TasksPage() {
   }
 
   return (
-    <div className="max-w-screen-2xl mx-auto">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 bg-brand-primary/10 rounded-lg">
-            <CheckSquare className="w-6 h-6 text-brand-primary" />
-          </div>
+    <div className="flex-1 flex flex-col">
+      {/* Sticky Topbar */}
+      <div className="sticky top-0 z-10 bg-white border-b border-neutral-border shadow-sm">
+        <div className="px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-semibold text-text-primary">Tasks</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+              Tasks
+            </h1>
             <p className="text-sm text-text-muted">
               {isLoading ? 'Loading...' : `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`}
             </p>
           </div>
+          <Button
+            onClick={handleCreateTask}
+            variant="primary"
+          >
+            <Plus className="w-4 h-4 mr-2" />
+            New Task
+          </Button>
         </div>
-
-        <Button
-          onClick={handleCreateTask}
-          className="w-full sm:w-auto"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          New Task
-        </Button>
       </div>
 
-      {/* Filters */}
-      <TaskFilters
-        activeTab={activeTab}
-        onTabChange={handleTabChange}
-        assigneeFilter={assigneeFilter}
-        onAssigneeChange={handleAssigneeChange}
-        users={users}
-        userRole={profile.role}
-      />
-
-      {/* Task Board */}
-      {isLoading ? (
-        <div className="flex items-center justify-center h-64">
-          <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
-        </div>
-      ) : (
-        <TaskBoard
-          tasks={tasks as any}
-          onTaskClick={handleEditTask}
-          onTaskUpdate={handleTaskUpdate}
-          canEditTask={(task: any) => canEditTask(profile as any, task)}
+      {/* Main Content */}
+      <div className="flex-1 overflow-auto p-8">
+        {/* Filters */}
+        <TaskFilters
+          activeTab={activeTab}
+          onTabChange={handleTabChange}
+          assigneeFilter={assigneeFilter}
+          onAssigneeChange={handleAssigneeChange}
+          users={users}
+          userRole={profile.role}
         />
-      )}
+
+        {/* Task Board */}
+        {isLoading ? (
+          <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+          </div>
+        ) : (
+          <TaskBoard
+            tasks={tasks as any}
+            onTaskClick={handleEditTask}
+            onTaskUpdate={handleTaskUpdate}
+            canEditTask={(task: any) => canEditTask(profile as any, task)}
+          />
+        )}
+      </div>
 
       {/* Task Modal */}
       <TaskModal
