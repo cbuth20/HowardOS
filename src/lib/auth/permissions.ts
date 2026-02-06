@@ -124,6 +124,48 @@ export function canEditTask(
 }
 
 /**
+ * Check if user can delete a task
+ */
+export function canDeleteTask(
+  profile: Profile | null,
+  task: Task
+): boolean {
+  if (!profile) return false
+
+  // Must be in same org
+  if (!isSameOrg(profile, task.org_id)) return false
+
+  // Admins can delete all tasks
+  if (isAdmin(profile)) return true
+
+  // Clients can only delete tasks they created
+  if (isClient(profile) && task.created_by === profile.id) return true
+
+  return false
+}
+
+/**
+ * Check if user can assign a task to a specific user
+ */
+export function canAssignTaskTo(
+  profile: Profile | null,
+  assigneeId: string,
+  assigneeRole: 'admin' | 'client'
+): boolean {
+  if (!profile) return false
+
+  // Admins can assign to anyone
+  if (isAdmin(profile)) return true
+
+  // Clients can only assign to themselves or admins
+  if (isClient(profile)) {
+    return assigneeId === profile.id || assigneeRole === 'admin'
+  }
+
+  return false
+}
+
+/**
  * Check if user can manage other users
  */
 export function canManageUsers(profile: Profile | null): boolean {

@@ -15,7 +15,7 @@ interface EditUserModalProps {
   user: {
     id: string
     email: string
-    full_name: string
+    full_name: string | null
     role: 'admin' | 'client'
     is_active: boolean
     avatar_url: string | null
@@ -24,7 +24,7 @@ interface EditUserModalProps {
 }
 
 export function EditUserModal({ isOpen, onClose, user, onComplete }: EditUserModalProps) {
-  const [fullName, setFullName] = useState(user.full_name)
+  const [fullName, setFullName] = useState(user.full_name || '')
   const [role, setRole] = useState<'admin' | 'client'>(user.role)
   const [isActive, setIsActive] = useState(user.is_active)
   const [avatarFile, setAvatarFile] = useState<File | null>(null)

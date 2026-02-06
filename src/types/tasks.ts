@@ -1,0 +1,47 @@
+export type TaskStatus = 'pending' | 'in_progress' | 'completed' | 'hidden' | 'cancelled';
+export type TaskPriority = 'low' | 'medium' | 'high' | 'urgent';
+
+export interface Task {
+  id: string;
+  org_id: string;
+  title: string;
+  description: string | null;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assigned_to: string | null;
+  created_by: string;
+  due_date: string | null;
+  completed_at: string | null;
+  created_at: string;
+  updated_at: string;
+  assigned_to_profile?: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    avatar_url: string | null;
+    role: 'admin' | 'client';
+  };
+  created_by_profile?: {
+    id: string;
+    full_name: string | null;
+    email: string;
+    avatar_url: string | null;
+  };
+}
+
+export type TaskView = 'my-tasks' | 'team-tasks' | 'client-tasks' | 'all-tasks';
+
+export interface TaskFilters {
+  view: TaskView;
+  assignee?: string | null;
+  status?: TaskStatus | null;
+}
+
+export interface TaskFormData {
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  assigned_to?: string | null;
+  due_date?: string | null;
+}

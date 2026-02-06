@@ -13,7 +13,8 @@ import {
   ChevronDown,
   ChevronUp,
   Loader2,
-  User
+  User,
+  Building2
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -29,17 +30,18 @@ interface SidebarProps {
   userAvatar?: string | null
 }
 
-interface ClientUser {
+interface Organization {
   id: string
-  email: string
-  full_name: string
-  role: string
-  org_id: string
-  organizations?: {
+  name: string
+  slug: string
+  logo_url: string | null
+  created_at: string
+  clients?: Array<{
     id: string
-    name: string
-    slug: string
-  }
+    email: string
+    full_name: string | null
+    role: string
+  }>
 }
 
 export function Sidebar({ userRole = 'client', orgName, userName, userEmail, userAvatar }: SidebarProps) {
@@ -49,8 +51,8 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
 
   const [showUserMenu, setShowUserMenu] = useState(false)
   const [showClientSwitcher, setShowClientSwitcher] = useState(false)
-  const [clients, setClients] = useState<ClientUser[]>([])
-  const [loadingClients, setLoadingClients] = useState(false)
+  const [organizations, setOrganizations] = useState<Organization[]>([])
+  const [loadingOrgs, setLoadingOrgs] = useState(false)
   const [switching, setSwitching] = useState<string | null>(null)
   const userMenuRef = useRef<HTMLDivElement>(null)
 
@@ -74,55 +76,71 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
   }, [showUserMenu])
 
   useEffect(() => {
-    if (showClientSwitcher && clients.length === 0) {
-      fetchClients()
+    if (showClientSwitcher && organizations.length === 0) {
+      fetchOrganizations()
     }
   }, [showClientSwitcher])
 
-  const fetchClients = async () => {
-    setLoadingClients(true)
+  const fetchOrganizations = async () => {
+    setLoadingOrgs(true)
     try {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select(`
-          id,
-          email,
-          full_name,
-          role,
-          org_id,
-          organizations (
-            id,
-            name,
-            slug
-          )
-        `)
-        .eq('role', 'client')
-        .eq('is_active', true)
-        .order('full_name')
+      // First get all organizations
+      const { data: orgsData, error: orgsError } = await supabase
+        .from('organizations')
+        .select('id, name, slug, logo_url, created_at')
+        .order('name')
 
-      if (error) throw error
-      setClients(data || [])
+      if (orgsError) throw orgsError
+
+      // Then get client users for each organization
+      const orgsWithClients = await Promise.all(
+        (orgsData || []).map(async (org: any) => {
+          const { data: clientsData } = await supabase
+            .from('profiles')
+            .select('id, email, full_name, role')
+            .eq('org_id', org.id)
+            .eq('role', 'client')
+            .eq('is_active', true)
+            .order('full_name')
+
+          return {
+            ...org,
+            clients: clientsData || []
+          }
+        })
+      )
+
+      // Filter out organizations with no active clients
+      const orgsWithActiveClients = orgsWithClients.filter(org => org.clients && org.clients.length > 0)
+      setOrganizations(orgsWithActiveClients)
     } catch (error) {
-      console.error('Error fetching clients:', error)
+      console.error('Error fetching organizations:', error)
     } finally {
-      setLoadingClients(false)
+      setLoadingOrgs(false)
     }
   }
 
-  const handleSwitchToClient = async (clientEmail: string, clientId: string) => {
+  const handleSwitchToOrg = async (org: Organization) => {
     if (process.env.NODE_ENV === 'production') {
       alert('Client switching is only available in development')
       return
     }
 
-    setSwitching(clientId)
+    // Get the first client from this organization
+    const firstClient = org.clients?.[0]
+    if (!firstClient) {
+      alert('No active clients found in this organization')
+      return
+    }
+
+    setSwitching(org.id)
     try {
       // Sign out current user
       await supabase.auth.signOut()
 
-      // Sign in as the client
+      // Sign in as the first client
       const { error } = await supabase.auth.signInWithPassword({
-        email: clientEmail,
+        email: firstClient.email,
         password: DEV_PASSWORD,
       })
 
@@ -147,15 +165,6 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
     router.refresh()
   }
 
-  // Group clients by organization
-  const clientsByOrg = clients.reduce((acc, client) => {
-    const orgName = client.organizations?.name || 'Unknown Organization'
-    if (!acc[orgName]) {
-      acc[orgName] = []
-    }
-    acc[orgName].push(client)
-    return acc
-  }, {} as Record<string, ClientUser[]>)
 
   const navItems = [
     {
@@ -175,6 +184,12 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       href: '/tasks',
       icon: CheckSquare,
       roles: ['admin', 'client'],
+    },
+    {
+      label: 'Clients',
+      href: '/clients',
+      icon: Users,
+      roles: ['admin'],
     },
   ]
 
@@ -303,53 +318,49 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
               )}
             </button>
 
-            {/* Dropdown with clients */}
+            {/* Dropdown with organizations */}
             {showClientSwitcher && (
               <div className="mt-2 bg-background-elevated border border-neutral-border rounded-md p-2 max-h-64 overflow-y-auto shadow-sm">
-                {loadingClients ? (
+                {loadingOrgs ? (
                   <div className="flex items-center justify-center py-4">
                     <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
                   </div>
-                ) : clients.length === 0 ? (
+                ) : organizations.length === 0 ? (
                   <p className="text-xs text-text-muted text-center py-4">
-                    No client accounts found
+                    No organizations with active clients found
                   </p>
                 ) : (
-                  <div className="space-y-3">
-                    {Object.entries(clientsByOrg).map(([orgName, orgClients]) => (
-                      <div key={orgName}>
-                        <p className="text-xs font-medium text-text-muted mb-1 px-2">
-                          {orgName}
-                        </p>
-                        <div className="space-y-1">
-                          {orgClients.map((client) => (
-                            <button
-                              key={client.id}
-                              onClick={() => handleSwitchToClient(client.email, client.id)}
-                              disabled={switching !== null}
-                              className="w-full text-left px-3 py-2 rounded text-sm text-text-primary hover:bg-neutral-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
-                            >
-                              <Avatar
-                                name={client.full_name || client.email}
-                                email={client.email}
-                                role={client.role as 'admin' | 'client'}
-                                size="sm"
-                              />
-                              <div className="flex-1 min-w-0">
-                                <p className="font-medium truncate">
-                                  {client.full_name || client.email}
-                                </p>
-                                <p className="text-xs text-text-muted truncate">
-                                  {client.email}
-                                </p>
-                              </div>
-                              {switching === client.id && (
-                                <Loader2 className="w-4 h-4 animate-spin text-brand-primary flex-shrink-0" />
-                              )}
-                            </button>
-                          ))}
+                  <div className="space-y-1">
+                    {organizations.map((org) => (
+                      <button
+                        key={org.id}
+                        onClick={() => handleSwitchToOrg(org)}
+                        disabled={switching !== null}
+                        className="w-full text-left px-3 py-2 rounded text-sm text-text-primary hover:bg-neutral-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                      >
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-neutral-gray-100 flex items-center justify-center flex-shrink-0">
+                          {org.logo_url ? (
+                            <img
+                              src={org.logo_url}
+                              alt={org.name}
+                              className="w-full h-full object-cover"
+                            />
+                          ) : (
+                            <Building2 className="w-4 h-4 text-text-muted" />
+                          )}
                         </div>
-                      </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="font-medium truncate">
+                            {org.name}
+                          </p>
+                          <p className="text-xs text-text-muted truncate">
+                            {org.clients?.length || 0} client{org.clients?.length !== 1 ? 's' : ''}
+                          </p>
+                        </div>
+                        {switching === org.id && (
+                          <Loader2 className="w-4 h-4 animate-spin text-brand-primary flex-shrink-0" />
+                        )}
+                      </button>
                     ))}
                   </div>
                 )}

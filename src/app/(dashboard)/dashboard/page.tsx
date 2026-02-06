@@ -5,6 +5,7 @@ interface ProfileData {
   full_name: string | null
   email: string
   role: 'admin' | 'client'
+  dashboard_iframe_url: string | null
   organizations: {
     name: string
   } | null
@@ -34,7 +35,7 @@ export default async function DashboardPage() {
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('full_name, email, role, organizations(name)')
+    .select('full_name, email, role, dashboard_iframe_url, organizations(name)')
     .eq('id', user!.id)
     .single() as { data: ProfileData | null }
 
@@ -140,37 +141,39 @@ export default async function DashboardPage() {
         </div>
 
         {/* Analytics Dashboard */}
-        <div className="mb-8">
-          <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border">
-            <div className="p-6 border-b border-neutral-border">
-              <h2 className="text-lg font-semibold text-text-primary">Analytics Dashboard</h2>
-              <p className="text-sm text-text-muted mt-1">Real-time performance metrics</p>
-            </div>
-            <div className="p-6">
-              <div
-                style={{
-                  width: '100%',
-                  height: '600px',
-                  overflowY: 'scroll',
-                  overflowX: 'hidden',
-                  border: '1px solid #E0E0E0',
-                  borderRadius: '8px'
-                }}
-              >
-                <iframe
-                  src="https://app.reachreporting.com/embed/-4CV2UoMvusB--r7?theme=light"
+        {profile?.dashboard_iframe_url && (
+          <div className="mb-8">
+            <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border">
+              <div className="p-6 border-b border-neutral-border">
+                <h2 className="text-lg font-semibold text-text-primary">Analytics Dashboard</h2>
+                <p className="text-sm text-text-muted mt-1">Real-time performance metrics</p>
+              </div>
+              <div className="p-6">
+                <div
                   style={{
                     width: '100%',
-                    height: '2000px',
-                    border: 'none',
-                    display: 'block'
+                    height: '600px',
+                    overflowY: 'scroll',
+                    overflowX: 'hidden',
+                    border: '1px solid #E0E0E0',
+                    borderRadius: '8px'
                   }}
-                  title="Analytics Dashboard"
-                />
+                >
+                  <iframe
+                    src={profile.dashboard_iframe_url}
+                    style={{
+                      width: '100%',
+                      height: '2000px',
+                      border: 'none',
+                      display: 'block'
+                    }}
+                    title="Analytics Dashboard"
+                  />
+                </div>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
