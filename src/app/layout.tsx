@@ -1,6 +1,8 @@
 import type { Metadata, Viewport } from 'next'
 import { Roboto, Crimson_Text } from 'next/font/google'
 import { Toaster } from 'react-hot-toast'
+import { Providers } from './providers'
+import { ErrorBoundary } from '@/components/ErrorBoundary'
 import './globals.css'
 
 // Body and sub-headers - Roboto Light
@@ -41,29 +43,33 @@ export default function RootLayout({
   return (
     <html lang="en" className={`${roboto.variable} ${crimsonText.variable}`}>
       <body className={roboto.className}>
-        <Toaster
-          position="top-right"
-          toastOptions={{
-            style: {
-              background: '#FFFFFF',
-              color: '#465352',
-              border: '1px solid #D3D3D3',
-            },
-            success: {
-              iconTheme: {
-                primary: '#758C7C',
-                secondary: '#FFFFFF',
-              },
-            },
-            error: {
-              iconTheme: {
-                primary: '#C85A54',
-                secondary: '#FFFFFF',
-              },
-            },
-          }}
-        />
-        {children}
+        <ErrorBoundary>
+          <Providers>
+            <Toaster
+              position="top-right"
+              toastOptions={{
+                style: {
+                  background: '#FFFFFF',
+                  color: '#465352',
+                  border: '1px solid #D3D3D3',
+                },
+                success: {
+                  iconTheme: {
+                    primary: '#758C7C',
+                    secondary: '#FFFFFF',
+                  },
+                },
+                error: {
+                  iconTheme: {
+                    primary: '#C85A54',
+                    secondary: '#FFFFFF',
+                  },
+                },
+              }}
+            />
+            {children}
+          </Providers>
+        </ErrorBoundary>
       </body>
     </html>
   )

@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react'
 import { authFetch } from '@/lib/utils/auth-fetch'
 import { Task, TaskStatus, TaskPriority } from '@/types/tasks'
 import { Button } from '@/components/ui/Button'
-import { Plus, Loader2, CheckCircle2, Circle, Clock, AlertCircle } from 'lucide-react'
+import { Plus, Loader2, CheckCircle2, Circle, Clock, AlertCircle, LucideIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
 import toast from 'react-hot-toast'
 
@@ -14,7 +14,7 @@ interface ClientOrgTasksProps {
   onCreateTask: () => void
 }
 
-const statusConfig: Record<TaskStatus, { label: string; icon: any; color: string }> = {
+const statusConfig: Record<TaskStatus, { label: string; icon: LucideIcon; color: string }> = {
   pending: { label: 'To Do', icon: Circle, color: 'text-text-muted' },
   in_progress: { label: 'In Progress', icon: Clock, color: 'text-brand-primary' },
   completed: { label: 'Done', icon: CheckCircle2, color: 'text-state-success' },

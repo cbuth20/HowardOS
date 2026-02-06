@@ -7,6 +7,7 @@ import { Textarea } from '@/components/ui/Textarea'
 import { Select, SelectOption } from '@/components/ui/Select'
 import { Button } from '@/components/ui/Button'
 import { Task, TaskFormData } from '@/types/tasks'
+import { TaskStatus, TaskPriority } from '@/types/entities'
 import { canAssignTaskTo, canDeleteTask } from '@/lib/auth/permissions'
 
 interface User {
@@ -252,14 +253,14 @@ export function TaskModal({
           <Select
             label="Status"
             value={formData.status}
-            onChange={(e) => setFormData({ ...formData, status: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, status: e.target.value as TaskStatus })}
             options={statusOptions}
           />
 
           <Select
             label="Priority"
             value={formData.priority}
-            onChange={(e) => setFormData({ ...formData, priority: e.target.value as any })}
+            onChange={(e) => setFormData({ ...formData, priority: e.target.value as TaskPriority })}
             options={priorityOptions}
           />
         </div>

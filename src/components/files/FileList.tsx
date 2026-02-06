@@ -25,7 +25,7 @@ interface File {
 }
 
 interface FileListProps {
-  files: File[]
+  files: any[]
   canDelete?: boolean
   canShare?: boolean
   onRefresh?: () => void

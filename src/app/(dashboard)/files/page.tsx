@@ -7,7 +7,7 @@ import { Modal } from '@/components/ui/Modal'
 import { FileUpload } from '@/components/files/FileUpload'
 import { FileList } from '@/components/files/FileList'
 import { createClient } from '@/lib/supabase/client'
-import toast from 'react-hot-toast'
+import { useFiles } from '@/lib/api/hooks'
 
 interface UserProfile {
   role: 'admin' | 'client'
@@ -15,32 +15,28 @@ interface UserProfile {
 }
 
 export default function FilesPage() {
-  const [files, setFiles] = useState([])
-  const [loading, setLoading] = useState(true)
   const [showUploadModal, setShowUploadModal] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [view, setView] = useState<'all' | 'my-files'>('all')
 
   const supabase = createClient()
 
+  // Use TanStack Query hook
+  const { data, isLoading, refetch } = useFiles('/', profile?.role === 'admin' ? view : 'my-files')
+  const files = data?.files || []
+
   useEffect(() => {
     fetchProfile()
   }, [])
 
-  useEffect(() => {
-    if (profile) {
-      fetchFiles()
-    }
-  }, [profile, view])
-
   const fetchProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('profiles')
         .select('role, org_id')
         .eq('id', user.id)
-        .single() as { data: UserProfile | null }
+        .single()
       setProfile(data)
 
       // Auto-set view based on role
@@ -50,41 +46,9 @@ export default function FilesPage() {
     }
   }
 
-  const fetchFiles = async () => {
-    setLoading(true)
-    try {
-      const viewParam = profile?.role === 'admin' ? view : 'my-files'
-
-      // Get session token
-      const { data: { session } } = await supabase.auth.getSession()
-      if (!session) {
-        toast.error('Not authenticated')
-        return
-      }
-
-      const response = await fetch(`/api/files?folderPath=/&view=${viewParam}`, {
-        headers: {
-          'Authorization': `Bearer ${session.access_token}`,
-        },
-      })
-
-      if (!response.ok) {
-        throw new Error('Failed to fetch files')
-      }
-
-      const data = await response.json()
-      setFiles(data.files || [])
-    } catch (error) {
-      console.error('Error fetching files:', error)
-      toast.error('Failed to load files')
-    } finally {
-      setLoading(false)
-    }
-  }
-
   const handleUploadComplete = () => {
     setShowUploadModal(false)
-    fetchFiles()
+    refetch()
   }
 
   const isAdmin = profile?.role === 'admin'
@@ -108,10 +72,10 @@ export default function FilesPage() {
           <div className="flex gap-2">
             <Button
               variant="ghost"
-              onClick={fetchFiles}
-              disabled={loading}
+              onClick={() => refetch()}
+              disabled={isLoading}
             >
-              <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
             </Button>
             <Button
               variant="primary"
@@ -148,7 +112,7 @@ export default function FilesPage() {
 
         {/* Files List */}
         <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border p-6">
-          {loading ? (
+          {isLoading ? (
             <div className="text-center py-12">
               <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto"></div>
               <p className="text-text-muted mt-4">Loading files...</p>
@@ -158,7 +122,7 @@ export default function FilesPage() {
               files={files}
               canDelete={canDelete}
               canShare={isAdmin}
-              onRefresh={fetchFiles}
+              onRefresh={() => refetch()}
             />
           )}
         </div>

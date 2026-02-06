@@ -6,8 +6,7 @@ import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
 import { User, Lock, Loader2 } from 'lucide-react'
-import { authFetch } from '@/lib/utils/auth-fetch'
-import toast from 'react-hot-toast'
+import { useUpdateUserProfile, useChangePassword } from '@/lib/api/hooks'
 
 interface ProfileData {
   full_name: string | null
@@ -21,15 +20,17 @@ export default function SettingsPage() {
 
   // Profile update state
   const [fullName, setFullName] = useState('')
-  const [updatingProfile, setUpdatingProfile] = useState(false)
 
   // Password change state
   const [currentPassword, setCurrentPassword] = useState('')
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
-  const [changingPassword, setChangingPassword] = useState(false)
 
   const supabase = createClient()
+
+  // Use TanStack Query hooks
+  const updateProfile = useUpdateUserProfile()
+  const changePassword = useChangePassword()
 
   useEffect(() => {
     loadProfile()
@@ -40,11 +41,11 @@ export default function SettingsPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
-      const { data } = await supabase
+      const { data } = await (supabase as any)
         .from('profiles')
         .select('full_name, email, avatar_url')
         .eq('id', user.id)
-        .single() as { data: ProfileData | null }
+        .single()
 
       if (data) {
         setProfile(data)
@@ -52,7 +53,6 @@ export default function SettingsPage() {
       }
     } catch (error) {
       console.error('Error loading profile:', error)
-      toast.error('Failed to load profile')
     } finally {
       setLoading(false)
     }
@@ -60,77 +60,33 @@ export default function SettingsPage() {
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
-    setUpdatingProfile(true)
 
     try {
-      const response = await authFetch('/api/users-profile-update', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          fullName: fullName.trim() || null,
-        }),
+      await updateProfile.mutateAsync({
+        full_name: fullName.trim() || undefined,
       })
-
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to update profile')
-      }
-
-      toast.success('Profile updated successfully')
       loadProfile()
-    } catch (error: any) {
-      console.error('Profile update error:', error)
-      toast.error(error.message || 'Failed to update profile')
-    } finally {
-      setUpdatingProfile(false)
+    } catch (error) {
+      // Error already handled by mutation hook
     }
   }
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault()
 
-    // Validation
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      toast.error('Please fill in all password fields')
-      return
-    }
-
-    if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters')
-      return
-    }
-
-    if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match')
-      return
-    }
-
-    setChangingPassword(true)
-
     try {
-      const response = await authFetch('/api/users-password-change', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          currentPassword,
-          newPassword,
-        }),
+      await changePassword.mutateAsync({
+        currentPassword,
+        newPassword,
+        confirmPassword,
       })
 
-      if (!response.ok) {
-        const error = await response.json()
-        throw new Error(error.error || 'Failed to change password')
-      }
-
-      toast.success('Password changed successfully')
+      // Clear form on success
       setCurrentPassword('')
       setNewPassword('')
       setConfirmPassword('')
-    } catch (error: any) {
-      console.error('Password change error:', error)
-      toast.error(error.message || 'Failed to change password')
-    } finally {
-      setChangingPassword(false)
+    } catch (error) {
+      // Error already handled by mutation hook
     }
   }
 
@@ -217,7 +173,7 @@ export default function SettingsPage() {
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Enter your full name"
-                  disabled={updatingProfile}
+                  disabled={updateProfile.isPending}
                 />
               </div>
 
@@ -226,9 +182,9 @@ export default function SettingsPage() {
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={updatingProfile}
+                  disabled={updateProfile.isPending}
                 >
-                  {updatingProfile ? (
+                  {updateProfile.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Saving...
@@ -267,7 +223,7 @@ export default function SettingsPage() {
                   value={currentPassword}
                   onChange={(e) => setCurrentPassword(e.target.value)}
                   placeholder="Enter your current password"
-                  disabled={changingPassword}
+                  disabled={changePassword.isPending}
                 />
               </div>
 
@@ -282,10 +238,10 @@ export default function SettingsPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   placeholder="Enter your new password"
-                  disabled={changingPassword}
+                  disabled={changePassword.isPending}
                 />
                 <p className="text-xs text-text-muted mt-1">
-                  Must be at least 8 characters
+                  Must be at least 6 characters
                 </p>
               </div>
 
@@ -300,7 +256,7 @@ export default function SettingsPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="Confirm your new password"
-                  disabled={changingPassword}
+                  disabled={changePassword.isPending}
                 />
               </div>
 
@@ -309,9 +265,9 @@ export default function SettingsPage() {
                 <Button
                   type="submit"
                   variant="primary"
-                  disabled={changingPassword}
+                  disabled={changePassword.isPending}
                 >
-                  {changingPassword ? (
+                  {changePassword.isPending ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
                       Changing Password...

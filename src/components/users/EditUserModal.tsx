@@ -33,7 +33,7 @@ export function EditUserModal({ isOpen, onClose, user, onComplete }: EditUserMod
   const [uploadingAvatar, setUploadingAvatar] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const supabase = createClient() as any
+  const supabase = createClient()
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
@@ -119,7 +119,7 @@ export function EditUserModal({ isOpen, onClose, user, onComplete }: EditUserMod
       }
 
       // Update user profile
-      const { error } = await supabase
+      const { error } = await (supabase as any)
         .from('profiles')
         .update({
           full_name: fullName,
