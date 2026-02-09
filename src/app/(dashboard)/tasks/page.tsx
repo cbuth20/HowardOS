@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { CheckSquare, Loader2, Plus } from 'lucide-react'
+import { CheckSquare, Plus } from 'lucide-react'
 import { TaskView, TaskStatus, TaskFormData } from '@/types/tasks'
 import { TaskBoard } from '@/components/tasks/TaskBoard'
 import { TaskFilters } from '@/components/tasks/TaskFilters'
 import { TaskModal } from '@/components/tasks/TaskModal'
 import { Button } from '@/components/ui/Button'
+import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
 import { canEditTask } from '@/lib/auth/permissions'
 import { useTasks, useUpdateTask, useCreateTask, useDeleteTask } from '@/lib/api/hooks'
 
@@ -50,7 +51,7 @@ export default function TasksPage() {
   const supabase = createClient()
 
   // Use TanStack Query hooks
-  const { data, isLoading, refetch } = useTasks({
+  const { data: tasks = [], isLoading, refetch } = useTasks({
     view: activeTab,
     assignee: assigneeFilter || undefined,
   })
@@ -58,8 +59,6 @@ export default function TasksPage() {
   const updateTask = useUpdateTask()
   const createTask = useCreateTask()
   const deleteTask = useDeleteTask()
-
-  const tasks = data?.tasks || []
 
   useEffect(() => {
     loadProfile()
@@ -194,7 +193,7 @@ export default function TasksPage() {
   if (!profile) {
     return (
       <div className="flex items-center justify-center h-64">
-        <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+        <LoadingSpinner size="lg" />
       </div>
     )
   }
@@ -205,9 +204,12 @@ export default function TasksPage() {
       <div className="sticky top-0 z-10 bg-white border-b border-neutral-border shadow-sm">
         <div className="px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-text-primary">
-              Tasks
-            </h1>
+            <div className="flex gap-2">
+              <CheckSquare className="w-6 h-6 text-brand-primary" />
+              <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+                Tasks
+              </h1>
+            </div>
             <p className="text-sm text-text-muted">
               {isLoading ? 'Loading...' : `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`}
             </p>
@@ -237,7 +239,7 @@ export default function TasksPage() {
         {/* Task Board */}
         {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 animate-spin text-brand-primary" />
+            <LoadingSpinner size="lg" />
           </div>
         ) : (
           <TaskBoard

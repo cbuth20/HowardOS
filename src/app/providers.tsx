@@ -8,8 +8,18 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const [queryClient] = useState(() => new QueryClient({
     defaultOptions: {
       queries: {
-        staleTime: 60 * 1000, // 1 minute
+        staleTime: 30 * 1000, // Data is fresh for 30 seconds
+        gcTime: 5 * 60 * 1000, // Cache garbage collected after 5 minutes (formerly cacheTime)
         retry: 1,
+        refetchOnWindowFocus: true, // Refetch when user returns to tab
+        refetchOnReconnect: true, // Refetch when internet reconnects
+        refetchOnMount: true, // Refetch when component mounts if data is stale
+      },
+      mutations: {
+        // Global mutation callbacks
+        onSuccess: () => {
+          // Optionally add global success handling here
+        },
       },
     },
   }))

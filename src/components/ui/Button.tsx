@@ -17,21 +17,20 @@ export function Button({
   const baseStyles = 'inline-flex items-center justify-center font-medium rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
 
   const variantStyles = {
-    // Primary: High contrast sage green with white text
-    // primary: 'bg-brand-primary text-white hover:bg-brand-primary/90 shadow-sm hover:shadow-md focus:ring-brand-primary',
-    primary: 'bg-brand-navy text-white hover:bg-brand-navy/90 shadow-sm hover:shadow-md focus:ring-brand-navy',
+    // Primary: Deep sage for call-to-action buttons
+    primary: 'bg-action-primary text-white hover:bg-action-primary-hover shadow-sm hover:shadow-md focus:ring-action-primary',
 
-    // Secondary: Navy background with white text
-    secondary: 'bg-brand-primary text-white hover:bg-brand-primary/90 shadow-sm hover:shadow-md focus:ring-brand-primary',
+    // Secondary: Light mint sage for secondary actions
+    secondary: 'bg-[#95CBA7] text-white hover:bg-[#7FBC94] shadow-sm hover:shadow-md focus:ring-[#95CBA7]',
 
     // Destructive: Error red with white text
     destructive: 'bg-state-error text-white hover:bg-state-error/90 shadow-sm hover:shadow-md focus:ring-state-error',
 
     // Ghost: Transparent with subtle hover
-    ghost: 'text-text-primary hover:bg-background-hover hover:text-brand-navy focus:ring-brand-primary',
+    ghost: 'text-text-primary hover:bg-background-hover hover:text-brand-navy focus:ring-action-primary',
 
     // Outline: Border style for secondary actions
-    outline: 'border-2 border-neutral-border text-text-primary hover:border-brand-primary hover:bg-background-hover hover:text-brand-navy focus:ring-brand-primary',
+    outline: 'border-2 border-neutral-border text-text-primary hover:border-action-primary hover:bg-background-hover hover:text-action-primary focus:ring-action-primary',
   }
 
   const sizeStyles = {

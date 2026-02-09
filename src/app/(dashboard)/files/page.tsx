@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, RefreshCw } from 'lucide-react'
+import { FolderOpen, Plus, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Modal } from '@/components/ui/Modal'
 import { FileUpload } from '@/components/files/FileUpload'
@@ -22,8 +22,7 @@ export default function FilesPage() {
   const supabase = createClient()
 
   // Use TanStack Query hook
-  const { data, isLoading, refetch } = useFiles('/', profile?.role === 'admin' ? view : 'my-files')
-  const files = data?.files || []
+  const { data: files = [], isLoading, refetch } = useFiles('/', profile?.role === 'admin' ? view : 'my-files')
 
   useEffect(() => {
     fetchProfile()
@@ -60,7 +59,8 @@ export default function FilesPage() {
       <div className="sticky top-0 z-10 bg-white border-b border-neutral-border shadow-sm">
         <div className="px-8 py-4 flex items-center justify-between">
           <div>
-            <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+            <h1 className="text-xl flex gap-2 font-semibold tracking-tight text-text-primary">
+              <FolderOpen className="w-6 h-6 text-brand-primary"/>
               {isAdmin ? 'Files' : 'My Files'}
             </h1>
             <p className="text-sm text-text-muted">
@@ -91,7 +91,7 @@ export default function FilesPage() {
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-8">
         {/* View Toggle (Admin Only) */}
-        {isAdmin && (
+        {/* {isAdmin && (
           <div className="mb-6 flex gap-2">
             <Button
               variant={view === 'all' ? 'primary' : 'secondary'}
@@ -108,7 +108,7 @@ export default function FilesPage() {
               My Files
             </Button>
           </div>
-        )}
+        )} */}
 
         {/* Files List */}
         <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border p-6">

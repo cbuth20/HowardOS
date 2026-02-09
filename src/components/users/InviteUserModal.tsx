@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Modal } from '@/components/ui/Modal'
+import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Mail, User, Shield } from 'lucide-react'
@@ -177,10 +177,10 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-border">
+        <ModalFooter>
           <Button
             type="button"
-            variant="ghost"
+            variant="secondary"
             onClick={handleClose}
             disabled={loading}
           >
@@ -189,7 +189,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
           <Button type="submit" variant="primary" disabled={loading}>
             {loading ? 'Sending...' : 'Send Invitation'}
           </Button>
-        </div>
+        </ModalFooter>
       </form>
     </Modal>
   )

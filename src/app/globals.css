@@ -23,6 +23,10 @@
     --accent-slate: #8A9DAA;       /* Slate blue */
     --accent-terracotta: #D3986F;  /* Terracotta */
 
+    /* Action colors (for buttons and CTAs) */
+    --action-primary: #5A8A6A;     /* Deep sage for primary actions */
+    --action-primary-hover: #4F7A5E; /* Darker sage for hover */
+
     /* Semantic colors - Enhanced */
     --bg-default: var(--neutral-white);
     --bg-subtle: var(--neutral-cream);
@@ -100,5 +104,22 @@
 
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  /* Navigation progress bar animation */
+  @keyframes progress-bar {
+    0% {
+      transform: scaleX(0);
+    }
+    50% {
+      transform: scaleX(0.6);
+    }
+    100% {
+      transform: scaleX(1);
+    }
+  }
+
+  .animate-progress-bar {
+    animation: progress-bar 500ms ease-out;
   }
 }

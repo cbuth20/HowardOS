@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Modal } from '@/components/ui/Modal'
+import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Avatar } from '@/components/ui/Avatar'
 import { Share2, Check } from 'lucide-react'
@@ -245,21 +245,22 @@ export function ShareFileModal({
           )}
         </div>
 
-        {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-border">
-          <Button variant="ghost" onClick={onClose} disabled={sharing}>
-            Cancel
-          </Button>
-          <Button
-            variant="primary"
-            onClick={handleShare}
-            disabled={sharing || selectedUserIds.size === 0}
-          >
-            <Share2 className="w-4 h-4 mr-2" />
-            {sharing ? 'Sharing...' : `Share with ${selectedUserIds.size} client(s)`}
-          </Button>
-        </div>
       </div>
+
+      {/* Actions */}
+      <ModalFooter>
+        <Button variant="secondary" onClick={onClose} disabled={sharing}>
+          Cancel
+        </Button>
+        <Button
+          variant="primary"
+          onClick={handleShare}
+          disabled={sharing || selectedUserIds.size === 0}
+        >
+          <Share2 className="w-4 h-4 mr-2" />
+          {sharing ? 'Sharing...' : `Share with ${selectedUserIds.size} client(s)`}
+        </Button>
+      </ModalFooter>
     </Modal>
   )
 }

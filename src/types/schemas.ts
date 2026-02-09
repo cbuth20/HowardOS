@@ -56,6 +56,38 @@ export const ChangePasswordSchema = z.object({
   path: ["confirmPassword"],
 })
 
+// Workstream schemas
+export const WorkstreamTimingSchema = z.enum(['daily', 'weekly', 'monthly', 'quarterly', 'annual', 'ad-hoc'])
+export const WorkstreamStatusSchema = z.enum(['red', 'yellow', 'green'])
+
+export const CreateWorkstreamTemplateSchema = z.object({
+  vertical_id: z.string().uuid('Invalid vertical ID'),
+  name: z.string().min(1, 'Name is required').max(200, 'Name must be less than 200 characters'),
+  description: z.string().optional().nullable(),
+  associated_software: z.string().optional().nullable(),
+  timing: WorkstreamTimingSchema.optional().nullable(),
+  display_order: z.number().int().default(0),
+  default_sop: z.any().optional().nullable(),
+})
+
+export const UpdateWorkstreamTemplateSchema = CreateWorkstreamTemplateSchema.partial()
+
+export const AssignWorkstreamSchema = z.object({
+  template_id: z.string().uuid('Invalid template ID'),
+  org_id: z.string().uuid('Invalid organization ID'),
+  status: WorkstreamStatusSchema.default('yellow'),
+  point_person_id: z.string().uuid('Invalid user ID').optional().nullable(),
+  notes: z.string().optional().nullable(),
+})
+
+export const UpdateClientWorkstreamSchema = z.object({
+  status: WorkstreamStatusSchema.optional(),
+  point_person_id: z.string().uuid('Invalid user ID').optional().nullable(),
+  custom_sop: z.any().optional().nullable(),
+  notes: z.string().optional().nullable(),
+  is_active: z.boolean().optional(),
+})
+
 // Export inferred types from schemas
 export type CreateTaskInput = z.infer<typeof CreateTaskSchema>
 export type UpdateTaskInput = z.infer<typeof UpdateTaskSchema>
@@ -64,3 +96,7 @@ export type ShareFileInput = z.infer<typeof ShareFileSchema>
 export type InviteUserInput = z.infer<typeof InviteUserSchema>
 export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>
 export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>
+export type CreateWorkstreamTemplateInput = z.infer<typeof CreateWorkstreamTemplateSchema>
+export type UpdateWorkstreamTemplateInput = z.infer<typeof UpdateWorkstreamTemplateSchema>
+export type AssignWorkstreamInput = z.infer<typeof AssignWorkstreamSchema>
+export type UpdateClientWorkstreamInput = z.infer<typeof UpdateClientWorkstreamSchema>

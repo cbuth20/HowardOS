@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { HowardLogo } from '@/components/ui/HowardLogo'
+import { Loader2 } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
@@ -100,11 +101,18 @@ export default function LoginPage() {
 
               <Button
                 type="submit"
-                variant="primary"
+                variant="secondary"
                 disabled={loading}
                 className="w-full"
               >
-                {loading ? 'Signing in...' : 'Sign In'}
+                {loading ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Signing in...
+                  </>
+                ) : (
+                  'Sign In'
+                )}
               </Button>
             </div>
           </form>

@@ -9,6 +9,7 @@ export interface AuthContext {
   }
   profile: any
   supabase: any
+  supabaseAdmin: any // Service role client without user JWT (bypasses RLS)
 }
 
 export interface HandlerOptions {
@@ -45,10 +46,18 @@ export function withMiddleware(
       }
 
       const token = authHeader?.replace('Bearer ', '')
+
+      // Client with user's JWT (respects RLS based on user's token)
       const supabase = createClient<Database>(
         process.env.NEXT_PUBLIC_SUPABASE_URL!,
         process.env.SUPABASE_SERVICE_ROLE_KEY!,
         { global: { headers: { Authorization: `Bearer ${token}` } } }
+      )
+
+      // Admin client without user JWT (bypasses RLS completely)
+      const supabaseAdmin = createClient<Database>(
+        process.env.NEXT_PUBLIC_SUPABASE_URL!,
+        process.env.SUPABASE_SERVICE_ROLE_KEY!
       )
 
       // Get user
@@ -78,6 +87,7 @@ export function withMiddleware(
         user: user!,
         profile: profile! as any,
         supabase: supabase as any,
+        supabaseAdmin: supabaseAdmin as any,
       })
 
       return {

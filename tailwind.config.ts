@@ -43,6 +43,11 @@ const config: Config = {
           slate: '#8A9DAA',        // Slate blue
           terracotta: '#D3986F',   // Terracotta
         },
+        // Action colors (for buttons and CTAs)
+        action: {
+          primary: '#5A8A6A',      // Deep sage for primary actions
+          'primary-hover': '#4F7A5E', // Darker sage for hover
+        },
         // Semantic colors - Enhanced with depth layers
         background: {
           DEFAULT: '#FFFFFF',      // Pure white - main content

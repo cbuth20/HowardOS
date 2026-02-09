@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useRef } from 'react'
-import { Modal } from '@/components/ui/Modal'
+import { Modal, ModalFooter } from '@/components/ui/Modal'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
@@ -298,10 +298,10 @@ export function EditUserModal({ isOpen, onClose, user, onComplete }: EditUserMod
         </div>
 
         {/* Actions */}
-        <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-border">
+        <ModalFooter>
           <Button
             type="button"
-            variant="ghost"
+            variant="secondary"
             onClick={onClose}
             disabled={loading || uploadingAvatar}
           >
@@ -314,7 +314,7 @@ export function EditUserModal({ isOpen, onClose, user, onComplete }: EditUserMod
           >
             {loading || uploadingAvatar ? 'Saving...' : 'Save Changes'}
           </Button>
-        </div>
+        </ModalFooter>
       </form>
     </Modal>
   )

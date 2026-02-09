@@ -15,7 +15,8 @@ import {
   Loader2,
   User,
   Building2,
-  X
+  X,
+  ClipboardList
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -187,6 +188,12 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       label: 'Tasks',
       href: '/tasks',
       icon: CheckSquare,
+      roles: ['admin', 'client'],
+    },
+    {
+      label: 'Workstreams',
+      href: '/workstreams',
+      icon: ClipboardList,
       roles: ['admin', 'client'],
     },
     {

@@ -178,3 +178,36 @@ export function canManageUsers(profile: Profile | null): boolean {
 export function canManageOrg(profile: Profile | null): boolean {
   return isAdmin(profile)
 }
+
+/**
+ * Check if user can manage workstream templates
+ */
+export function canManageWorkstreamTemplates(profile: Profile | null): boolean {
+  return isAdmin(profile)
+}
+
+/**
+ * Check if user can assign workstreams to clients
+ */
+export function canAssignWorkstreams(profile: Profile | null): boolean {
+  return isAdmin(profile)
+}
+
+/**
+ * Check if user can view a client workstream
+ */
+export function canViewClientWorkstream(
+  profile: Profile | null,
+  workstream: { org_id: string }
+): boolean {
+  if (!profile) return false
+  if (isAdmin(profile)) return true
+  return isSameOrg(profile, workstream.org_id)
+}
+
+/**
+ * Check if user can edit workstream status/assignments
+ */
+export function canEditWorkstreamStatus(profile: Profile | null): boolean {
+  return isAdmin(profile)
+}

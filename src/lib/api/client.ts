@@ -1,11 +1,23 @@
 import { authFetch } from '@/lib/utils/auth-fetch'
-import type { TaskWithProfiles, FileWithUploader, ClientWithOrganization, User } from '@/types/entities'
+import type {
+  TaskWithProfiles,
+  FileWithUploader,
+  ClientWithOrganization,
+  User,
+  WorkstreamVertical,
+  WorkstreamTemplateWithVertical,
+  ClientWorkstreamWithDetails,
+} from '@/types/entities'
 import type {
   CreateTaskInput,
   UpdateTaskInput,
   InviteUserInput,
   UpdateProfileInput,
   ChangePasswordInput,
+  CreateWorkstreamTemplateInput,
+  UpdateWorkstreamTemplateInput,
+  AssignWorkstreamInput,
+  UpdateClientWorkstreamInput,
 } from '@/types/schemas'
 
 export class ApiError extends Error {
@@ -142,6 +154,108 @@ class ApiClient {
     return this.request<{ message: string }>('/api/users-password-change', {
       method: 'POST',
       body: JSON.stringify(data),
+    })
+  }
+
+  // Workstreams - Verticals (reference data)
+  async getWorkstreamVerticals() {
+    return this.request<{ verticals: WorkstreamVertical[] }>('/api/workstream-verticals')
+  }
+
+  // Workstreams - Templates (admin only)
+  async getWorkstreamTemplates(filters?: {
+    vertical_id?: string
+    timing?: string
+    is_active?: boolean
+    search?: string
+  }) {
+    const params = new URLSearchParams()
+    if (filters?.vertical_id) params.set('vertical_id', filters.vertical_id)
+    if (filters?.timing) params.set('timing', filters.timing)
+    if (filters?.is_active !== undefined) params.set('is_active', String(filters.is_active))
+    if (filters?.search) params.set('search', filters.search)
+
+    return this.request<{ templates: WorkstreamTemplateWithVertical[] }>(
+      `/api/workstreams?${params}`
+    )
+  }
+
+  async getWorkstreamTemplate(id: string) {
+    return this.request<{ template: WorkstreamTemplateWithVertical }>(
+      `/api/workstreams?id=${id}`
+    )
+  }
+
+  async createWorkstreamTemplate(data: CreateWorkstreamTemplateInput) {
+    return this.request<{ template: WorkstreamTemplateWithVertical }>('/api/workstreams', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateWorkstreamTemplate(id: string, data: UpdateWorkstreamTemplateInput) {
+    return this.request<{ template: WorkstreamTemplateWithVertical }>(
+      `/api/workstreams?id=${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    )
+  }
+
+  async deleteWorkstreamTemplate(id: string) {
+    return this.request<{ message: string }>(`/api/workstreams?id=${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Workstreams - Client Assignments
+  async getClientWorkstreams(filters?: {
+    org_id?: string
+    status?: string
+    point_person_id?: string
+    is_active?: boolean
+  }) {
+    const params = new URLSearchParams()
+    if (filters?.org_id) params.set('org_id', filters.org_id)
+    if (filters?.status) params.set('status', filters.status)
+    if (filters?.point_person_id) params.set('point_person_id', filters.point_person_id)
+    if (filters?.is_active !== undefined) params.set('is_active', String(filters.is_active))
+
+    return this.request<{ workstreams: ClientWorkstreamWithDetails[] }>(
+      `/api/client-workstreams?${params}`
+    )
+  }
+
+  async getClientWorkstream(id: string) {
+    return this.request<{ workstream: ClientWorkstreamWithDetails }>(
+      `/api/client-workstreams?id=${id}`
+    )
+  }
+
+  async assignWorkstream(data: AssignWorkstreamInput) {
+    return this.request<{ workstream: ClientWorkstreamWithDetails }>(
+      '/api/client-workstreams',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    )
+  }
+
+  async updateClientWorkstream(id: string, data: UpdateClientWorkstreamInput) {
+    return this.request<{ workstream: ClientWorkstreamWithDetails }>(
+      `/api/client-workstreams?id=${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    )
+  }
+
+  async removeClientWorkstream(id: string) {
+    return this.request<{ message: string }>(`/api/client-workstreams?id=${id}`, {
+      method: 'DELETE',
     })
   }
 }
