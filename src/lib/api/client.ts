@@ -6,7 +6,10 @@ import type {
   User,
   WorkstreamVertical,
   WorkstreamTemplateWithVertical,
-  ClientWorkstreamWithDetails,
+  WorkstreamWithEntriesAndRollup,
+  WorkstreamEntryWithDetails,
+  VerticalStatusRollup,
+  WorkstreamStatus,
 } from '@/types/entities'
 import type {
   CreateTaskInput,
@@ -16,8 +19,11 @@ import type {
   ChangePasswordInput,
   CreateWorkstreamTemplateInput,
   UpdateWorkstreamTemplateInput,
-  AssignWorkstreamInput,
-  UpdateClientWorkstreamInput,
+  CreateWorkstreamSchemaInput,
+  UpdateWorkstreamSchemaInput,
+  CreateWorkstreamEntrySchemaInput,
+  UpdateWorkstreamEntrySchemaInput,
+  BulkCreateEntriesSchemaInput,
 } from '@/types/schemas'
 
 export class ApiError extends Error {
@@ -209,32 +215,27 @@ class ApiClient {
     })
   }
 
-  // Workstreams - Client Assignments
-  async getClientWorkstreams(filters?: {
-    org_id?: string
-    status?: string
-    point_person_id?: string
-    is_active?: boolean
-  }) {
-    const params = new URLSearchParams()
-    if (filters?.org_id) params.set('org_id', filters.org_id)
-    if (filters?.status) params.set('status', filters.status)
-    if (filters?.point_person_id) params.set('point_person_id', filters.point_person_id)
-    if (filters?.is_active !== undefined) params.set('is_active', String(filters.is_active))
-
-    return this.request<{ workstreams: ClientWorkstreamWithDetails[] }>(
-      `/api/client-workstreams?${params}`
+  // Workstreams - Client Workstreams (new entry-based model)
+  async getAllClientWorkstreams() {
+    return this.request<{ workstreams: WorkstreamWithEntriesAndRollup[] }>(
+      '/api/client-workstreams'
     )
   }
 
   async getClientWorkstream(id: string) {
-    return this.request<{ workstream: ClientWorkstreamWithDetails }>(
+    return this.request<{ workstream: WorkstreamWithEntriesAndRollup }>(
       `/api/client-workstreams?id=${id}`
     )
   }
 
-  async assignWorkstream(data: AssignWorkstreamInput) {
-    return this.request<{ workstream: ClientWorkstreamWithDetails }>(
+  async getClientWorkstreamByOrg(orgId: string) {
+    return this.request<{ workstream: WorkstreamWithEntriesAndRollup | null }>(
+      `/api/client-workstreams?org_id=${orgId}`
+    )
+  }
+
+  async createClientWorkstream(data: CreateWorkstreamSchemaInput) {
+    return this.request<{ workstream: WorkstreamWithEntriesAndRollup }>(
       '/api/client-workstreams',
       {
         method: 'POST',
@@ -243,8 +244,8 @@ class ApiClient {
     )
   }
 
-  async updateClientWorkstream(id: string, data: UpdateClientWorkstreamInput) {
-    return this.request<{ workstream: ClientWorkstreamWithDetails }>(
+  async updateClientWorkstream(id: string, data: UpdateWorkstreamSchemaInput) {
+    return this.request<{ workstream: WorkstreamWithEntriesAndRollup }>(
       `/api/client-workstreams?id=${id}`,
       {
         method: 'PATCH',
@@ -253,8 +254,77 @@ class ApiClient {
     )
   }
 
-  async removeClientWorkstream(id: string) {
+  async deleteClientWorkstream(id: string) {
     return this.request<{ message: string }>(`/api/client-workstreams?id=${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Workstream Entries
+  async getWorkstreamEntries(filters?: {
+    workstream_id?: string
+    vertical_id?: string
+    status?: string
+    point_person_id?: string
+    is_active?: boolean
+  }) {
+    const params = new URLSearchParams()
+    if (filters?.workstream_id) params.set('workstream_id', filters.workstream_id)
+    if (filters?.vertical_id) params.set('vertical_id', filters.vertical_id)
+    if (filters?.status) params.set('status', filters.status)
+    if (filters?.point_person_id) params.set('point_person_id', filters.point_person_id)
+    if (filters?.is_active !== undefined) params.set('is_active', String(filters.is_active))
+
+    return this.request<{ entries: WorkstreamEntryWithDetails[] }>(
+      `/api/workstream-entries?${params}`
+    )
+  }
+
+  async getWorkstreamEntry(id: string) {
+    return this.request<{ entry: WorkstreamEntryWithDetails }>(
+      `/api/workstream-entries?id=${id}`
+    )
+  }
+
+  async getWorkstreamRollup(workstreamId: string) {
+    return this.request<{
+      vertical_rollups: VerticalStatusRollup[]
+      overall_status: WorkstreamStatus
+    }>(`/api/workstream-entries/rollup?workstream_id=${workstreamId}`)
+  }
+
+  async createWorkstreamEntry(data: CreateWorkstreamEntrySchemaInput) {
+    return this.request<{ entry: WorkstreamEntryWithDetails }>(
+      '/api/workstream-entries',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    )
+  }
+
+  async bulkCreateWorkstreamEntries(data: BulkCreateEntriesSchemaInput) {
+    return this.request<{ entries: WorkstreamEntryWithDetails[] }>(
+      '/api/workstream-entries/bulk',
+      {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }
+    )
+  }
+
+  async updateWorkstreamEntry(id: string, data: UpdateWorkstreamEntrySchemaInput) {
+    return this.request<{ entry: WorkstreamEntryWithDetails }>(
+      `/api/workstream-entries?id=${id}`,
+      {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+      }
+    )
+  }
+
+  async deleteWorkstreamEntry(id: string) {
+    return this.request<{ message: string }>(`/api/workstream-entries?id=${id}`, {
       method: 'DELETE',
     })
   }

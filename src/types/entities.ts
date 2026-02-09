@@ -68,26 +68,82 @@ export type InviteUserInput = {
 // Note: These will be properly typed after running the migration and regenerating types
 export type WorkstreamVertical = any // Database['public']['Tables']['workstream_verticals']['Row']
 export type WorkstreamTemplate = any // Database['public']['Tables']['workstream_templates']['Row']
-export type ClientWorkstream = any // Database['public']['Tables']['client_workstreams']['Row']
-export type WorkstreamStatusHistory = any // Database['public']['Tables']['workstream_status_history']['Row']
 
 // Type aliases for workstream fields
 export type WorkstreamStatus = 'red' | 'yellow' | 'green'
 export type WorkstreamTiming = 'daily' | 'weekly' | 'monthly' | 'quarterly' | 'annual' | 'ad-hoc'
+
+// New entry-based model types
+export type ClientWorkstream = {
+  id: string
+  org_id: string
+  name: string
+  notes?: string | null
+  created_at: string
+  created_by: string
+  updated_at: string
+}
+
+export type WorkstreamEntry = {
+  id: string
+  workstream_id: string
+  vertical_id: string
+  name: string
+  description?: string | null
+  associated_software?: string | null
+  timing?: WorkstreamTiming | null
+  point_person_id?: string | null
+  status: WorkstreamStatus
+  notes?: string | null
+  custom_sop?: any | null
+  display_order: number
+  is_active: boolean
+  template_id?: string | null
+  created_at: string
+  updated_at: string
+}
+
+export type WorkstreamEntryStatusHistory = {
+  id: string
+  entry_id: string
+  old_status?: WorkstreamStatus | null
+  new_status: WorkstreamStatus
+  changed_by: string
+  notes?: string | null
+  created_at: string
+}
+
+export type VerticalStatusRollup = {
+  vertical_id: string
+  rollup_status: WorkstreamStatus
+  total_entries: number
+  red_count: number
+  yellow_count: number
+  green_count: number
+}
 
 // Extended types with relations
 export type WorkstreamTemplateWithVertical = WorkstreamTemplate & {
   vertical?: WorkstreamVertical
 }
 
-export type ClientWorkstreamWithDetails = ClientWorkstream & {
-  template?: WorkstreamTemplateWithVertical
+export type WorkstreamEntryWithDetails = WorkstreamEntry & {
+  vertical?: WorkstreamVertical
   point_person?: Pick<User, 'id' | 'full_name' | 'email' | 'avatar_url'> | null
-  organization?: Pick<Organization, 'id' | 'name' | 'slug'>
+  template?: Pick<WorkstreamTemplate, 'id' | 'name'> | null
 }
 
-// Form input types
-export type CreateWorkstreamTemplateInput = Pick<WorkstreamTemplate, 'vertical_id' | 'name'> & {
+export type WorkstreamWithEntriesAndRollup = ClientWorkstream & {
+  organization?: Pick<Organization, 'id' | 'name' | 'slug'>
+  entries?: WorkstreamEntryWithDetails[]
+  vertical_rollups?: VerticalStatusRollup[]
+  overall_status?: WorkstreamStatus
+}
+
+// Form input types for templates (unchanged)
+export type CreateWorkstreamTemplateInput = {
+  vertical_id: string
+  name: string
   description?: string | null
   associated_software?: string | null
   timing?: WorkstreamTiming | null
@@ -97,18 +153,47 @@ export type CreateWorkstreamTemplateInput = Pick<WorkstreamTemplate, 'vertical_i
 
 export type UpdateWorkstreamTemplateInput = Partial<CreateWorkstreamTemplateInput>
 
-export type AssignWorkstreamInput = {
-  template_id: string
+// Form input types for new entry-based model
+export type CreateWorkstreamInput = {
   org_id: string
-  status?: WorkstreamStatus
-  point_person_id?: string | null
+  name?: string
   notes?: string | null
 }
 
-export type UpdateClientWorkstreamInput = {
-  status?: WorkstreamStatus
-  point_person_id?: string | null
-  custom_sop?: any | null
+export type UpdateWorkstreamInput = {
+  name?: string
   notes?: string | null
+}
+
+export type CreateWorkstreamEntryInput = {
+  workstream_id: string
+  vertical_id: string
+  name: string
+  description?: string | null
+  associated_software?: string | null
+  timing?: WorkstreamTiming | null
+  point_person_id?: string | null
+  status?: WorkstreamStatus
+  notes?: string | null
+  custom_sop?: any | null
+  template_id?: string | null
+  display_order?: number
+}
+
+export type UpdateWorkstreamEntryInput = {
+  name?: string
+  description?: string | null
+  associated_software?: string | null
+  timing?: WorkstreamTiming | null
+  point_person_id?: string | null
+  status?: WorkstreamStatus
+  notes?: string | null
+  custom_sop?: any | null
+  display_order?: number
   is_active?: boolean
+}
+
+export type BulkCreateEntriesInput = {
+  workstream_id: string
+  template_ids: string[]
 }

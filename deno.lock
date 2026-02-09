@@ -17,6 +17,8 @@
         "npm:@netlify/functions@^2.8.0",
         "npm:@supabase/ssr@0.5",
         "npm:@supabase/supabase-js@^2.45.0",
+        "npm:@tanstack/react-query-devtools@^5.91.3",
+        "npm:@tanstack/react-query@^5.90.20",
         "npm:@types/busboy@^1.5.0",
         "npm:@types/node@20",
         "npm:@types/react-dom@19",

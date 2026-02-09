@@ -72,6 +72,52 @@ export const CreateWorkstreamTemplateSchema = z.object({
 
 export const UpdateWorkstreamTemplateSchema = CreateWorkstreamTemplateSchema.partial()
 
+// New entry-based workstream schemas
+export const CreateWorkstreamSchema = z.object({
+  org_id: z.string().uuid('Invalid organization ID'),
+  name: z.string().min(1).max(200).default('Workstream'),
+  notes: z.string().optional().nullable(),
+})
+
+export const UpdateWorkstreamSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  notes: z.string().optional().nullable(),
+})
+
+export const CreateWorkstreamEntrySchema = z.object({
+  workstream_id: z.string().uuid('Invalid workstream ID'),
+  vertical_id: z.string().uuid('Invalid vertical ID'),
+  name: z.string().min(1, 'Name is required').max(200, 'Name must be less than 200 characters'),
+  description: z.string().optional().nullable(),
+  associated_software: z.string().optional().nullable(),
+  timing: WorkstreamTimingSchema.optional().nullable(),
+  point_person_id: z.string().uuid('Invalid user ID').optional().nullable(),
+  status: WorkstreamStatusSchema.default('yellow'),
+  notes: z.string().optional().nullable(),
+  custom_sop: z.any().optional().nullable(),
+  template_id: z.string().uuid('Invalid template ID').optional().nullable(),
+  display_order: z.number().int().default(0),
+})
+
+export const UpdateWorkstreamEntrySchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().optional().nullable(),
+  associated_software: z.string().optional().nullable(),
+  timing: WorkstreamTimingSchema.optional().nullable(),
+  point_person_id: z.string().uuid('Invalid user ID').optional().nullable(),
+  status: WorkstreamStatusSchema.optional(),
+  notes: z.string().optional().nullable(),
+  custom_sop: z.any().optional().nullable(),
+  display_order: z.number().int().optional(),
+  is_active: z.boolean().optional(),
+})
+
+export const BulkCreateEntriesSchema = z.object({
+  workstream_id: z.string().uuid('Invalid workstream ID'),
+  template_ids: z.array(z.string().uuid('Invalid template ID')).min(1, 'At least one template must be selected'),
+})
+
+// Legacy template assignment schemas (keeping for backward compatibility if needed)
 export const AssignWorkstreamSchema = z.object({
   template_id: z.string().uuid('Invalid template ID'),
   org_id: z.string().uuid('Invalid organization ID'),
@@ -98,5 +144,10 @@ export type UpdateProfileInput = z.infer<typeof UpdateProfileSchema>
 export type ChangePasswordInput = z.infer<typeof ChangePasswordSchema>
 export type CreateWorkstreamTemplateInput = z.infer<typeof CreateWorkstreamTemplateSchema>
 export type UpdateWorkstreamTemplateInput = z.infer<typeof UpdateWorkstreamTemplateSchema>
+export type CreateWorkstreamSchemaInput = z.infer<typeof CreateWorkstreamSchema>
+export type UpdateWorkstreamSchemaInput = z.infer<typeof UpdateWorkstreamSchema>
+export type CreateWorkstreamEntrySchemaInput = z.infer<typeof CreateWorkstreamEntrySchema>
+export type UpdateWorkstreamEntrySchemaInput = z.infer<typeof UpdateWorkstreamEntrySchema>
+export type BulkCreateEntriesSchemaInput = z.infer<typeof BulkCreateEntriesSchema>
 export type AssignWorkstreamInput = z.infer<typeof AssignWorkstreamSchema>
 export type UpdateClientWorkstreamInput = z.infer<typeof UpdateClientWorkstreamSchema>

@@ -2,28 +2,28 @@ import { Handler } from '@netlify/functions'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import { successResponse, errorResponse } from './lib/responses'
 import {
-  AssignWorkstreamSchema,
-  UpdateClientWorkstreamSchema,
+  CreateWorkstreamSchema,
+  UpdateWorkstreamSchema,
 } from '../../src/types/schemas'
 
 /**
- * GET /api/client-workstreams - List assignments (filtered by role/org)
- * GET /api/client-workstreams?id={id} - Get single assignment
- * POST /api/client-workstreams - Assign workstream to client (admin only)
- * PATCH /api/client-workstreams?id={id} - Update status/notes (admin only)
- * DELETE /api/client-workstreams?id={id} - Remove assignment (admin only)
+ * GET /api/client-workstreams - List workstreams (filtered by role/org)
+ * GET /api/client-workstreams?id={id} - Get single workstream with entries
+ * GET /api/client-workstreams?org_id={id} - Get workstream for specific org
+ * POST /api/client-workstreams - Create workstream for org (admin only)
+ * PATCH /api/client-workstreams?id={id} - Update workstream metadata (admin only)
+ * DELETE /api/client-workstreams?id={id} - Delete workstream (admin only)
  *
  * Auth required, role-based filtering
  */
 export const handler: Handler = withMiddleware(async (event, context: AuthContext) => {
   const supabase = context.supabase
-  const supabaseAdmin = context.supabaseAdmin // Use for queries that need to bypass RLS
+  const supabaseAdmin = context.supabaseAdmin
   const userId = context.user?.id
   const userRole = context.profile?.role
   const userOrgId = context.profile?.org_id
 
-  // Debug logging
-  console.log('Workstreams request - User:', userId, 'Role:', userRole, 'OrgID:', userOrgId)
+  console.log('Client workstreams request - User:', userId, 'Role:', userRole, 'OrgID:', userOrgId)
 
   if (!userId) {
     return errorResponse('Unauthorized', 401)
@@ -31,30 +31,23 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
 
   const params = event.queryStringParameters || {}
   const workstreamId = params.id
+  const orgId = params.org_id
 
   try {
-    // GET - List assignments or get single assignment
+    // GET - List workstreams or get single workstream
     if (event.httpMethod === 'GET') {
-      // Get single assignment by ID
+      // Get single workstream by ID (with entries and rollups)
       if (workstreamId) {
         let query = (supabaseAdmin as any)
           .from('client_workstreams')
           .select(`
             *,
-            template:workstream_templates(
-              *,
-              vertical:workstream_verticals(*)
-            ),
-            point_person:profiles!client_workstreams_point_person_id_fkey(
-              id, full_name, email, avatar_url
-            ),
             organization:organizations(id, name, slug)
           `)
           .eq('id', workstreamId)
 
-        // CRITICAL: Clients can only see their own org's workstreams
+        // Clients can only see their own org's workstream
         if (userRole === 'client' && userOrgId) {
-          console.log('Applying client org filter for single workstream:', userOrgId)
           query = query.eq('org_id', userOrgId)
         }
 
@@ -65,62 +58,163 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
           return errorResponse('Workstream not found', 404)
         }
 
-        return successResponse({ workstream })
+        // Fetch all entries for this workstream
+        const { data: entries } = await (supabaseAdmin as any)
+          .from('workstream_entries')
+          .select(`
+            *,
+            vertical:workstream_verticals(*),
+            point_person:profiles!workstream_entries_point_person_id_fkey(
+              id, full_name, email, avatar_url
+            ),
+            template:workstream_templates(id, name)
+          `)
+          .eq('workstream_id', workstreamId)
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+
+        // Fetch vertical rollups
+        const { data: verticalRollups } = await (supabaseAdmin as any)
+          .from('workstream_vertical_status')
+          .select('*')
+          .eq('workstream_id', workstreamId)
+
+        // Calculate overall status
+        let overallStatus: 'green' | 'yellow' | 'red' = 'green'
+        if (verticalRollups && verticalRollups.length > 0) {
+          const hasRed = verticalRollups.some((v: any) => v.rollup_status === 'red')
+          const hasYellow = verticalRollups.some((v: any) => v.rollup_status === 'yellow')
+
+          if (hasRed) overallStatus = 'red'
+          else if (hasYellow) overallStatus = 'yellow'
+        }
+
+        return successResponse({
+          workstream: {
+            ...workstream,
+            entries: entries || [],
+            vertical_rollups: verticalRollups || [],
+            overall_status: overallStatus,
+          },
+        })
       }
 
-      // List all assignments with filters
-      // Use supabaseAdmin to bypass RLS for template JOINs
-      let query = (supabaseAdmin as any)
+      // Get workstream by org_id
+      if (orgId) {
+        // Clients can only access their own org
+        if (userRole === 'client' && userOrgId && orgId !== userOrgId) {
+          return errorResponse('Access denied', 403)
+        }
+
+        const { data: workstream, error } = await (supabaseAdmin as any)
+          .from('client_workstreams')
+          .select(`
+            *,
+            organization:organizations(id, name, slug)
+          `)
+          .eq('org_id', orgId)
+          .single()
+
+        if (error) {
+          // Workstream doesn't exist for this org yet
+          if (error.code === 'PGRST116') {
+            return successResponse({ workstream: null })
+          }
+          console.error('Error fetching workstream:', error)
+          return errorResponse('Failed to fetch workstream')
+        }
+
+        // Fetch all entries for this workstream
+        const { data: entries } = await (supabaseAdmin as any)
+          .from('workstream_entries')
+          .select(`
+            *,
+            vertical:workstream_verticals(*),
+            point_person:profiles!workstream_entries_point_person_id_fkey(
+              id, full_name, email, avatar_url
+            ),
+            template:workstream_templates(id, name)
+          `)
+          .eq('workstream_id', workstream.id)
+          .eq('is_active', true)
+          .order('display_order', { ascending: true })
+
+        // Fetch vertical rollups
+        const { data: verticalRollups } = await (supabaseAdmin as any)
+          .from('workstream_vertical_status')
+          .select('*')
+          .eq('workstream_id', workstream.id)
+
+        // Calculate overall status
+        let overallStatus: 'green' | 'yellow' | 'red' = 'green'
+        if (verticalRollups && verticalRollups.length > 0) {
+          const hasRed = verticalRollups.some((v: any) => v.rollup_status === 'red')
+          const hasYellow = verticalRollups.some((v: any) => v.rollup_status === 'yellow')
+
+          if (hasRed) overallStatus = 'red'
+          else if (hasYellow) overallStatus = 'yellow'
+        }
+
+        return successResponse({
+          workstream: {
+            ...workstream,
+            entries: entries || [],
+            vertical_rollups: verticalRollups || [],
+            overall_status: overallStatus,
+          },
+        })
+      }
+
+      // List all workstreams (admin only - for overview page)
+      if (userRole !== 'admin') {
+        return errorResponse('Admin access required', 403)
+      }
+
+      const { data: workstreams, error } = await (supabaseAdmin as any)
         .from('client_workstreams')
         .select(`
           *,
-          template:workstream_templates(
-            *,
-            vertical:workstream_verticals(*)
-          ),
-          point_person:profiles!client_workstreams_point_person_id_fkey(
-            id, full_name, email, avatar_url
-          ),
           organization:organizations(id, name, slug)
         `)
-
-      // CRITICAL: Clients can only see their own org's workstreams
-      // Apply this filter FIRST before any other filters
-      if (userRole === 'client' && userOrgId) {
-        console.log('Applying client org filter:', userOrgId)
-        query = query.eq('org_id', userOrgId)
-      } else if (params.org_id) {
-        // Admins can filter by org_id if provided
-        query = query.eq('org_id', params.org_id)
-      }
-
-      // Apply other filters
-      if (params.status) {
-        query = query.eq('status', params.status)
-      }
-      if (params.point_person_id) {
-        query = query.eq('point_person_id', params.point_person_id)
-      }
-      if (params.is_active !== undefined) {
-        query = query.eq('is_active', params.is_active === 'true')
-      }
-
-      // Apply ordering
-      query = query.order('created_at', { ascending: false })
-
-      const { data: workstreams, error } = await query
-
-      console.log('Fetched workstreams:', workstreams?.length, 'items')
+        .order('created_at', { ascending: false })
 
       if (error) {
         console.error('Error fetching workstreams:', error)
         return errorResponse('Failed to fetch workstreams')
       }
 
-      return successResponse({ workstreams })
+      // For each workstream, fetch status rollup
+      const workstreamsWithStatus = await Promise.all(
+        (workstreams || []).map(async (ws: any) => {
+          const { data: verticalRollups } = await (supabaseAdmin as any)
+            .from('workstream_vertical_status')
+            .select('*')
+            .eq('workstream_id', ws.id)
+
+          let overallStatus: 'green' | 'yellow' | 'red' = 'green'
+          let totalEntries = 0
+
+          if (verticalRollups && verticalRollups.length > 0) {
+            const hasRed = verticalRollups.some((v: any) => v.rollup_status === 'red')
+            const hasYellow = verticalRollups.some((v: any) => v.rollup_status === 'yellow')
+            totalEntries = verticalRollups.reduce((sum: number, v: any) => sum + v.total_entries, 0)
+
+            if (hasRed) overallStatus = 'red'
+            else if (hasYellow) overallStatus = 'yellow'
+          }
+
+          return {
+            ...ws,
+            overall_status: overallStatus,
+            total_entries: totalEntries,
+          }
+        })
+      )
+
+      return successResponse({ workstreams: workstreamsWithStatus })
     }
 
-    // POST - Assign workstream to client (admin only)
+    // POST - Create workstream for org (admin only)
     if (event.httpMethod === 'POST') {
       if (userRole !== 'admin') {
         return errorResponse('Admin access required', 403)
@@ -129,67 +223,58 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
       const body = JSON.parse(event.body || '{}')
 
       // Validate input
-      const validation = AssignWorkstreamSchema.safeParse(body)
+      const validation = CreateWorkstreamSchema.safeParse(body)
       if (!validation.success) {
         return errorResponse(validation.error.errors[0].message, 400)
       }
 
       const data = validation.data
 
-      // Check if assignment already exists
+      // Check if workstream already exists for this org
       const { data: existing } = await (supabaseAdmin as any)
         .from('client_workstreams')
         .select('id')
-        .eq('template_id', data.template_id)
         .eq('org_id', data.org_id)
         .single()
 
       if (existing) {
-        return errorResponse('This workstream is already assigned to the client', 400)
+        return errorResponse('Workstream already exists for this organization', 400)
       }
 
-      // Insert assignment
+      // Insert workstream
       const { data: workstream, error } = await (supabaseAdmin as any)
         .from('client_workstreams')
         .insert({
           ...data,
-          assigned_by: userId,
+          created_by: userId,
         })
         .select(`
           *,
-          template:workstream_templates(
-            *,
-            vertical:workstream_verticals(*)
-          ),
-          point_person:profiles!client_workstreams_point_person_id_fkey(
-            id, full_name, email, avatar_url
-          ),
           organization:organizations(id, name, slug)
         `)
         .single()
 
       if (error) {
-        console.error('Error assigning workstream:', error)
-        return errorResponse('Failed to assign workstream')
+        console.error('Error creating workstream:', error)
+        return errorResponse('Failed to create workstream')
       }
 
       // Log activity
       await (supabaseAdmin as any).from('activity_log').insert({
         user_id: userId,
-        action: 'workstream_assigned',
+        action: 'workstream_created',
         entity_type: 'client_workstream',
         entity_id: workstream.id,
         metadata: {
-          template_id: data.template_id,
           org_id: data.org_id,
-          status: data.status,
+          name: data.name,
         } as any,
       })
 
       return { statusCode: 201, body: JSON.stringify(successResponse({ workstream })) }
     }
 
-    // PATCH - Update status/notes (admin only)
+    // PATCH - Update workstream metadata (admin only)
     if (event.httpMethod === 'PATCH') {
       if (userRole !== 'admin') {
         return errorResponse('Admin access required', 403)
@@ -202,7 +287,7 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
       const body = JSON.parse(event.body || '{}')
 
       // Validate input
-      const validation = UpdateClientWorkstreamSchema.safeParse(body)
+      const validation = UpdateWorkstreamSchema.safeParse(body)
       if (!validation.success) {
         return errorResponse(validation.error.errors[0].message, 400)
       }
@@ -216,13 +301,6 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
         .eq('id', workstreamId)
         .select(`
           *,
-          template:workstream_templates(
-            *,
-            vertical:workstream_verticals(*)
-          ),
-          point_person:profiles!client_workstreams_point_person_id_fkey(
-            id, full_name, email, avatar_url
-          ),
           organization:organizations(id, name, slug)
         `)
         .single()
@@ -246,7 +324,7 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
       return successResponse({ workstream })
     }
 
-    // DELETE - Remove assignment (admin only)
+    // DELETE - Delete workstream (admin only)
     if (event.httpMethod === 'DELETE') {
       if (userRole !== 'admin') {
         return errorResponse('Admin access required', 403)
@@ -256,29 +334,32 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
         return errorResponse('Workstream ID is required', 400)
       }
 
-      // Soft delete by setting is_active = false
+      // Hard delete (will cascade to entries due to FK)
       const { data: workstream, error } = await (supabaseAdmin as any)
         .from('client_workstreams')
-        .update({ is_active: false })
+        .delete()
         .eq('id', workstreamId)
-        .select('id, org_id')
+        .select('id, org_id, name')
         .single()
 
       if (error) {
-        console.error('Error removing workstream:', error)
-        return errorResponse('Failed to remove workstream')
+        console.error('Error deleting workstream:', error)
+        return errorResponse('Failed to delete workstream')
       }
 
       // Log activity
       await (supabaseAdmin as any).from('activity_log').insert({
         user_id: userId,
-        action: 'workstream_removed',
+        action: 'workstream_deleted',
         entity_type: 'client_workstream',
         entity_id: workstream.id,
-        metadata: { org_id: workstream.org_id } as any,
+        metadata: {
+          org_id: workstream.org_id,
+          name: workstream.name,
+        } as any,
       })
 
-      return successResponse({ message: 'Workstream removed successfully' })
+      return successResponse({ message: 'Workstream deleted successfully' })
     }
 
     return errorResponse('Method not allowed', 405)
