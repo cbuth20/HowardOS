@@ -85,7 +85,7 @@ export function WorkstreamEntriesList({
   }
 
   return (
-    <div className="space-y-2">
+    <div className="space-y-4">
       {verticals.map((vertical) => {
         const verticalEntries = entriesByVertical[vertical.id] || []
         const isVerticalExpanded = expandedVerticals.has(vertical.id)
@@ -95,11 +95,11 @@ export function WorkstreamEntriesList({
         if (verticalEntries.length === 0) return null
 
         return (
-          <div key={vertical.id} className="border border-gray-200 rounded-lg overflow-hidden">
+          <div key={vertical.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white">
             {/* Vertical Header */}
             <button
               onClick={() => toggleVertical(vertical.id)}
-              className="w-full bg-gray-50 hover:bg-gray-100 transition-colors px-4 py-3 flex items-center justify-between"
+              className="w-full bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 flex items-center justify-between"
             >
               <div className="flex items-center gap-3">
                 {isVerticalExpanded ? (
@@ -131,26 +131,26 @@ export function WorkstreamEntriesList({
             {isVerticalExpanded && (
               <div className="overflow-x-auto">
                 <table className="w-full">
-                  <thead className="bg-white border-t border-gray-200">
+                  <thead className="bg-gray-50/50 border-t border-gray-200">
                     <tr>
-                      <th className="w-8"></th>
-                      <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="w-10 px-3"></th>
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Status
                       </th>
-                      <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Name
                       </th>
-                      <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Timing
                       </th>
-                      <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Point Person
                       </th>
-                      <th className="text-left px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
                         Software
                       </th>
                       {isAdmin && (
-                        <th className="text-right px-4 py-2 text-xs font-medium text-gray-500 uppercase tracking-wider w-24">
+                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider w-28">
                           Actions
                         </th>
                       )}
@@ -164,24 +164,24 @@ export function WorkstreamEntriesList({
                         <React.Fragment key={entry.id}>
                           {/* Main Row */}
                           <tr
-                            className="hover:bg-gray-50 transition-colors cursor-pointer"
+                            className="hover:bg-gray-50/80 transition-colors cursor-pointer"
                             onClick={() => toggleEntry(entry.id)}
                           >
-                            <td className="px-2 py-3">
+                            <td className="px-3 py-4">
                               {isEntryExpanded ? (
-                                <ChevronDown className="h-4 w-4 text-gray-400" />
+                                <ChevronDown className="h-4 w-4 text-gray-500" />
                               ) : (
                                 <ChevronRight className="h-4 w-4 text-gray-400" />
                               )}
                             </td>
-                            <td className="px-4 py-3" onClick={(e) => e.stopPropagation()}>
+                            <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
                               {isAdmin && onStatusChange ? (
                                 <select
                                   value={entry.status}
                                   onChange={(e) =>
                                     onStatusChange(entry, e.target.value as WorkstreamStatus)
                                   }
-                                  className="text-xs rounded border-0 font-medium cursor-pointer focus:ring-2 focus:ring-brand-primary px-2 py-1"
+                                  className="text-xs rounded-md border border-gray-300 font-medium cursor-pointer focus:ring-2 focus:ring-brand-primary focus:border-brand-primary px-2.5 py-1.5 bg-white hover:border-gray-400 transition-colors"
                                 >
                                   <option value="green">🟢 Green</option>
                                   <option value="yellow">🟡 Yellow</option>
@@ -191,19 +191,19 @@ export function WorkstreamEntriesList({
                                 <WorkstreamStatusBadge status={entry.status} size="sm" showLabel={false} />
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-4">
                               <div className="font-medium text-gray-900 text-sm">{entry.name}</div>
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-4">
                               {entry.timing ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-800">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
                                   {entry.timing}
                                 </span>
                               ) : (
                                 <span className="text-sm text-gray-400">-</span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-4">
                               {entry.point_person ? (
                                 <div className="text-sm text-gray-900">
                                   {entry.point_person.full_name}
@@ -212,9 +212,9 @@ export function WorkstreamEntriesList({
                                 <span className="text-sm text-gray-400">Unassigned</span>
                               )}
                             </td>
-                            <td className="px-4 py-3">
+                            <td className="px-4 py-4">
                               {entry.associated_software ? (
-                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-50 text-blue-700">
+                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
                                   {entry.associated_software}
                                 </span>
                               ) : (
@@ -222,12 +222,12 @@ export function WorkstreamEntriesList({
                               )}
                             </td>
                             {isAdmin && (
-                              <td className="px-4 py-3 text-right" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-end gap-1">
+                              <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
+                                <div className="flex items-center justify-end gap-1.5">
                                   {onEditEntry && (
                                     <button
                                       onClick={() => onEditEntry(entry)}
-                                      className="p-1.5 rounded hover:bg-gray-100 transition-colors"
+                                      className="p-2 rounded-md hover:bg-gray-100 transition-colors"
                                       title="Edit entry"
                                     >
                                       <Edit2 className="h-4 w-4 text-gray-600" />
@@ -236,7 +236,7 @@ export function WorkstreamEntriesList({
                                   {onDeleteEntry && (
                                     <button
                                       onClick={() => onDeleteEntry(entry)}
-                                      className="p-1.5 rounded hover:bg-red-50 transition-colors"
+                                      className="p-2 rounded-md hover:bg-red-50 transition-colors"
                                       title="Delete entry"
                                     >
                                       <Trash2 className="h-4 w-4 text-red-600" />
@@ -249,27 +249,27 @@ export function WorkstreamEntriesList({
 
                           {/* Expanded Details Row */}
                           {isEntryExpanded && (
-                            <tr className="bg-gray-50">
-                              <td></td>
-                              <td colSpan={isAdmin ? 6 : 5} className="px-4 py-4">
-                                <div className="space-y-3 text-sm">
+                            <tr className="bg-gray-50/50 border-t border-gray-200">
+                              <td className="px-3"></td>
+                              <td colSpan={isAdmin ? 6 : 5} className="px-4 py-5">
+                                <div className="space-y-4 text-sm">
                                   {/* Description */}
                                   {entry.description && (
                                     <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
                                         Description
                                       </h5>
-                                      <p className="text-gray-600">{entry.description}</p>
+                                      <p className="text-gray-600 leading-relaxed">{entry.description}</p>
                                     </div>
                                   )}
 
                                   {/* Notes */}
                                   {entry.notes && (
                                     <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
                                         Notes
                                       </h5>
-                                      <p className="text-gray-600 bg-white rounded p-2 border border-gray-200">
+                                      <p className="text-gray-600 bg-white rounded-lg p-3 border border-gray-200 leading-relaxed">
                                         {entry.notes}
                                       </p>
                                     </div>
@@ -278,14 +278,14 @@ export function WorkstreamEntriesList({
                                   {/* SOP */}
                                   {entry.custom_sop && (
                                     <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-1">
+                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
                                         Standard Operating Procedure
                                       </h5>
-                                      <div className="text-gray-600 bg-white rounded p-2 border border-gray-200 max-h-48 overflow-y-auto">
+                                      <div className="text-gray-600 bg-white rounded-lg p-3 border border-gray-200 max-h-48 overflow-y-auto">
                                         {typeof entry.custom_sop === 'string' ? (
-                                          <p className="whitespace-pre-wrap">{entry.custom_sop}</p>
+                                          <p className="whitespace-pre-wrap leading-relaxed">{entry.custom_sop}</p>
                                         ) : (
-                                          <pre className="text-xs">
+                                          <pre className="text-xs font-mono">
                                             {JSON.stringify(entry.custom_sop, null, 2)}
                                           </pre>
                                         )}
@@ -294,7 +294,7 @@ export function WorkstreamEntriesList({
                                   )}
 
                                   {/* Metadata */}
-                                  <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-2 border-t border-gray-200">
+                                  <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-3 border-t border-gray-200">
                                     {entry.template && (
                                       <div>
                                         Created from template:{' '}

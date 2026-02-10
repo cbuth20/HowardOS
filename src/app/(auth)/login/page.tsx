@@ -17,7 +17,7 @@ export default function LoginPage() {
   const router = useRouter()
   const supabase = createClient()
 
-  const handlePasswordLogin = async (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
     setLoading(true)
     setMessage(null)
@@ -67,7 +67,7 @@ export default function LoginPage() {
           )}
 
           {/* Login Form */}
-          <form onSubmit={handlePasswordLogin}>
+          <form onSubmit={handleLogin}>
             <div className="space-y-4">
               <div>
                 <label htmlFor="email" className="block text-sm font-medium mb-2">
@@ -78,7 +78,7 @@ export default function LoginPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="you@example.com"
+                  placeholder="you@howard-finance.com"
                   required
                   disabled={loading}
                 />

@@ -206,7 +206,7 @@ export function BulkAddEntriesModal({
 
                           <div className="flex-1 min-w-0">
                             <div className="flex items-start justify-between gap-2">
-                              <h4 className="font-medium text-gray-900">{template.name}</h4>
+                              <span className="text-md text-gray-900">{template.name}</span>
                               {template.timing && (
                                 <span className="text-xs px-2 py-1 bg-gray-100 text-gray-600 rounded">
                                   {template.timing}
@@ -215,7 +215,7 @@ export function BulkAddEntriesModal({
                             </div>
 
                             {template.description && (
-                              <p className="text-sm text-gray-600 mt-1">{template.description}</p>
+                              <p className="text-xs text-gray-600 mt-1">{template.description}</p>
                             )}
 
                             {template.associated_software && (

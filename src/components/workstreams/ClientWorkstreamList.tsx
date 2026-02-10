@@ -12,12 +12,14 @@ interface ClientWorkstreamListProps {
   workstreams: WorkstreamWithEntriesAndRollup[]
   organizations: Array<{ id: string; name: string }>
   loading?: boolean
+  onSelectWorkstream?: (workstreamId: string) => void
 }
 
 export function ClientWorkstreamList({
   workstreams,
   organizations,
   loading = false,
+  onSelectWorkstream,
 }: ClientWorkstreamListProps) {
   const router = useRouter()
   const [filters, setFilters] = useState({
@@ -43,7 +45,11 @@ export function ClientWorkstreamList({
       })
       toast.success('Workstream created successfully')
       // Navigate to the new workstream
-      router.push(`/workstreams/${result.workstream.id}`)
+      if (onSelectWorkstream) {
+        onSelectWorkstream(result.workstream.id)
+      } else {
+        router.push(`/workstreams/${result.workstream.id}`)
+      }
     } catch (error: any) {
       toast.error(error.message || 'Failed to create workstream')
     }
@@ -51,7 +57,11 @@ export function ClientWorkstreamList({
 
   // Handle navigate to workstream
   const handleNavigate = (workstreamId: string) => {
-    router.push(`/workstreams/${workstreamId}`)
+    if (onSelectWorkstream) {
+      onSelectWorkstream(workstreamId)
+    } else {
+      router.push(`/workstreams/${workstreamId}`)
+    }
   }
 
   // Find orgs without workstreams

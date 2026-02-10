@@ -2,6 +2,7 @@ import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import { successResponse } from './lib/responses'
 import { ShareFileSchema } from '../../src/types/schemas'
+import { sendFileNotificationEmail } from '../../src/lib/email/resend'
 
 export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, supabase }: AuthContext) => {
   const method = event.httpMethod
@@ -83,6 +84,63 @@ async function handleShareFile(event: HandlerEvent, user: any, profile: any, sup
       shared_with_count: userIds.length,
     },
   })
+
+  // Send email notifications
+  try {
+    // Get uploader's name
+    const { data: uploaderProfile } = await supabase
+      .from('profiles')
+      .select('full_name, email')
+      .eq('id', user.id)
+      .single() as { data: { full_name: string; email: string } | null }
+
+    const uploaderName = uploaderProfile?.full_name || uploaderProfile?.email || 'Someone'
+
+    // Get all admins in the organization
+    const { data: admins } = await supabase
+      .from('profiles')
+      .select('id, email, full_name')
+      .eq('org_id', profile.org_id)
+      .eq('role', 'admin')
+      .eq('is_active', true) as { data: Array<{ id: string; email: string; full_name: string }> | null }
+
+    // Get the users who were shared the file
+    const { data: sharedUsers } = await supabase
+      .from('profiles')
+      .select('id, email, full_name, role')
+      .in('id', userIds) as { data: Array<{ id: string; email: string; full_name: string; role: string }> | null }
+
+    // Link directly to files page - could be enhanced to link to specific file
+    const filesUrl = `${process.env.NEXT_PUBLIC_APP_URL}/files?highlight=${fileId}`
+
+    // Send to all recipients (admins + shared users, excluding the uploader)
+    const recipients = [
+      ...(admins || []),
+      ...(sharedUsers || [])
+    ].filter((recipient, index, self) =>
+      // Remove duplicates and exclude the uploader
+      recipient.id !== user.id &&
+      index === self.findIndex(r => r.id === recipient.id)
+    )
+
+    // Send emails in parallel
+    await Promise.allSettled(
+      recipients.map(recipient =>
+        sendFileNotificationEmail({
+          to: recipient.email,
+          recipientName: recipient.full_name || recipient.email,
+          uploaderName,
+          files: [{ name: file.name }],
+          filesUrl,
+        })
+      )
+    )
+
+    console.log(`Sent file notification emails to ${recipients.length} recipient(s)`)
+  } catch (emailError) {
+    console.error('Error sending file notification emails:', emailError)
+    // Don't fail the entire request if email fails
+  }
 
   return successResponse({
     message: `File shared with ${userIds.length} user(s)`,

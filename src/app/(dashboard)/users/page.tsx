@@ -1,13 +1,14 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Plus, Search, UserCog, Mail, Shield, Users as UsersIcon } from 'lucide-react'
+import { Plus, Search, UserCog, Mail, Shield, Users as UsersIcon, Send } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { Avatar } from '@/components/ui/Avatar'
 import { InviteUserModal } from '@/components/users/InviteUserModal'
 import { EditUserModal } from '@/components/users/EditUserModal'
 import { createClient } from '@/lib/supabase/client'
+import { authFetch } from '@/lib/utils/auth-fetch'
 import toast from 'react-hot-toast'
 
 interface User {
@@ -133,6 +134,26 @@ export default function UsersPage() {
   const handleEditComplete = () => {
     setEditingUser(null)
     fetchUsers()
+  }
+
+  const handleSendMagicLink = async (userId: string, userEmail: string) => {
+    try {
+      const response = await authFetch('/api/users-send-magic-link', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId }),
+      })
+
+      if (!response.ok) {
+        const error = await response.json()
+        throw new Error(error.error || 'Failed to send magic link')
+      }
+
+      toast.success(`Magic link sent to ${userEmail}`)
+    } catch (error: any) {
+      console.error('Error sending magic link:', error)
+      toast.error(error.message || 'Failed to send magic link')
+    }
   }
 
   const stats = {
@@ -321,6 +342,16 @@ export default function UsersPage() {
 
                   {/* Actions */}
                   <div className="flex items-center gap-2">
+                    {user.is_active && currentUserRole === 'admin' && (
+                      <Button
+                        variant="secondary"
+                        size="sm"
+                        onClick={() => handleSendMagicLink(user.id, user.email)}
+                        title="Send magic link to user"
+                      >
+                        <Send className="w-4 h-4" />
+                      </Button>
+                    )}
                     <Button
                       variant="secondary"
                       size="sm"

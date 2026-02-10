@@ -6,6 +6,7 @@ import {
   useWorkstreamVerticals,
   useAllClientWorkstreams,
   useClientWorkstreamByOrg,
+  useClientWorkstream,
 } from '@/lib/api/hooks/useWorkstreams'
 import { useClients } from '@/lib/api/hooks/useUsers'
 import { WorkstreamTemplateList } from '@/components/workstreams/WorkstreamTemplateList'
@@ -49,11 +50,18 @@ export default function WorkstreamsPage() {
 
   // Admin view state
   const [activeTab, setActiveTab] = useState<'templates' | 'workstreams'>('templates')
+  const [selectedWorkstreamId, setSelectedWorkstreamId] = useState<string | null>(null)
 
   // Fetch data
   const { data: allWorkstreams = [], isLoading: loadingAllWorkstreams } = useAllClientWorkstreams({
     enabled: isAdmin,
   })
+
+  // Fetch selected workstream with full details (including entries)
+  const { data: selectedWorkstream, isLoading: loadingSelectedWorkstream } = useClientWorkstream(
+    selectedWorkstreamId || '',
+    isAdmin && !!selectedWorkstreamId
+  )
 
   // Client-specific workstream
   const {
@@ -114,7 +122,10 @@ export default function WorkstreamsPage() {
           {/* Tabs */}
           <div className="px-8 flex gap-4 border-b border-neutral-border">
             <button
-              onClick={() => setActiveTab('templates')}
+              onClick={() => {
+                setActiveTab('templates')
+                setSelectedWorkstreamId(null)
+              }}
               className={`px-4 py-3 font-medium border-b-2 transition-colors ${
                 activeTab === 'templates'
                   ? 'border-brand-primary text-brand-primary'
@@ -124,7 +135,10 @@ export default function WorkstreamsPage() {
               Templates Library
             </button>
             <button
-              onClick={() => setActiveTab('workstreams')}
+              onClick={() => {
+                setActiveTab('workstreams')
+                setSelectedWorkstreamId(null)
+              }}
               className={`px-4 py-3 font-medium border-b-2 transition-colors ${
                 activeTab === 'workstreams'
                   ? 'border-brand-primary text-brand-primary'
@@ -181,11 +195,27 @@ export default function WorkstreamsPage() {
 
           {activeTab === 'templates' ? (
             <WorkstreamTemplateList />
+          ) : selectedWorkstreamId ? (
+            loadingSelectedWorkstream ? (
+              <div className="flex items-center justify-center py-12">
+                <div className="text-center">
+                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4" />
+                  <p className="text-text-muted">Loading workstream...</p>
+                </div>
+              </div>
+            ) : selectedWorkstream ? (
+              <WorkstreamDetailView
+                workstream={selectedWorkstream}
+                isAdmin={true}
+                onBack={() => setSelectedWorkstreamId(null)}
+              />
+            ) : null
           ) : (
             <ClientWorkstreamList
               workstreams={allWorkstreams}
               organizations={organizations}
               loading={loadingAllWorkstreams}
+              onSelectWorkstream={(id) => setSelectedWorkstreamId(id)}
             />
           )}
         </div>
