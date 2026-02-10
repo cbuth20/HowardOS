@@ -24,6 +24,7 @@ import type {
   CreateWorkstreamEntrySchemaInput,
   UpdateWorkstreamEntrySchemaInput,
   BulkCreateEntriesSchemaInput,
+  AssignWorkstreamInput,
 } from '@/types/schemas'
 
 export class ApiError extends Error {

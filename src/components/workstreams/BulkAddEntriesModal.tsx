@@ -192,7 +192,7 @@ export function BulkAddEntriesModal({
                     </div>
 
                     <div className="space-y-2">
-                      {templatesByVertical[vertical.id].map((template) => (
+                      {templatesByVertical[vertical.id].map((template: WorkstreamTemplateWithVertical) => (
                         <label
                           key={template.id}
                           className="flex items-start gap-3 p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"

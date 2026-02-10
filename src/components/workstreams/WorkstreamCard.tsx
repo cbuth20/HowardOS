@@ -2,11 +2,11 @@
 
 import { useState } from 'react'
 import { ChevronDown, ChevronUp, Clock, User, Package } from 'lucide-react'
-import { ClientWorkstreamWithDetails } from '@/types/entities'
+import { WorkstreamEntryWithDetails } from '@/types/entities'
 import { WorkstreamStatusBadge } from './WorkstreamStatusBadge'
 
 interface WorkstreamCardProps {
-  workstream: ClientWorkstreamWithDetails
+  workstream: WorkstreamEntryWithDetails
 }
 
 export function WorkstreamCard({ workstream }: WorkstreamCardProps) {
@@ -23,24 +23,24 @@ export function WorkstreamCard({ workstream }: WorkstreamCardProps) {
 
         <div className="flex-1 min-w-0">
           <h4 className="font-semibold text-gray-900 mb-1">
-            {workstream.template?.name}
+            {workstream.name}
           </h4>
 
           <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600">
-            {workstream.template?.vertical && (
+            {workstream.vertical && (
               <span className="flex items-center gap-1">
                 <span
                   className="h-2 w-2 rounded-full"
-                  style={{ backgroundColor: workstream.template.vertical.color || '#3B82F6' }}
+                  style={{ backgroundColor: workstream.vertical.color || '#3B82F6' }}
                 />
-                {workstream.template.vertical.name}
+                {workstream.vertical.name}
               </span>
             )}
 
-            {workstream.template?.timing && (
+            {workstream.timing && (
               <span className="flex items-center gap-1">
                 <Clock className="h-3.5 w-3.5" />
-                {workstream.template.timing}
+                {workstream.timing}
               </span>
             )}
 
@@ -51,10 +51,10 @@ export function WorkstreamCard({ workstream }: WorkstreamCardProps) {
               </span>
             )}
 
-            {workstream.template?.associated_software && (
+            {workstream.associated_software && (
               <span className="flex items-center gap-1">
                 <Package className="h-3.5 w-3.5" />
-                {workstream.template.associated_software}
+                {workstream.associated_software}
               </span>
             )}
           </div>
@@ -73,10 +73,10 @@ export function WorkstreamCard({ workstream }: WorkstreamCardProps) {
       {isExpanded && (
         <div className="border-t border-gray-200 p-4 bg-gray-50 space-y-4">
           {/* Description */}
-          {workstream.template?.description && (
+          {workstream.description && (
             <div>
               <h4 className="text-sm font-medium text-gray-700 mb-1">Description</h4>
-              <p className="text-sm text-gray-600">{workstream.template.description}</p>
+              <p className="text-sm text-gray-600">{workstream.description}</p>
             </div>
           )}
 

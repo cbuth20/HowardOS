@@ -138,6 +138,7 @@ export type WorkstreamWithEntriesAndRollup = ClientWorkstream & {
   entries?: WorkstreamEntryWithDetails[]
   vertical_rollups?: VerticalStatusRollup[]
   overall_status?: WorkstreamStatus
+  total_entries?: number
 }
 
 // Form input types for templates (unchanged)

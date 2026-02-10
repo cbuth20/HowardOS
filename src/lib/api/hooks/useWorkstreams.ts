@@ -5,6 +5,7 @@ import type {
   UpdateWorkstreamTemplateInput,
   CreateWorkstreamSchemaInput,
   UpdateWorkstreamSchemaInput,
+  AssignWorkstreamInput,
 } from '@/types/schemas'
 import toast from 'react-hot-toast'
 
@@ -217,6 +218,62 @@ export function useDeleteClientWorkstream() {
     },
     onError: (error: any) => {
       toast.error(error.message || 'Failed to delete workstream')
+    },
+  })
+}
+
+// ============================================================================
+// Assign Workstream (Legacy helper - creates workstream + entry)
+// ============================================================================
+
+export function useAssignWorkstream() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: async (data: AssignWorkstreamInput) => {
+      // Step 1: Get the template to extract necessary information
+      const templateResponse = await apiClient.getWorkstreamTemplate(data.template_id)
+      const template = templateResponse.template
+
+      // Step 2: Check if workstream exists for org
+      const workstreamResponse = await apiClient.getClientWorkstreamByOrg(data.org_id)
+      let workstreamId = workstreamResponse.workstream?.id
+
+      // Step 3: If no workstream exists, create one
+      if (!workstreamId) {
+        const createResponse = await apiClient.createClientWorkstream({
+          org_id: data.org_id,
+          name: 'Workstream',
+          notes: null,
+        })
+        workstreamId = createResponse.workstream.id
+      }
+
+      // Step 4: Create entry for the workstream
+      const entryResponse = await apiClient.createWorkstreamEntry({
+        workstream_id: workstreamId,
+        vertical_id: template.vertical_id,
+        name: template.name,
+        description: template.description,
+        associated_software: template.associated_software,
+        timing: template.timing,
+        status: data.status,
+        point_person_id: data.point_person_id || null,
+        notes: data.notes || null,
+        custom_sop: template.default_sop || null,
+        template_id: data.template_id,
+        display_order: 0,
+      })
+
+      return entryResponse
+    },
+    onSuccess: () => {
+      // Invalidate all workstream queries
+      queryClient.invalidateQueries({ queryKey: clientWorkstreamKeys.all })
+      toast.success('Workstream assigned successfully')
+    },
+    onError: (error: any) => {
+      toast.error(error.message || 'Failed to assign workstream')
     },
   })
 }

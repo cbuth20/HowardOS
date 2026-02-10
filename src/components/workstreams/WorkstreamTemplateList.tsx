@@ -186,7 +186,7 @@ export function WorkstreamTemplateList() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-100">
-                          {verticalTemplates.map((template) => (
+                          {verticalTemplates.map((template: WorkstreamTemplateWithVertical) => (
                             <tr key={template.id} className="hover:bg-gray-50 transition-colors">
                               <td className="px-4 py-3">
                                 <div className="font-medium text-gray-900 text-sm">
