@@ -2,7 +2,7 @@ import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware } from './lib/middleware'
 import { successResponse, errorResponse } from './lib/responses'
 import { createClient } from '@supabase/supabase-js'
-import { sendMagicLinkEmail } from '../../src/lib/email/resend'
+import { sendMagicLinkEmail } from '../../src/lib/email/postmark'
 
 // This endpoint doesn't require auth (it's for logging in)
 export const handler = async (event: HandlerEvent) => {
@@ -24,7 +24,14 @@ export const handler = async (event: HandlerEvent) => {
     const { email } = body
 
     if (!email) {
-      return errorResponse(400, 'Email is required')
+      return {
+        statusCode: 400,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(errorResponse('Email is required')),
+      }
     }
 
     // Use admin client to generate magic link without sending Supabase email
@@ -54,7 +61,14 @@ export const handler = async (event: HandlerEvent) => {
     }
 
     if (!profile.is_active) {
-      return errorResponse(403, 'This account is not active. Please contact your administrator.')
+      return {
+        statusCode: 403,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(errorResponse('This account is not active. Please contact your administrator.')),
+      }
     }
 
     // Generate magic link using Admin API (doesn't trigger Supabase email)
@@ -68,10 +82,17 @@ export const handler = async (event: HandlerEvent) => {
 
     if (magicLinkError) {
       console.error('Magic link generation error:', magicLinkError)
-      return errorResponse(500, 'Failed to generate magic link')
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(errorResponse('Failed to generate magic link')),
+      }
     }
 
-    // Send email via Resend ONLY
+    // Send email via Postmark ONLY
     try {
       await sendMagicLinkEmail({
         to: email,
@@ -80,14 +101,35 @@ export const handler = async (event: HandlerEvent) => {
       })
     } catch (emailError) {
       console.error('Error sending magic link email:', emailError)
-      return errorResponse(500, 'Failed to send magic link email')
+      return {
+        statusCode: 500,
+        headers: {
+          'Access-Control-Allow-Origin': '*',
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(errorResponse('Failed to send magic link email')),
+      }
     }
 
-    return successResponse({
-      message: 'Magic link sent! Check your email.',
-    })
+    return {
+      statusCode: 200,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(successResponse({
+        message: 'Magic link sent! Check your email.',
+      })),
+    }
   } catch (error: any) {
     console.error('Magic link endpoint error:', error)
-    return errorResponse(500, error.message || 'Internal server error')
+    return {
+      statusCode: 500,
+      headers: {
+        'Access-Control-Allow-Origin': '*',
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(errorResponse(error.message || 'Internal server error')),
+    }
   }
 }

@@ -40,6 +40,40 @@ export type ClientWithOrganization = UserWithOrganization & {
   role: 'client'
 }
 
+// File Channels types
+export type FileChannel = {
+  id: string
+  org_id: string
+  client_org_id: string
+  name: string
+  description: string | null
+  created_by: string
+  metadata: Record<string, unknown>
+  created_at: string
+  updated_at: string
+}
+
+export type ChannelFolder = {
+  id: string
+  channel_id: string
+  name: string
+  parent_path: string
+  created_by: string
+  created_at: string
+}
+
+export type FileChannelWithDetails = FileChannel & {
+  client_organization?: Pick<Organization, 'id' | 'name' | 'slug' | 'logo_url'>
+  created_by_profile?: Pick<User, 'id' | 'full_name' | 'email'> | null
+  file_count?: number
+  latest_activity?: string | null
+  primary_contact?: Pick<User, 'id' | 'full_name' | 'email'> | null
+}
+
+export type ChannelFolderWithCreator = ChannelFolder & {
+  created_by_profile?: Pick<User, 'id' | 'full_name' | 'email'> | null
+}
+
 // Form input types (for creating/updating entities)
 export type CreateTaskInput = Pick<Task, 'title' | 'description' | 'status' | 'priority'> & {
   assigned_to?: string | null
@@ -55,6 +89,7 @@ export type CreateFileInput = {
   mime_type: string
   folder_path?: string
   description?: string | null
+  channel_id?: string
 }
 
 export type InviteUserInput = {

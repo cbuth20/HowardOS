@@ -1,4 +1,4 @@
-import { Task, File, User, TaskWithProfiles, FileWithUploader, ClientWithOrganization } from './entities'
+import { Task, File, User, TaskWithProfiles, FileWithUploader, ClientWithOrganization, FileChannel, FileChannelWithDetails, ChannelFolder, ChannelFolderWithCreator } from './entities'
 
 // Generic API response types
 export type ApiSuccessResponse<T> = {
@@ -57,6 +57,31 @@ export type ShareFileResponse = ApiSuccessResponse<{
 
 export type GetFilePermissionsResponse = ApiSuccessResponse<{
   permissions: any[]
+}>
+
+// File Channel endpoint responses
+export type GetFileChannelsResponse = ApiSuccessResponse<{
+  channels: FileChannelWithDetails[]
+}>
+
+export type GetFileChannelResponse = ApiSuccessResponse<{
+  channel: FileChannelWithDetails
+}>
+
+export type CreateFileChannelResponse = ApiSuccessResponse<{
+  channel: FileChannel
+  message: string
+}>
+
+export type DeleteFileChannelResponse = ApiSuccessResponse<{
+  message: string
+}>
+
+export type GetChannelFilesResponse = ApiSuccessResponse<{
+  files: FileWithUploader[]
+  folders: ChannelFolderWithCreator[]
+  channel: FileChannelWithDetails
+  folderPath: string
 }>
 
 // User endpoint responses

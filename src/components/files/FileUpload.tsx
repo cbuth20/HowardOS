@@ -9,10 +9,11 @@ import toast from 'react-hot-toast'
 
 interface FileUploadProps {
   folderPath?: string
+  channelId?: string
   onUploadComplete?: () => void
 }
 
-export function FileUpload({ folderPath = '/', onUploadComplete }: FileUploadProps) {
+export function FileUpload({ folderPath = '/', channelId, onUploadComplete }: FileUploadProps) {
   const [uploading, setUploading] = useState(false)
   const [selectedFiles, setSelectedFiles] = useState<File[]>([])
 
@@ -41,6 +42,7 @@ export function FileUpload({ folderPath = '/', onUploadComplete }: FileUploadPro
         const formData = new FormData()
         formData.append('file', file)
         formData.append('folderPath', folderPath)
+        if (channelId) formData.append('channelId', channelId)
 
         const authHeaders = await getAuthHeaders()
 

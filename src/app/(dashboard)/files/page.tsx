@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { FolderOpen, Plus, RefreshCw } from 'lucide-react'
+import { FolderOpen, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/Button'
-import { Modal } from '@/components/ui/Modal'
-import { FileUpload } from '@/components/files/FileUpload'
-import { FileList } from '@/components/files/FileList'
+import { ChannelList } from '@/components/files/ChannelList'
+import { ChannelContentView } from '@/components/files/ChannelContentView'
+import { CreateChannelModal } from '@/components/files/CreateChannelModal'
+import { useFileChannels } from '@/lib/api/hooks'
 import { createClient } from '@/lib/supabase/client'
-import { useFiles } from '@/lib/api/hooks'
 
 interface UserProfile {
   role: 'admin' | 'client'
@@ -15,18 +15,23 @@ interface UserProfile {
 }
 
 export default function FilesPage() {
-  const [showUploadModal, setShowUploadModal] = useState(false)
   const [profile, setProfile] = useState<UserProfile | null>(null)
-  const [view, setView] = useState<'all' | 'my-files'>('all')
+  const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
+  const [showCreateModal, setShowCreateModal] = useState(false)
 
   const supabase = createClient()
-
-  // Use TanStack Query hook
-  const { data: files = [], isLoading, refetch } = useFiles('/', profile?.role === 'admin' ? view : 'my-files')
+  const { data: channels = [], isLoading: channelsLoading } = useFileChannels()
 
   useEffect(() => {
     fetchProfile()
   }, [])
+
+  // Auto-select first channel when channels load
+  useEffect(() => {
+    if (channels.length > 0 && !selectedChannelId) {
+      setSelectedChannelId(channels[0].id)
+    }
+  }, [channels, selectedChannelId])
 
   const fetchProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser()
@@ -37,109 +42,90 @@ export default function FilesPage() {
         .eq('id', user.id)
         .single()
       setProfile(data)
-
-      // Auto-set view based on role
-      if (data?.role === 'client') {
-        setView('my-files')
-      }
     }
   }
 
-  const handleUploadComplete = () => {
-    setShowUploadModal(false)
-    refetch()
-  }
-
   const isAdmin = profile?.role === 'admin'
-  const canDelete = isAdmin || view === 'my-files'
+  const selectedChannel = channels.find((c) => c.id === selectedChannelId)
+
+  // Client view: if only one channel, show it directly without sidebar
+  const isClientSingleChannel = !isAdmin && channels.length <= 1
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Sticky Topbar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-neutral-border shadow-sm">
+      <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
         <div className="px-8 py-4 flex items-center justify-between">
-          <div>
+          <div className="flex items-center gap-3">
             <h1 className="text-xl flex gap-2 font-semibold tracking-tight text-text-primary">
-              <FolderOpen className="w-6 h-6 text-brand-primary"/>
-              {isAdmin ? 'Files' : 'My Files'}
+              <FolderOpen className="w-6 h-6 text-brand-primary" />
+              File channels
             </h1>
-            <p className="text-sm text-text-muted">
-              {isAdmin
-                ? 'Manage files for your organization'
-                : 'View and download your files'}
-            </p>
           </div>
-          <div className="flex gap-2">
-            <Button
-              variant="ghost"
-              onClick={() => refetch()}
-              disabled={isLoading}
-            >
-              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            </Button>
-            <Button
-              variant="primary"
-              onClick={() => setShowUploadModal(true)}
-            >
+          {isAdmin && (
+            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
-              Upload Files
+              New Channel
             </Button>
-          </div>
-        </div>
-      </div>
-
-      {/* Main Content */}
-      <div className="flex-1 overflow-auto p-8">
-        {/* View Toggle (Admin Only) */}
-        {/* {isAdmin && (
-          <div className="mb-6 flex gap-2">
-            <Button
-              variant={view === 'all' ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => setView('all')}
-            >
-              All Files
-            </Button>
-            <Button
-              variant={view === 'my-files' ? 'primary' : 'secondary'}
-              size="sm"
-              onClick={() => setView('my-files')}
-            >
-              My Files
-            </Button>
-          </div>
-        )} */}
-
-        {/* Files List */}
-        <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border p-6">
-          {isLoading ? (
-            <div className="text-center py-12">
-              <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto"></div>
-              <p className="text-text-muted mt-4">Loading files...</p>
-            </div>
-          ) : (
-            <FileList
-              files={files}
-              canDelete={canDelete}
-              canShare={isAdmin}
-              onRefresh={() => refetch()}
-            />
           )}
         </div>
       </div>
 
-      {/* Upload Modal */}
-      <Modal
-        isOpen={showUploadModal}
-        onClose={() => setShowUploadModal(false)}
-        title="Upload Files"
-        size="lg"
-      >
-        <FileUpload
-          folderPath="/"
-          onUploadComplete={handleUploadComplete}
-        />
-      </Modal>
+      {/* Two-panel content */}
+      <div className="flex-1 flex min-h-0 overflow-hidden">
+        {/* Left panel - Channel list (hidden for single-channel clients) */}
+        {!isClientSingleChannel && (
+          <div className="w-72 border-r border-neutral-border flex flex-col bg-background-elevated overflow-hidden flex-shrink-0">
+            <ChannelList
+              channels={channels}
+              selectedChannelId={selectedChannelId}
+              onSelectChannel={setSelectedChannelId}
+              isLoading={channelsLoading}
+            />
+          </div>
+        )}
+
+        {/* Right panel - Channel content */}
+        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+          {selectedChannelId && selectedChannel ? (
+            <ChannelContentView
+              channelId={selectedChannelId}
+              channel={selectedChannel}
+              isAdmin={isAdmin}
+              onChannelDeleted={() => setSelectedChannelId(null)}
+            />
+          ) : channelsLoading ? (
+            <div className="flex-1 flex items-center justify-center">
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary" />
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
+              <FolderOpen className="w-16 h-16 text-text-muted mb-4" />
+              <h3 className="text-lg font-medium text-text-primary mb-2">
+                {isAdmin ? 'No file channels yet' : 'No files shared with you'}
+              </h3>
+              <p className="text-sm text-text-muted mb-6 max-w-md">
+                {isAdmin
+                  ? 'Create a file channel to start sharing files with your clients. Each channel is linked to a client organization.'
+                  : 'Your advisor will create a file channel and share files with you here.'}
+              </p>
+              {isAdmin && (
+                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                  <Plus className="w-4 h-4 mr-2" />
+                  Create First Channel
+                </Button>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Create Channel Modal */}
+      <CreateChannelModal
+        isOpen={showCreateModal}
+        onClose={() => setShowCreateModal(false)}
+        onChannelCreated={(channelId) => setSelectedChannelId(channelId)}
+      />
     </div>
   )
 }

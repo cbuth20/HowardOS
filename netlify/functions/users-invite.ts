@@ -3,7 +3,7 @@ import { withMiddleware, AuthContext } from './lib/middleware'
 import { successResponse } from './lib/responses'
 import { InviteUserSchema } from '../../src/types/schemas'
 import { createAdminClient } from '../../src/lib/supabase/admin'
-import { sendInvitationEmail } from '../../src/lib/email/resend'
+import { sendInvitationEmail } from '../../src/lib/email/postmark'
 
 export const handler = withMiddleware(async (event: HandlerEvent, { profile, supabase }: AuthContext) => {
   console.log('=== USERS INVITE HANDLER START ===')

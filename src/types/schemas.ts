@@ -23,12 +23,31 @@ export const UploadFileSchema = z.object({
   mime_type: z.string().min(1, 'MIME type is required'),
   folder_path: z.string().default('/'),
   description: z.string().optional().nullable(),
+  channel_id: z.string().uuid('Invalid channel ID').optional(),
 })
 
 export const ShareFileSchema = z.object({
   fileId: z.string().uuid('Invalid file ID'),
   userIds: z.array(z.string().uuid()).min(1, 'At least one user must be selected'),
   permission: z.enum(['view', 'edit', 'delete']).default('view'),
+})
+
+// File Channel schemas
+export const CreateFileChannelSchema = z.object({
+  client_org_id: z.string().uuid('Invalid organization ID'),
+  name: z.string().min(1, 'Channel name is required').max(200).optional(),
+  description: z.string().optional().nullable(),
+})
+
+export const UpdateFileChannelSchema = z.object({
+  name: z.string().min(1).max(200).optional(),
+  description: z.string().optional().nullable(),
+})
+
+export const CreateChannelFolderSchema = z.object({
+  channel_id: z.string().uuid('Invalid channel ID'),
+  name: z.string().min(1, 'Folder name is required').max(200),
+  parent_path: z.string().default('/'),
 })
 
 // User schemas

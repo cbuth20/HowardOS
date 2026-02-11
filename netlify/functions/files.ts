@@ -28,6 +28,12 @@ async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supa
   const params = event.queryStringParameters || {}
   const folderPath = params.folderPath || '/'
   const view = params.view || 'all'
+  const channelId = params.channelId
+
+  // Channel-scoped file queries
+  if (channelId) {
+    return handleGetChannelFiles(channelId, folderPath, user, profile, supabase)
+  }
 
   // For clients, get files uploaded by them OR shared with them
   if (profile.role === 'client') {
@@ -43,6 +49,7 @@ async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supa
       .select(FILE_SELECT_QUERY)
       .or(`uploaded_by.eq.${user.id}${sharedIds.length > 0 ? `,id.in.(${sharedIds.join(',')})` : ''}`)
       .eq('folder_path', folderPath)
+      .is('channel_id', null)
       .order('created_at', { ascending: false })
 
     if (filesError) {
@@ -62,6 +69,7 @@ async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supa
     .select(FILE_SELECT_QUERY)
     .eq('org_id', profile.org_id)
     .eq('folder_path', folderPath)
+    .is('channel_id', null)
     .order('created_at', { ascending: false })
 
   if (view === 'my-files') {
@@ -77,6 +85,65 @@ async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supa
   return successResponse({
     files: files || [],
     view,
+    folderPath,
+  })
+}
+
+async function handleGetChannelFiles(channelId: string, folderPath: string, user: any, profile: any, supabase: any) {
+  // Verify channel access
+  const { data: channel, error: channelError } = await supabase
+    .from('file_channels')
+    .select(`
+      *,
+      client_organization:organizations!file_channels_client_org_id_fkey(
+        id, name, slug, logo_url
+      )
+    `)
+    .eq('id', channelId)
+    .single()
+
+  if (channelError || !channel) {
+    throw { statusCode: 404, message: 'Channel not found' }
+  }
+
+  // Check access: admin org or client org
+  if (channel.org_id !== profile.org_id && channel.client_org_id !== profile.org_id) {
+    throw { statusCode: 403, message: 'Access denied' }
+  }
+
+  // Get files in this channel at this folder path
+  const { data: files, error: filesError } = await supabase
+    .from('files')
+    .select(FILE_SELECT_QUERY)
+    .eq('channel_id', channelId)
+    .eq('folder_path', folderPath)
+    .order('name', { ascending: true })
+
+  if (filesError) {
+    throw { statusCode: 500, message: 'Failed to fetch files', details: filesError.message }
+  }
+
+  // Get folders at this path
+  const { data: folders, error: foldersError } = await supabase
+    .from('channel_folders')
+    .select(`
+      *,
+      created_by_profile:profiles!channel_folders_created_by_fkey(
+        id, full_name, email
+      )
+    `)
+    .eq('channel_id', channelId)
+    .eq('parent_path', folderPath)
+    .order('name', { ascending: true })
+
+  if (foldersError) {
+    throw { statusCode: 500, message: 'Failed to fetch folders', details: foldersError.message }
+  }
+
+  return successResponse({
+    files: files || [],
+    folders: folders || [],
+    channel,
     folderPath,
   })
 }

@@ -1,11 +1,11 @@
 # Magic Link Authentication Setup Guide
 
-This guide walks you through the complete setup of magic link authentication for HowardOS using Resend.
+This guide walks you through the complete setup of magic link authentication for HowardOS using Postmark.
 
 ## ✅ What's Been Implemented
 
-### 1. Email Service (Resend Integration)
-- **File**: `src/lib/email/resend.ts`
+### 1. Email Service (Postmark Integration)
+- **File**: `src/lib/email/postmark.ts`
 - Professional, branded email templates for:
   - Magic link login emails
   - User invitation emails
@@ -28,7 +28,7 @@ This guide walks you through the complete setup of magic link authentication for
 - **File**: `netlify/functions/users-invite.ts`
 - Creates new users via Supabase Admin API
 - Generates magic links for new users
-- Sends branded invitation emails via Resend
+- Sends branded invitation emails via Postmark
 - Includes role information and personalized message
 
 ### 5. Send Magic Link to Existing Users
@@ -42,7 +42,7 @@ This guide walks you through the complete setup of magic link authentication for
 
 ### Step 1: Disable Supabase Email Templates
 
-**IMPORTANT**: You must disable Supabase's email sending so ONLY Resend sends emails.
+**IMPORTANT**: You must disable Supabase's email sending so ONLY Postmark sends emails.
 
 1. Go to your Supabase Dashboard → **Authentication** → **Email Templates**
 
@@ -79,7 +79,8 @@ NEXT_PUBLIC_SUPABASE_URL=https://psjesaadhiypxbkwundv.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGci...
 SUPABASE_SERVICE_ROLE_KEY=eyJhbGci...
 NEXT_PUBLIC_APP_URL=http://localhost:8888
-RESEND_API_KEY=re_cUgZ5ytt_F8vmABCc77CancZkgzabXspC
+POSTMARK_API_KEY=2cd86eff-3ef7-4e8e-a0b5-3878709c95ef
+POSTMARK_FROM_EMAIL=no-reply@howard-finance.com
 ```
 
 ## 🧪 Testing the Setup
@@ -153,23 +154,18 @@ Sends magic link to existing user.
 
 ## 🚀 Next Steps
 
-1. **Verify DNS records in Squarespace** (as discussed in your ChatGPT conversation)
-   - Add DKIM TXT record: `resend._domainkey`
-   - Add/update SPF TXT record
-   - Add DMARC TXT record: `_dmarc`
+1. **Verify sender signature in Postmark**
+   - Domain `howard-finance.com` should already be verified
+   - Sender signature `no-reply@howard-finance.com` should be active
+   - Check Postmark dashboard → Sender Signatures
 
-2. **Verify domain in Resend dashboard**
-   - Go to Resend → Domains
-   - Click "I've added the records"
-   - Wait for verification (usually 1-5 minutes)
-
-3. **Test in production**
+2. **Test in production**
    - Deploy to Netlify
    - Test magic link flow end-to-end
-   - Monitor Resend dashboard for email delivery
+   - Monitor Postmark dashboard for email delivery
 
-4. **Optional: Customize email templates**
-   - Edit `src/lib/email/resend.ts`
+3. **Optional: Customize email templates**
+   - Edit `src/lib/email/postmark.ts`
    - Update HTML/CSS to match your exact branding
    - Add logo images (host on CDN and link in email)
 
@@ -181,8 +177,8 @@ Sends magic link to existing user.
 - Check browser console for errors
 
 ### Emails not sending
-- Verify `RESEND_API_KEY` is set correctly
-- Check domain is verified in Resend
+- Verify `POSTMARK_API_KEY` is set correctly
+- Check sender signature is verified in Postmark
 - Look for errors in Netlify function logs
 
 ### User creation fails
@@ -195,5 +191,5 @@ Sends magic link to existing user.
 If you encounter issues:
 1. Check Netlify function logs
 2. Check Supabase logs (Authentication → Logs)
-3. Check Resend logs (Emails → Activity)
+3. Check Postmark logs (Activity → Message Streams)
 4. Review browser console for client-side errors

@@ -45,7 +45,7 @@ When an admin shares files with users, email notifications are automatically sen
 ## 📁 Files Modified
 
 ### New Function Added
-- **`src/lib/email/resend.ts`**
+- **`src/lib/email/postmark.ts`**
   - `sendFileNotificationEmail()` function
   - Professional HTML email template
   - Howard Financial branding
@@ -72,7 +72,7 @@ When an admin shares files with users, email notifications are automatically sen
    - Click "Share" on a file
    - Select your user
    - Click "Save"
-4. **Check your email** (cbuth20@gmail.com for Resend testing)
+4. **Check your email**
 5. **Should receive**:
    - Email from HowardOS
    - Subject: "Howard Financial portal: New files were shared by [Your Name]"
@@ -96,16 +96,16 @@ When an admin shares files with users, email notifications are automatically sen
 
 ## 🚀 Production Ready
 
-Once your domain is verified:
+Using Postmark with verified domain:
 
 1. Set in `.env.local`:
    ```
-   RESEND_FROM_EMAIL=no-reply@howard-financial.com
+   POSTMARK_FROM_EMAIL=no-reply@howard-finance.com
    ```
 
-2. All emails will come from: `HowardOS <no-reply@howard-financial.com>`
+2. All emails will come from: `HowardOS <no-reply@howard-finance.com>`
 
-3. Works with any email address (not just testing)
+3. Works with any email address using Postmark's delivery infrastructure
 
 ---
 
@@ -148,10 +148,10 @@ The file sharing will still succeed even if emails fail.
 ## 🐛 Troubleshooting
 
 ### Emails not sending?
-1. Check Resend domain is verified
-2. Verify `RESEND_FROM_EMAIL` is set
+1. Check Postmark server is active
+2. Verify `POSTMARK_FROM_EMAIL` is set
 3. Check Netlify function logs for errors
-4. Test with your own email (Resend testing)
+4. Verify sender signature in Postmark dashboard
 
 ### Wrong recipient list?
 1. Check profiles table has correct `role` values

@@ -1,5 +1,6 @@
 export * from './useTasks'
 export * from './useFiles'
+export * from './useFileChannels'
 export * from './useUsers'
 export * from './useWorkstreams'
 export * from './useWorkstreamEntries'

@@ -4,6 +4,10 @@ import type {
   FileWithUploader,
   ClientWithOrganization,
   User,
+  FileChannel,
+  FileChannelWithDetails,
+  ChannelFolder,
+  ChannelFolderWithCreator,
   WorkstreamVertical,
   WorkstreamTemplateWithVertical,
   WorkstreamWithEntriesAndRollup,
@@ -134,6 +138,65 @@ class ApiClient {
 
   async getFilePermissions(fileId: string) {
     return this.request<{ permissions: any[] }>(`/api/files-share?fileId=${fileId}`)
+  }
+
+  // File Channels
+  async getFileChannels() {
+    return this.request<{ channels: FileChannelWithDetails[] }>('/api/file-channels')
+  }
+
+  async getFileChannel(id: string) {
+    return this.request<{ channel: FileChannelWithDetails }>(`/api/file-channels?id=${id}`)
+  }
+
+  async createFileChannel(data: { client_org_id: string; name?: string; description?: string }) {
+    return this.request<{ channel: FileChannel; message: string }>('/api/file-channels', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async updateFileChannel(id: string, data: { name?: string; description?: string }) {
+    return this.request<{ channel: FileChannel }>(`/api/file-channels?id=${id}`, {
+      method: 'PATCH',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteFileChannel(id: string) {
+    return this.request<{ message: string }>(`/api/file-channels?id=${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  // Channel Files (scoped)
+  async getChannelFiles(channelId: string, folderPath: string = '/') {
+    return this.request<{
+      files: FileWithUploader[]
+      folders: ChannelFolderWithCreator[]
+      channel: FileChannelWithDetails
+      folderPath: string
+    }>(`/api/files?channelId=${channelId}&folderPath=${encodeURIComponent(folderPath)}`)
+  }
+
+  // Channel Folders
+  async getChannelFolders(channelId: string, parentPath: string = '/') {
+    return this.request<{ folders: ChannelFolderWithCreator[] }>(
+      `/api/channel-folders?channelId=${channelId}&parentPath=${encodeURIComponent(parentPath)}`
+    )
+  }
+
+  async createChannelFolder(data: { channel_id: string; name: string; parent_path?: string }) {
+    return this.request<{ folder: ChannelFolder; message: string }>('/api/channel-folders', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
+
+  async deleteChannelFolder(id: string) {
+    return this.request<{ message: string }>(`/api/channel-folders?id=${id}`, {
+      method: 'DELETE',
+    })
   }
 
   // Users

@@ -8,6 +8,7 @@ import { Avatar } from '@/components/ui/Avatar'
 import { Modal } from '@/components/ui/Modal'
 import { InviteUserModal } from '@/components/users/InviteUserModal'
 import { EditUserModal } from '@/components/users/EditUserModal'
+import { AddExistingUserModal } from '@/components/users/AddExistingUserModal'
 import { ClientOrgTasks } from '@/components/clients/ClientOrgTasks'
 import { TaskModal } from '@/components/tasks/TaskModal'
 import { TaskFormData } from '@/types/tasks'
@@ -70,6 +71,7 @@ export default function ClientsPage() {
   const [showInviteModal, setShowInviteModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
+  const [showAddExistingUserModal, setShowAddExistingUserModal] = useState(false)
   const [selectedUser, setSelectedUser] = useState<OrgUser | null>(null)
   const [allUsers, setAllUsers] = useState<OrgUser[]>([])
   const [loadingAllUsers, setLoadingAllUsers] = useState(false)
@@ -329,6 +331,14 @@ export default function ClientsPage() {
     if (selectedOrg) {
       loadOrgUsers(selectedOrg.id)
       loadOrganizations() // Refresh counts
+    }
+  }
+
+  const handleAddExistingUserComplete = () => {
+    if (selectedOrg) {
+      loadOrgUsers(selectedOrg.id)
+      loadOrganizations()
+      loadAllUsers()
     }
   }
 
@@ -892,14 +902,24 @@ export default function ClientsPage() {
                   <p className="text-sm text-text-muted">
                     Manage users in {selectedOrg.name}
                   </p>
-                  <Button
-                    variant="primary"
-                    size="sm"
-                    onClick={() => setShowInviteModal(true)}
-                  >
-                    <UserPlus className="w-4 h-4 mr-2" />
-                    Invite User
-                  </Button>
+                  <div className="flex items-center gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddExistingUserModal(true)}
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Add Existing
+                    </Button>
+                    <Button
+                      variant="primary"
+                      size="sm"
+                      onClick={() => setShowInviteModal(true)}
+                    >
+                      <UserPlus className="w-4 h-4 mr-2" />
+                      Invite New
+                    </Button>
+                  </div>
                 </div>
 
                 {loadingUsers ? (
@@ -995,6 +1015,18 @@ export default function ClientsPage() {
           }}
           user={selectedUser}
           onComplete={handleEditComplete}
+        />
+      )}
+
+      {/* Add Existing User Modal */}
+      {selectedOrg && (
+        <AddExistingUserModal
+          isOpen={showAddExistingUserModal}
+          onClose={() => setShowAddExistingUserModal(false)}
+          targetOrgId={selectedOrg.id}
+          targetOrgName={selectedOrg.name}
+          currentOrgUserIds={orgUsers.map((u) => u.id)}
+          onComplete={handleAddExistingUserComplete}
         />
       )}
 

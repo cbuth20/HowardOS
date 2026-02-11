@@ -2,7 +2,7 @@ import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import { successResponse } from './lib/responses'
 import { ShareFileSchema } from '../../src/types/schemas'
-import { sendFileNotificationEmail } from '../../src/lib/email/resend'
+import { sendFileNotificationEmail } from '../../src/lib/email/postmark'
 
 export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, supabase }: AuthContext) => {
   const method = event.httpMethod

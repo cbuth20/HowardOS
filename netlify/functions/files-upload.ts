@@ -19,6 +19,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
     let mimeType = ''
     let folderPath = '/'
     let description: string | null = null
+    let channelId: string | null = null
 
     const bb = busboy({ headers: { 'content-type': contentType } })
 
@@ -39,6 +40,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
     bb.on('field', (name, val) => {
       if (name === 'folderPath') folderPath = val || '/'
       if (name === 'description') description = val || null
+      if (name === 'channelId') channelId = val || null
     })
 
     bb.on('finish', async () => {
@@ -66,7 +68,9 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
         // Generate storage path
         const fileId = crypto.randomUUID()
         const fileExtension = fileName.split('.').pop()
-        const storagePath = `${profile.org_id}${folderPath}${fileId}.${fileExtension}`
+        const storagePath = channelId
+          ? `${profile.org_id}/channels/${channelId}${folderPath}${fileId}.${fileExtension}`
+          : `${profile.org_id}${folderPath}${fileId}.${fileExtension}`
 
         // Upload to storage
         const { error: uploadError } = await supabase.storage
@@ -86,19 +90,24 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
         }
 
         // Create database record
+        const fileInsert: any = {
+          id: fileId,
+          org_id: profile.org_id,
+          name: fileName,
+          size: fileBuffer.length,
+          mime_type: mimeType,
+          storage_path: storagePath,
+          folder_path: folderPath,
+          uploaded_by: user.id,
+          description,
+        }
+        if (channelId) {
+          fileInsert.channel_id = channelId
+        }
+
         const { data: fileRecord, error: dbError } = await (supabase as any)
           .from('files')
-          .insert({
-            id: fileId,
-            org_id: profile.org_id,
-            name: fileName,
-            size: fileBuffer.length,
-            mime_type: mimeType,
-            storage_path: storagePath,
-            folder_path: folderPath,
-            uploaded_by: user.id,
-            description,
-          })
+          .insert(fileInsert)
           .select()
           .single()
 
