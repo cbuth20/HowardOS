@@ -2,6 +2,7 @@
 
 import { TaskView } from '@/types/tasks'
 import { Select, SelectOption } from '@/components/ui/Select'
+import { FilterChip } from '@/components/ui/FilterChip'
 
 interface User {
   id: string
@@ -52,20 +53,13 @@ export function TaskFilters({
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
         <div className="flex gap-1.5 min-w-min">
           {availableTabs.map((tab) => (
-            <button
+            <FilterChip
               key={tab.value}
+              label={tab.label}
+              isActive={activeTab === tab.value}
               onClick={() => onTabChange(tab.value)}
-              className={`
-                px-3 py-2 rounded-md text-xs font-medium transition-colors whitespace-nowrap flex-shrink-0 min-h-[36px]
-                ${
-                  activeTab === tab.value
-                    ? 'bg-brand-primary text-white'
-                    : 'bg-white text-text-primary border border-neutral-border hover:bg-muted-DEFAULT active:bg-muted-DEFAULT'
-                }
-              `}
-            >
-              {tab.label}
-            </button>
+              size="sm"
+            />
           ))}
         </div>
       </div>

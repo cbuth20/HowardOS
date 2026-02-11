@@ -308,25 +308,6 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                 <span className="text-sm text-text-primary">Account Settings</span>
               </Link>
 
-              {userRole === 'admin' && (
-                <>
-                  <div className="my-2 border-t border-neutral-border"></div>
-                  <div className="px-4 py-1">
-                    <p className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-                      Admin
-                    </p>
-                  </div>
-                  <Link
-                    href="/users"
-                    onClick={() => setShowUserMenu(false)}
-                    className="flex items-center gap-3 px-4 py-2 hover:bg-background-hover transition-colors"
-                  >
-                    <Users className="w-4 h-4 text-text-secondary" />
-                    <span className="text-sm text-text-primary">Users</span>
-                  </Link>
-                </>
-              )}
-
               <div className="my-2 border-t border-neutral-border"></div>
               <button
                 onClick={handleLogout}

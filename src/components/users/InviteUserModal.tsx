@@ -13,13 +13,16 @@ interface InviteUserModalProps {
   isOpen: boolean
   onClose: () => void
   onComplete: () => void
+  orgId?: string
+  organizations?: Array<{ id: string; name: string }>
 }
 
-export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModalProps) {
+export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizations }: InviteUserModalProps) {
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState<'admin' | 'client'>('client')
   const [loading, setLoading] = useState(false)
+  const [selectedOrgId, setSelectedOrgId] = useState(orgId || '')
 
   const supabase = createClient()
 
@@ -31,14 +34,31 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
       const { data: { user: currentUser } } = await supabase.auth.getUser()
       if (!currentUser) throw new Error('Not authenticated')
 
-      // Get current user's org_id
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('org_id')
-        .eq('id', currentUser.id)
-        .single() as { data: { org_id: string } | null }
+      // Determine which org_id to use
+      let resolvedOrgId = orgId || selectedOrgId
 
-      if (!profile) throw new Error('Profile not found')
+      // If no orgId provided (inviting from main Users tab)
+      if (!resolvedOrgId) {
+        if (role === 'admin') {
+          // For admin role, use current user's org_id
+          const { data: profile } = await supabase
+            .from('profiles')
+            .select('org_id')
+            .eq('id', currentUser.id)
+            .single() as { data: { org_id: string } | null }
+
+          if (!profile) throw new Error('Profile not found')
+          resolvedOrgId = profile.org_id
+        } else {
+          // For client role, require org selection
+          if (!selectedOrgId) {
+            toast.error('Please select an organization')
+            setLoading(false)
+            return
+          }
+          resolvedOrgId = selectedOrgId
+        }
+      }
 
       // Call API to create user invitation
       const response = await authFetch('/api/users-invite', {
@@ -48,7 +68,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
           email,
           fullName,
           role,
-          orgId: profile.org_id,
+          orgId: resolvedOrgId,
         }),
       })
 
@@ -72,6 +92,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
     setEmail('')
     setFullName('')
     setRole('client')
+    setSelectedOrgId(orgId || '')
   }
 
   const handleClose = () => {
@@ -168,6 +189,30 @@ export function InviteUserModal({ isOpen, onClose, onComplete }: InviteUserModal
             </button>
           </div>
         </div>
+
+        {/* Organization Selector (when no orgId prop and role is client) */}
+        {!orgId && role === 'client' && organizations && organizations.length > 0 && (
+          <div>
+            <label htmlFor="orgSelect" className="block text-sm font-medium text-text-primary mb-2">
+              Organization *
+            </label>
+            <select
+              id="orgSelect"
+              value={selectedOrgId}
+              onChange={(e) => setSelectedOrgId(e.target.value)}
+              required
+              disabled={loading}
+              className="w-full border border-neutral-border rounded-md px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
+            >
+              <option value="">Select an organization...</option>
+              {organizations.map((org) => (
+                <option key={org.id} value={org.id}>
+                  {org.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {/* Info Box */}
         <div className="p-4 bg-state-info-light rounded-lg border border-brand-primary/20">

@@ -91,7 +91,7 @@ export default function SetPasswordPage() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('User not found')
 
-      const { error: profileError } = await supabase
+      const { error: profileError } = await (supabase as any)
         .from('profiles')
         .update({ is_active: true })
         .eq('id', user.id)

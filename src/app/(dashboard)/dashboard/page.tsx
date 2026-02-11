@@ -95,47 +95,29 @@ export default async function DashboardPage() {
 
       {/* Main Content */}
       <div className="flex-1 overflow-auto p-8">
-        {/* Stats Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-          <div className="relative bg-background-card rounded-lg shadow-sm border border-neutral-border p-6 hover:shadow-md transition-shadow before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-brand-primary before:rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-text-muted text-sm font-medium">Total Files</p>
-                <p className="text-3xl font-bold text-brand-navy mt-2">{filesCount || 0}</p>
-              </div>
-              <div className="w-12 h-12 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
-                </svg>
-              </div>
+        {/* Stats */}
+        <div className="flex items-center gap-6 mb-8 text-sm">
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+              </svg>
+            </div>
+            <div>
+              <p className="text-lg font-bold text-brand-navy leading-tight">{filesCount || 0}</p>
+              <p className="text-xs text-text-muted">Files</p>
             </div>
           </div>
-
-          <div className="relative bg-background-card rounded-lg shadow-sm border border-neutral-border p-6 hover:shadow-md transition-shadow before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-brand-slate before:rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-text-muted text-sm font-medium">Pending Tasks</p>
-                <p className="text-3xl font-bold text-brand-navy mt-2">{tasksCount || 0}</p>
-              </div>
-              <div className="w-12 h-12 bg-brand-slate/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-brand-slate" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
-                </svg>
-              </div>
+          <div className="w-px h-8 bg-neutral-border" />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 bg-brand-slate/10 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-brand-slate" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
+              </svg>
             </div>
-          </div>
-
-          <div className="relative bg-background-card rounded-lg shadow-sm border border-neutral-border p-6 hover:shadow-md transition-shadow before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-brand-terracotta before:rounded-t-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-text-muted text-sm font-medium">Your Role</p>
-                <p className="text-xl font-bold text-brand-navy mt-2 capitalize">{profile?.role}</p>
-              </div>
-              <div className="w-12 h-12 bg-brand-terracotta/10 rounded-lg flex items-center justify-center">
-                <svg className="w-6 h-6 text-brand-terracotta" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-                </svg>
-              </div>
+            <div>
+              <p className="text-lg font-bold text-brand-navy leading-tight">{tasksCount || 0}</p>
+              <p className="text-xs text-text-muted">Pending Tasks</p>
             </div>
           </div>
         </div>

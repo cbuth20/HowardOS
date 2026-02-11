@@ -102,7 +102,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     if (existingProfile) {
       // Update existing profile
       console.log('Updating existing profile')
-      const { error: updateError } = await adminClient
+      const { error: updateError } = await (adminClient as any)
         .from('profiles')
         .update({
           full_name,
@@ -122,7 +122,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     } else {
       // Create profile for existing auth user
       console.log('Creating profile for existing auth user')
-      const { error: profileError } = await adminClient
+      const { error: profileError } = await (adminClient as any)
         .from('profiles')
         .insert({
           id: userId,
@@ -168,7 +168,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     // The auto-create trigger already created a basic profile
     // Now we need to UPDATE it with the correct org_id, role, and other fields
     console.log('Updating auto-created profile with data:', { userId, email, full_name, role, org_id })
-    const { data: updatedProfile, error: profileError } = await adminClient
+    const { data: updatedProfile, error: profileError } = await (adminClient as any)
       .from('profiles')
       .update({
         full_name,
