@@ -11,6 +11,9 @@ const apiKey = useSandbox ? 'POSTMARK_API_TEST' : process.env.POSTMARK_API_KEY
 
 const client = new postmark.ServerClient(apiKey)
 
+const appUrl = process.env.NEXT_PUBLIC_APP_URL || 'https://app.howard-finance.com'
+const logoUrl = `${appUrl}/Sage_Secondary.png`
+
 export interface MagicLinkEmailParams {
   to: string
   magicLink: string
@@ -44,56 +47,56 @@ export async function sendMagicLinkEmail({ to, magicLink, fullName }: MagicLinkE
     const fromEmail = process.env.POSTMARK_FROM_EMAIL || 'no-reply@howard-finance.com'
 
     const result = await client.sendEmail({
-      From: `HowardOS <${fromEmail}>`,
+      From: `Howard Financial <${fromEmail}>`,
       To: to,
-      Subject: 'Sign in to HowardOS',
+      Subject: 'Sign in to Howard Financial',
       HtmlBody: `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Sign in to HowardOS</title>
+            <title>Sign in to Howard Financial</title>
           </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fb;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fb; padding: 40px 20px;">
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f4;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f4; padding: 40px 20px;">
               <tr>
                 <td align="center">
-                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
                     <!-- Header -->
                     <tr>
-                      <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-                        <h1 style="margin: 0; color: #0A2540; font-size: 28px; font-weight: 600;">HowardOS</h1>
-                        <p style="margin: 10px 0 0 0; color: #64748b; font-size: 14px;">Howard Financial</p>
+                      <td style="padding: 36px 40px 28px 40px; text-align: center; border-bottom: 1px solid #e7e5e4;">
+                        <img src="${logoUrl}" alt="Howard Financial" width="56" height="56" style="display: block; margin: 0 auto 12px auto; border-radius: 8px;" />
+                        <p style="margin: 0; color: #44403c; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Howard Financial</p>
                       </td>
                     </tr>
 
                     <!-- Content -->
                     <tr>
                       <td style="padding: 40px;">
-                        <h2 style="margin: 0 0 16px 0; color: #0A2540; font-size: 24px; font-weight: 600;">
-                          ${fullName ? `Welcome back, ${fullName}!` : 'Sign in to your account'}
+                        <h2 style="margin: 0 0 16px 0; color: #0A2540; font-size: 22px; font-weight: 600;">
+                          ${fullName ? `Welcome back, ${fullName}` : 'Sign in to your account'}
                         </h2>
-                        <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
-                          Click the button below to securely sign in to HowardOS. This link will expire in 1 hour.
+                        <p style="margin: 0 0 28px 0; color: #57534e; font-size: 15px; line-height: 1.6;">
+                          Click the button below to securely sign in. This link will expire in 1 hour.
                         </p>
 
                         <!-- CTA Button -->
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
-                            <td align="center" style="padding: 20px 0;">
+                            <td align="center" style="padding: 8px 0 24px 0;">
                               <a href="${magicLink}"
-                                 style="display: inline-block; padding: 16px 32px; background-color: #0A2540; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                                Sign In to HowardOS
+                                 style="display: inline-block; padding: 14px 32px; background-color: #0A2540; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+                                Sign In
                               </a>
                             </td>
                           </tr>
                         </table>
 
-                        <p style="margin: 24px 0 0 0; color: #64748b; font-size: 14px; line-height: 1.5;">
+                        <p style="margin: 0 0 8px 0; color: #a8a29e; font-size: 13px; line-height: 1.5;">
                           Or copy and paste this link into your browser:
                         </p>
-                        <p style="margin: 8px 0 0 0; padding: 12px; background-color: #f8f9fb; border-radius: 6px; word-break: break-all; font-size: 12px; color: #475569;">
+                        <p style="margin: 0; padding: 12px; background-color: #f5f5f4; border-radius: 6px; word-break: break-all; font-size: 12px; color: #57534e;">
                           ${magicLink}
                         </p>
                       </td>
@@ -101,12 +104,12 @@ export async function sendMagicLinkEmail({ to, magicLink, fullName }: MagicLinkE
 
                     <!-- Footer -->
                     <tr>
-                      <td style="padding: 30px 40px; background-color: #f8f9fb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
-                        <p style="margin: 0 0 8px 0; color: #64748b; font-size: 14px; line-height: 1.5;">
+                      <td style="padding: 24px 40px; background-color: #fafaf9; border-radius: 0 0 12px 12px; border-top: 1px solid #e7e5e4; text-align: center;">
+                        <p style="margin: 0 0 6px 0; color: #a8a29e; font-size: 13px; line-height: 1.5;">
                           If you didn't request this email, you can safely ignore it.
                         </p>
-                        <p style="margin: 0; color: #94a3b8; font-size: 12px;">
-                          © ${new Date().getFullYear()} Howard Financial. All rights reserved.
+                        <p style="margin: 0; color: #d6d3d1; font-size: 12px;">
+                          &copy; ${new Date().getFullYear()} Howard Financial. All rights reserved.
                         </p>
                       </td>
                     </tr>
@@ -141,72 +144,69 @@ export async function sendInvitationEmail({
     const fromEmail = process.env.POSTMARK_FROM_EMAIL || 'no-reply@howard-finance.com'
 
     const result = await client.sendEmail({
-      From: `HowardOS <${fromEmail}>`,
+      From: `Howard Financial <${fromEmail}>`,
       To: to,
-      Subject: `You've been invited to HowardOS`,
+      Subject: `You've been invited to Howard Financial`,
       HtmlBody: `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>Welcome to HowardOS</title>
+            <title>Welcome to Howard Financial</title>
           </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fb;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fb; padding: 40px 20px;">
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f4;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f4; padding: 40px 20px;">
               <tr>
                 <td align="center">
-                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
                     <!-- Header -->
                     <tr>
-                      <td style="padding: 40px 40px 20px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-                        <h1 style="margin: 0; color: #0A2540; font-size: 28px; font-weight: 600;">HowardOS</h1>
-                        <p style="margin: 10px 0 0 0; color: #64748b; font-size: 14px;">Howard Financial</p>
+                      <td style="padding: 36px 40px 28px 40px; text-align: center; border-bottom: 1px solid #e7e5e4;">
+                        <img src="${logoUrl}" alt="Howard Financial" width="56" height="56" style="display: block; margin: 0 auto 12px auto; border-radius: 8px;" />
+                        <p style="margin: 0; color: #44403c; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Howard Financial</p>
                       </td>
                     </tr>
 
                     <!-- Content -->
                     <tr>
                       <td style="padding: 40px;">
-                        <h2 style="margin: 0 0 16px 0; color: #0A2540; font-size: 24px; font-weight: 600;">
-                          Welcome to HowardOS!
-                        </h2>
-                        <p style="margin: 0 0 16px 0; color: #475569; font-size: 16px; line-height: 1.5;">
+                        <p style="margin: 0 0 16px 0; color: #57534e; font-size: 15px; line-height: 1.6;">
                           Hi ${fullName},
                         </p>
-                        <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
-                          ${inviterName} has invited you to join HowardOS as ${role === 'admin' ? 'an administrator' : 'a client'}.
+                        <p style="margin: 0 0 28px 0; color: #57534e; font-size: 15px; line-height: 1.6;">
+                          ${inviterName} has invited you to join Howard Financial as ${role === 'admin' ? 'an administrator' : 'a client'}.
                           Click the button below to accept your invitation and set up your account.
                         </p>
 
                         <!-- Role Badge -->
-                        <div style="margin: 0 0 24px 0; padding: 12px; background-color: ${role === 'admin' ? '#0A2540' : '#64748b'}15; border-radius: 8px; border-left: 4px solid ${role === 'admin' ? '#0A2540' : '#64748b'};">
-                          <p style="margin: 0; color: #475569; font-size: 14px;">
-                            <strong style="color: ${role === 'admin' ? '#0A2540' : '#64748b'};">Your Role:</strong> ${role === 'admin' ? 'Administrator' : 'Client'}
+                        <div style="margin: 0 0 28px 0; padding: 16px; background-color: #f5f5f4; border-radius: 8px; border-left: 4px solid #4a7c6f;">
+                          <p style="margin: 0; color: #44403c; font-size: 14px;">
+                            <strong>Your Role:</strong> ${role === 'admin' ? 'Administrator' : 'Client'}
                           </p>
-                          <p style="margin: 8px 0 0 0; color: #64748b; font-size: 13px;">
+                          <p style="margin: 8px 0 0 0; color: #78716c; font-size: 13px; line-height: 1.5;">
                             ${role === 'admin'
-                              ? 'You have full access to manage users, files, tasks, and settings.'
-                              : 'You can view and manage your files, tasks, and collaborate with your team.'}
+                              ? 'You will have full access to manage users, files, tasks, and settings.'
+                              : 'You will be able to view and manage your files, tasks, and collaborate with your team.'}
                           </p>
                         </div>
 
                         <!-- CTA Button -->
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
-                            <td align="center" style="padding: 20px 0;">
+                            <td align="center" style="padding: 8px 0 24px 0;">
                               <a href="${inviteLink}"
-                                 style="display: inline-block; padding: 16px 32px; background-color: #0A2540; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
+                                 style="display: inline-block; padding: 14px 32px; background-color: #0A2540; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
                                 Accept Invitation
                               </a>
                             </td>
                           </tr>
                         </table>
 
-                        <p style="margin: 24px 0 0 0; color: #64748b; font-size: 14px; line-height: 1.5;">
+                        <p style="margin: 0 0 8px 0; color: #a8a29e; font-size: 13px; line-height: 1.5;">
                           Or copy and paste this link into your browser:
                         </p>
-                        <p style="margin: 8px 0 0 0; padding: 12px; background-color: #f8f9fb; border-radius: 6px; word-break: break-all; font-size: 12px; color: #475569;">
+                        <p style="margin: 0; padding: 12px; background-color: #f5f5f4; border-radius: 6px; word-break: break-all; font-size: 12px; color: #57534e;">
                           ${inviteLink}
                         </p>
                       </td>
@@ -214,12 +214,12 @@ export async function sendInvitationEmail({
 
                     <!-- Footer -->
                     <tr>
-                      <td style="padding: 30px 40px; background-color: #f8f9fb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
-                        <p style="margin: 0 0 8px 0; color: #64748b; font-size: 14px; line-height: 1.5;">
+                      <td style="padding: 24px 40px; background-color: #fafaf9; border-radius: 0 0 12px 12px; border-top: 1px solid #e7e5e4; text-align: center;">
+                        <p style="margin: 0 0 6px 0; color: #a8a29e; font-size: 13px; line-height: 1.5;">
                           If you didn't expect this invitation, you can safely ignore this email.
                         </p>
-                        <p style="margin: 0; color: #94a3b8; font-size: 12px;">
-                          © ${new Date().getFullYear()} Howard Financial. All rights reserved.
+                        <p style="margin: 0; color: #d6d3d1; font-size: 12px;">
+                          &copy; ${new Date().getFullYear()} Howard Financial. All rights reserved.
                         </p>
                       </td>
                     </tr>
@@ -253,52 +253,47 @@ export async function sendFileNotificationEmail({
   try {
     const fromEmail = process.env.POSTMARK_FROM_EMAIL || 'no-reply@howard-finance.com'
 
-    const filesList = files.map(f => `<li style="margin: 8px 0; color: #475569; font-size: 15px;">${f.name}</li>`).join('')
+    const filesList = files.map(f => `<li style="margin: 8px 0; color: #57534e; font-size: 14px;">${f.name}</li>`).join('')
 
     const result = await client.sendEmail({
-      From: `HowardOS <${fromEmail}>`,
+      From: `Howard Financial <${fromEmail}>`,
       To: to,
-      Subject: `Howard Financial portal: New files were shared by ${uploaderName}`,
+      Subject: `New files shared by ${uploaderName}`,
       HtmlBody: `
         <!DOCTYPE html>
         <html>
           <head>
             <meta charset="utf-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
-            <title>New files were shared</title>
+            <title>New files shared</title>
           </head>
-          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f8f9fb;">
-            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f8f9fb; padding: 40px 20px;">
+          <body style="margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; background-color: #f5f5f4;">
+            <table width="100%" cellpadding="0" cellspacing="0" style="background-color: #f5f5f4; padding: 40px 20px;">
               <tr>
                 <td align="center">
-                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.1);">
-                    <!-- Header with Logo -->
+                  <table width="600" cellpadding="0" cellspacing="0" style="background-color: #ffffff; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.08);">
+                    <!-- Header -->
                     <tr>
-                      <td style="padding: 40px 40px 30px 40px; text-align: center; border-bottom: 1px solid #e5e7eb;">
-                        <div style="width: 64px; height: 64px; background-color: #B8926A; margin: 0 auto; display: flex; align-items: center; justify-content: center; border-radius: 8px;">
-                          <span style="color: white; font-size: 32px; font-weight: 700; line-height: 1;">H</span>
-                        </div>
+                      <td style="padding: 36px 40px 28px 40px; text-align: center; border-bottom: 1px solid #e7e5e4;">
+                        <img src="${logoUrl}" alt="Howard Financial" width="56" height="56" style="display: block; margin: 0 auto 12px auto; border-radius: 8px;" />
+                        <p style="margin: 0; color: #44403c; font-size: 13px; font-weight: 500; letter-spacing: 0.5px; text-transform: uppercase;">Howard Financial</p>
                       </td>
                     </tr>
 
                     <!-- Content -->
                     <tr>
                       <td style="padding: 40px;">
-                        <h2 style="margin: 0 0 24px 0; color: #0A2540; font-size: 22px; font-weight: 600; text-align: center;">
-                          New files were shared by ${uploaderName}.
-                        </h2>
-
-                        <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
+                        <p style="margin: 0 0 16px 0; color: #57534e; font-size: 15px; line-height: 1.6;">
                           Hi ${recipientName},
                         </p>
 
-                        <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
-                          New files have been shared with you by ${uploaderName} and are now available to view:
+                        <p style="margin: 0 0 28px 0; color: #57534e; font-size: 15px; line-height: 1.6;">
+                          ${uploaderName} shared new files with you that are now available to view:
                         </p>
 
                         <!-- File List -->
-                        <div style="margin: 0 0 32px 0; padding: 20px; background-color: #f8f9fb; border-radius: 8px; border-left: 4px solid #B8926A;">
-                          <ul style="margin: 0; padding: 0 0 0 20px; list-style-type: disc;">
+                        <div style="margin: 0 0 28px 0; padding: 16px 20px; background-color: #f5f5f4; border-radius: 8px; border-left: 4px solid #4a7c6f;">
+                          <ul style="margin: 0; padding: 0 0 0 16px; list-style-type: disc;">
                             ${filesList}
                           </ul>
                         </div>
@@ -306,10 +301,10 @@ export async function sendFileNotificationEmail({
                         <!-- CTA Button -->
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
-                            <td align="center" style="padding: 20px 0;">
+                            <td align="center" style="padding: 8px 0;">
                               <a href="${filesUrl}"
-                                 style="display: inline-block; padding: 14px 28px; background-color: #0A2540; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
-                                See files
+                                 style="display: inline-block; padding: 14px 32px; background-color: #0A2540; color: #ffffff; text-decoration: none; border-radius: 6px; font-weight: 600; font-size: 15px;">
+                                View Files
                               </a>
                             </td>
                           </tr>
@@ -319,12 +314,12 @@ export async function sendFileNotificationEmail({
 
                     <!-- Footer -->
                     <tr>
-                      <td style="padding: 30px 40px; background-color: #f8f9fb; border-radius: 0 0 12px 12px; border-top: 1px solid #e5e7eb;">
-                        <p style="margin: 0 0 8px 0; color: #64748b; font-size: 14px; line-height: 1.5; text-align: center;">
-                          You're receiving this because files were shared with you on Howard Financial portal.
+                      <td style="padding: 24px 40px; background-color: #fafaf9; border-radius: 0 0 12px 12px; border-top: 1px solid #e7e5e4; text-align: center;">
+                        <p style="margin: 0 0 6px 0; color: #a8a29e; font-size: 13px; line-height: 1.5;">
+                          You received this because files were shared with you on Howard Financial.
                         </p>
-                        <p style="margin: 0; color: #94a3b8; font-size: 12px; text-align: center;">
-                          © ${new Date().getFullYear()} Howard Financial. All rights reserved.
+                        <p style="margin: 0; color: #d6d3d1; font-size: 12px;">
+                          &copy; ${new Date().getFullYear()} Howard Financial. All rights reserved.
                         </p>
                       </td>
                     </tr>
