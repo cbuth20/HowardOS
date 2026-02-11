@@ -1,8 +1,9 @@
 import { HandlerEvent, HandlerResponse } from '@netlify/functions'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import busboy from 'busboy'
+import { sendFileNotificationEmail } from '../../src/lib/email/postmark'
 
-export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, supabase }: AuthContext): Promise<HandlerResponse> => {
+export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, supabase, supabaseAdmin }: AuthContext): Promise<HandlerResponse> => {
   // Parse multipart form data
   const contentType = event.headers['content-type'] || event.headers['Content-Type']
   if (!contentType || !contentType.includes('multipart/form-data')) {
@@ -134,6 +135,62 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
             folder_path: folderPath,
           },
         })
+
+        // Send email notifications for channel uploads
+        if (channelId) {
+          try {
+            // Get channel details to find client org
+            const { data: channel } = await (supabaseAdmin as any)
+              .from('file_channels')
+              .select('id, name, client_org_id')
+              .eq('id', channelId)
+              .single()
+
+            if (channel?.client_org_id) {
+              // Get all active admins
+              const { data: admins } = await (supabaseAdmin as any)
+                .from('profiles')
+                .select('id, email, full_name')
+                .eq('role', 'admin')
+                .eq('is_active', true)
+
+              // Get all active users in the client org
+              const { data: clientUsers } = await (supabaseAdmin as any)
+                .from('profiles')
+                .select('id, email, full_name')
+                .eq('org_id', channel.client_org_id)
+                .eq('is_active', true)
+
+              // Deduplicate and exclude the uploader
+              const recipients = [
+                ...(admins || []),
+                ...(clientUsers || []),
+              ].filter((recipient, index, self) =>
+                recipient.id !== user.id &&
+                index === self.findIndex(r => r.id === recipient.id)
+              )
+
+              const uploaderName = profile.full_name || user.email || 'Someone'
+              const filesUrl = `${process.env.NEXT_PUBLIC_APP_URL}/files`
+
+              await Promise.allSettled(
+                recipients.map(recipient =>
+                  sendFileNotificationEmail({
+                    to: recipient.email,
+                    recipientName: recipient.full_name || recipient.email,
+                    uploaderName,
+                    files: [{ name: fileName, size: fileBuffer!.length }],
+                    filesUrl,
+                  })
+                )
+              )
+
+              console.log(`Sent file upload notification emails to ${recipients.length} recipient(s)`)
+            }
+          } catch (emailError) {
+            console.error('Error sending file upload notification emails:', emailError)
+          }
+        }
 
         resolve({
           statusCode: 200,
