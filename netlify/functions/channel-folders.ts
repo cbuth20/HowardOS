@@ -1,5 +1,5 @@
 import { HandlerEvent } from '@netlify/functions'
-import { withMiddleware, AuthContext } from './lib/middleware'
+import { withMiddleware, AuthContext, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
 import { CreateChannelFolderSchema } from '../../src/types/schemas'
 
@@ -61,8 +61,8 @@ async function handleGetFolders(params: Record<string, string | undefined>, prof
 }
 
 async function handleCreateFolder(event: HandlerEvent, user: any, profile: any, supabase: any) {
-  if (profile.role !== 'admin') {
-    throw { statusCode: 403, message: 'Admin access required' }
+  if (!isAdminOrManagerRole(profile.role)) {
+    throw { statusCode: 403, message: 'Admin or manager access required' }
   }
 
   const body = JSON.parse(event.body || '{}')
@@ -108,8 +108,8 @@ async function handleCreateFolder(event: HandlerEvent, user: any, profile: any, 
 }
 
 async function handleDeleteFolder(id: string, user: any, profile: any, supabase: any) {
-  if (profile.role !== 'admin') {
-    throw { statusCode: 403, message: 'Admin access required' }
+  if (!isAdminOrManagerRole(profile.role)) {
+    throw { statusCode: 403, message: 'Admin or manager access required' }
   }
 
   // Get folder and verify ownership

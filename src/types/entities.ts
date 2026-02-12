@@ -18,6 +18,9 @@ export type FilePermissionType = FilePermission['permission']
 // Profile type for convenience (User is same as Profile)
 export type Profile = User
 
+// User Organizations (multi-org membership)
+export type UserOrganization = Database['public']['Tables']['user_organizations']['Row']
+
 // Extended types with relations
 export type TaskWithProfiles = Task & {
   assigned_to_profile?: Pick<User, 'id' | 'full_name' | 'email' | 'avatar_url' | 'role'> | null
@@ -97,6 +100,8 @@ export type InviteUserInput = {
   full_name: string
   role: UserRole
   org_id: string
+  allowed_org_ids?: string[]
+  org_ids?: string[]  // Additional org memberships for multi-org users
 }
 
 // Workstreams module types

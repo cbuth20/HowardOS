@@ -21,17 +21,17 @@ export function VerticalStatusBadge({
       />
 
       {showCounts && (
-        <div className="flex items-center gap-1.5 text-xs text-gray-600">
+        <div className="flex items-center gap-1.5 text-xs text-foreground/80">
           <span className="font-medium">{rollup.total_entries}</span>
           <span>entries:</span>
           {rollup.red_count > 0 && (
-            <span className="text-red-600 font-medium">{rollup.red_count}🔴</span>
+            <span className="text-red-600 font-medium">{rollup.red_count} red</span>
           )}
           {rollup.yellow_count > 0 && (
-            <span className="text-yellow-600 font-medium">{rollup.yellow_count}🟡</span>
+            <span className="text-yellow-600 font-medium">{rollup.yellow_count} yellow</span>
           )}
           {rollup.green_count > 0 && (
-            <span className="text-green-600 font-medium">{rollup.green_count}🟢</span>
+            <span className="text-green-600 font-medium">{rollup.green_count} green</span>
           )}
         </div>
       )}

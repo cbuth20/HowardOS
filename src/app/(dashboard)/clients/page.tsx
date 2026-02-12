@@ -2,12 +2,27 @@
 
 import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/Button'
-import { FilterChip, FilterChipGroup } from '@/components/ui/FilterChip'
-import { Input } from '@/components/ui/Input'
-import { Avatar } from '@/components/ui/Avatar'
-import { Modal } from '@/components/ui/Modal'
-import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { FilterChip, FilterChipGroup } from '@/components/ui/howard-filter-chip'
+import { HowardAvatar } from '@/components/ui/howard-avatar'
+import { HowardBadge } from '@/components/ui/howard-badge'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog'
+import { Separator } from '@/components/ui/separator'
 import { InviteUserModal } from '@/components/users/InviteUserModal'
 import { EditUserModal } from '@/components/users/EditUserModal'
 import { AddExistingUserModal } from '@/components/users/AddExistingUserModal'
@@ -33,7 +48,7 @@ import {
   ArrowDown,
   Power
 } from 'lucide-react'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 interface Organization {
   id: string
@@ -51,7 +66,7 @@ interface OrgUser {
   id: string
   email: string
   full_name: string | null
-  role: 'admin' | 'client'
+  role: string
   is_active: boolean
   avatar_url: string | null
   dashboard_iframe_url: string | null
@@ -87,7 +102,7 @@ export default function ClientsPage() {
   const [allUsers, setAllUsers] = useState<OrgUser[]>([])
   const [loadingAllUsers, setLoadingAllUsers] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
-  const [roleFilter, setRoleFilter] = useState<'all' | 'admin' | 'client'>('all')
+  const [roleFilter, setRoleFilter] = useState<string>('all')
   const [statusFilter, setStatusFilter] = useState<'all' | 'active' | 'inactive'>('all')
   const [mainTab, setMainTab] = useState<'organizations' | 'users'>('organizations')
 
@@ -503,12 +518,17 @@ export default function ClientsPage() {
 
   const handleReassignUser = async (userId: string, newOrgId: string) => {
     try {
-      const { error } = await (supabase as any)
-        .from('profiles')
-        .update({ org_id: newOrgId })
-        .eq('id', userId)
+      // Update profile org_id via API (bypasses RLS)
+      const profileResponse = await authFetch(`/api/users-update-profile?id=${userId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ org_id: newOrgId }),
+      })
 
-      if (error) throw error
+      if (!profileResponse.ok) {
+        const data = await profileResponse.json()
+        throw new Error(data.error || 'Failed to reassign user')
+      }
 
       toast.success('User reassigned successfully')
       loadAllUsers()
@@ -630,7 +650,7 @@ export default function ClientsPage() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     )
   }
@@ -639,15 +659,15 @@ export default function ClientsPage() {
     <>
       <div className="flex-1 flex flex-col overflow-hidden">
         {/* Sticky Topbar */}
-        <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
+        <div className="flex-shrink-0 bg-card border-b border-border shadow-sm">
           <div className="px-8 py-4 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <Building2 className="w-6 h-6 text-brand-primary" />
+              <Building2 className="w-6 h-6 text-primary" />
               <div>
-                <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">
                   Client Manager
                 </h1>
-                <p className="text-sm text-text-muted mt-1">
+                <p className="text-sm text-muted-foreground mt-1">
                   Manage client organizations, dashboards, and users
                 </p>
               </div>
@@ -656,562 +676,508 @@ export default function ClientsPage() {
         </div>
 
         {/* Main Tabs */}
-        <div className="flex-shrink-0 bg-white border-b border-neutral-border px-8">
-          <div className="flex gap-6">
-            <button
-              onClick={() => setMainTab('organizations')}
-              className={`py-3 px-1 border-b-2 transition-colors ${
-                mainTab === 'organizations'
-                  ? 'border-brand-primary text-brand-primary font-medium'
-                  : 'border-transparent text-text-muted hover:text-text-primary'
-              }`}
-            >
-              <Building2 className="w-4 h-4 inline mr-2" />
-              Organizations
-            </button>
-            <button
-              onClick={() => setMainTab('users')}
-              className={`py-3 px-1 border-b-2 transition-colors ${
-                mainTab === 'users'
-                  ? 'border-brand-primary text-brand-primary font-medium'
-                  : 'border-transparent text-text-muted hover:text-text-primary'
-              }`}
-            >
-              <Users className="w-4 h-4 inline mr-2" />
-              All Users
-            </button>
+        <Tabs value={mainTab} onValueChange={(value) => setMainTab(value as 'organizations' | 'users')}>
+          <div className="flex-shrink-0 bg-card border-b border-border px-8">
+            <TabsList className="h-auto rounded-none bg-transparent border-b-0 p-0 gap-6">
+              <TabsTrigger className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 py-3 font-medium" value="organizations">
+                <Building2 className="w-4 h-4 mr-2" />
+                Organizations
+              </TabsTrigger>
+              <TabsTrigger className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 py-3 font-medium" value="users">
+                <Users className="w-4 h-4 mr-2" />
+                All Users
+              </TabsTrigger>
+            </TabsList>
           </div>
-        </div>
 
-        {/* Main Content */}
-        <div className="flex-1 overflow-auto p-8">
-          {mainTab === 'organizations' ? (
-            <div className="max-w-6xl space-y-4">
-              <div className="flex justify-end mb-4">
-                <Button
-                  variant="primary"
-                  onClick={() => setShowCreateOrgModal(true)}
-                >
-                  <Building2 className="w-4 h-4 mr-2" />
-                  New Organization
-                </Button>
-              </div>
-            {organizations.length === 0 ? (
-              <div className="text-center py-12 bg-white rounded-lg border border-neutral-border">
-                <Building2 className="w-12 h-12 mx-auto text-text-muted mb-4" />
-                <p className="text-text-muted">No client organizations found</p>
-              </div>
-            ) : (
-              organizations.map((org) => (
-                <button
-                  key={org.id}
-                  onClick={() => handleSelectOrg(org)}
-                  className="w-full bg-white rounded-lg shadow-sm border border-neutral-border p-6 hover:shadow-md hover:border-brand-primary/30 transition-all text-left"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
-                      {org.logo_url ? (
-                        <img
-                          src={org.logo_url}
-                          alt={org.name}
-                          className="w-12 h-12 rounded-lg object-cover"
-                        />
-                      ) : (
-                        <div className="w-12 h-12 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                          <Building2 className="w-6 h-6 text-brand-primary" />
-                        </div>
-                      )}
-                      <div>
-                        <h3 className="text-lg font-semibold text-text-primary">
-                          {org.name}
-                        </h3>
-                        <p className="text-sm text-text-muted">
-                          {org._count?.users || 0} users • {org._count?.tasks || 0} tasks
-                        </p>
-                      </div>
-                    </div>
-                    <ChevronRight className="w-5 h-5 text-text-muted" />
-                  </div>
-                </button>
-              ))
-            )}
-            </div>
-          ) : (
-            // All Users Tab Content
-            <div className="max-w-6xl space-y-4">
-              {/* Stats */}
-              <div className="flex items-center gap-4 text-sm text-text-muted">
-                <span><span className="font-semibold text-text-primary">{allUsers.length}</span> users</span>
-                <span className="text-neutral-border">|</span>
-                <span><span className="font-semibold text-text-primary">{allUsers.filter(u => u.role === 'admin').length}</span> admins</span>
-                <span className="text-neutral-border">|</span>
-                <span><span className="font-semibold text-text-primary">{allUsers.filter(u => u.role === 'client').length}</span> clients</span>
-                <span className="text-neutral-border">|</span>
-                <span><span className="font-semibold text-state-success">{allUsers.filter(u => u.is_active).length}</span> active</span>
-              </div>
-
-              {/* Toolbar: Search + Filters + Invite */}
-              <div className="flex gap-3 bg-white p-4 rounded-lg border border-neutral-border items-center">
-                <div className="flex-1 relative">
-                  <Input
-                    type="text"
-                    placeholder="Search by name or email..."
-                    value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10"
-                  />
-                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-text-muted" />
-                </div>
-                <FilterChipGroup label="Role">
-                  <FilterChip label="All" isActive={roleFilter === 'all'} onClick={() => setRoleFilter('all')} size="sm" />
-                  <FilterChip label="Admins" isActive={roleFilter === 'admin'} onClick={() => setRoleFilter('admin')} size="sm" />
-                  <FilterChip label="Clients" isActive={roleFilter === 'client'} onClick={() => setRoleFilter('client')} size="sm" />
-                </FilterChipGroup>
-                <div className="w-px h-8 bg-neutral-border" />
-                <FilterChipGroup label="Status">
-                  <FilterChip label="All" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} size="sm" />
-                  <FilterChip label="Active" isActive={statusFilter === 'active'} onClick={() => setStatusFilter('active')} size="sm" />
-                  <FilterChip label="Inactive" isActive={statusFilter === 'inactive'} onClick={() => setStatusFilter('inactive')} size="sm" />
-                </FilterChipGroup>
-                <div className="w-px h-8 bg-neutral-border" />
-                <Button
-                  variant="primary"
-                  size="sm"
-                  onClick={() => setShowInviteUserModal(true)}
-                >
-                  <UserPlus className="w-4 h-4 mr-2" />
-                  Invite User
-                </Button>
-              </div>
-
-              {/* Data Table */}
-              <div className="bg-white rounded-lg border border-neutral-border overflow-hidden">
-                {loadingAllUsers ? (
-                  <div className="flex justify-center py-12">
-                    <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
-                  </div>
-                ) : filteredSortedUsers.length === 0 ? (
-                  <div className="text-center py-12">
-                    <Users className="w-12 h-12 mx-auto text-text-muted mb-4" />
-                    <p className="text-text-muted">
-                      {searchTerm || roleFilter !== 'all' || statusFilter !== 'all'
-                        ? 'No users match your filters'
-                        : 'No users yet'}
-                    </p>
-                  </div>
-                ) : (
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b border-neutral-border bg-background-subtle">
-                        <th className="text-left px-4 py-3">
-                          <button
-                            onClick={() => handleSort('name')}
-                            className="flex items-center text-xs font-semibold text-text-muted uppercase tracking-wider hover:text-text-primary"
-                          >
-                            Name / Email
-                            <SortIcon field="name" />
-                          </button>
-                        </th>
-                        <th className="text-left px-4 py-3">
-                          <button
-                            onClick={() => handleSort('role')}
-                            className="flex items-center text-xs font-semibold text-text-muted uppercase tracking-wider hover:text-text-primary"
-                          >
-                            Role
-                            <SortIcon field="role" />
-                          </button>
-                        </th>
-                        <th className="text-left px-4 py-3">
-                          <button
-                            onClick={() => handleSort('organization')}
-                            className="flex items-center text-xs font-semibold text-text-muted uppercase tracking-wider hover:text-text-primary"
-                          >
-                            Organization
-                            <SortIcon field="organization" />
-                          </button>
-                        </th>
-                        <th className="text-left px-4 py-3">
-                          <button
-                            onClick={() => handleSort('status')}
-                            className="flex items-center text-xs font-semibold text-text-muted uppercase tracking-wider hover:text-text-primary"
-                          >
-                            Status
-                            <SortIcon field="status" />
-                          </button>
-                        </th>
-                        <th className="text-left px-4 py-3">
-                          <button
-                            onClick={() => handleSort('joined')}
-                            className="flex items-center text-xs font-semibold text-text-muted uppercase tracking-wider hover:text-text-primary"
-                          >
-                            Joined
-                            <SortIcon field="joined" />
-                          </button>
-                        </th>
-                        <th className="text-right px-4 py-3">
-                          <span className="text-xs font-semibold text-text-muted uppercase tracking-wider">
-                            Actions
-                          </span>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-neutral-border">
-                      {filteredSortedUsers.map(user => (
-                        <tr
-                          key={user.id}
-                          className="hover:bg-background-hover transition-colors"
-                        >
-                          {/* Name / Email */}
-                          <td className="px-4 py-3">
-                            <div className="flex items-center gap-3">
-                              <Avatar
-                                name={user.full_name || user.email}
-                                email={user.email}
-                                src={user.avatar_url || undefined}
-                                role={user.role}
-                                size="md"
-                              />
-                              <div className="min-w-0">
-                                <p className="font-medium text-text-primary text-sm truncate">
-                                  {user.full_name || user.email}
-                                </p>
-                                <p className="text-xs text-text-muted truncate">{user.email}</p>
-                              </div>
-                            </div>
-                          </td>
-
-                          {/* Role */}
-                          <td className="px-4 py-3">
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded font-medium ${
-                                user.role === 'admin'
-                                  ? 'bg-brand-navy/10 text-brand-navy'
-                                  : 'bg-brand-slate/10 text-brand-slate'
-                              }`}
-                            >
-                              {user.role}
-                            </span>
-                          </td>
-
-                          {/* Organization */}
-                          <td className="px-4 py-3">
-                            <select
-                              value={user.org_id || ''}
-                              onChange={(e) => handleReassignUser(user.id, e.target.value)}
-                              className="text-sm border border-neutral-border rounded px-2 py-1 bg-white max-w-[180px]"
-                            >
-                              <option value="">No Organization</option>
-                              {organizations.map(org => (
-                                <option key={org.id} value={org.id}>
-                                  {org.name}
-                                </option>
-                              ))}
-                            </select>
-                          </td>
-
-                          {/* Status */}
-                          <td className="px-4 py-3">
-                            <span
-                              className={`text-xs px-2 py-0.5 rounded font-medium ${
-                                user.is_active
-                                  ? 'bg-state-success/10 text-state-success'
-                                  : 'bg-state-error/10 text-state-error'
-                              }`}
-                            >
-                              {user.is_active ? 'Active' : 'Inactive'}
-                            </span>
-                          </td>
-
-                          {/* Joined */}
-                          <td className="px-4 py-3">
-                            <span className="text-sm text-text-muted">
-                              {new Date(user.created_at).toLocaleDateString()}
-                            </span>
-                          </td>
-
-                          {/* Actions */}
-                          <td className="px-4 py-3">
-                            <div className="flex items-center justify-end gap-1">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleEditUser(user)}
-                                title="Edit user"
-                              >
-                                <Pencil className="w-4 h-4" />
-                              </Button>
-                              {user.is_active && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  onClick={() => handleSendMagicLink(user.id, user.email)}
-                                  title="Send magic link"
-                                >
-                                  <Send className="w-4 h-4" />
-                                </Button>
-                              )}
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                onClick={() => handleDeactivateUser(user)}
-                                disabled={deletingUserId === user.id}
-                                title={user.is_active ? 'Deactivate user' : 'Activate user'}
-                              >
-                                <Power className={`w-4 h-4 ${user.is_active ? 'text-state-error' : 'text-state-success'}`} />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                )}
-              </div>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* Organization Details Modal */}
-      {selectedOrg && (
-        <Modal
-          isOpen={showOrgModal}
-          onClose={() => {
-            setShowOrgModal(false)
-            setSelectedOrg(null)
-          }}
-          title={selectedOrg.name}
-          size="xl"
-        >
-          <div className="space-y-6">
-            {/* Tabs */}
-            <div className="flex gap-2 border-b border-neutral-border">
-              <button
-                onClick={() => setActiveTab('dashboard')}
-                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === 'dashboard'
-                    ? 'border-brand-primary text-brand-primary'
-                    : 'border-transparent text-text-muted hover:text-text-primary'
-                }`}
-              >
-                <LinkIcon className="w-4 h-4 inline mr-2" />
-                Dashboard URL
-              </button>
-              <button
-                onClick={() => setActiveTab('tasks')}
-                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === 'tasks'
-                    ? 'border-brand-primary text-brand-primary'
-                    : 'border-transparent text-text-muted hover:text-text-primary'
-                }`}
-              >
-                Tasks
-              </button>
-              <button
-                onClick={() => setActiveTab('users')}
-                className={`px-4 py-2 text-sm font-medium transition-colors border-b-2 ${
-                  activeTab === 'users'
-                    ? 'border-brand-primary text-brand-primary'
-                    : 'border-transparent text-text-muted hover:text-text-primary'
-                }`}
-              >
-                <Users className="w-4 h-4 inline mr-2" />
-                Users ({orgUsers.length})
-              </button>
-            </div>
-
-            {/* Tab Content */}
-            {activeTab === 'dashboard' && (
-              <div className="space-y-6">
-                {/* Organization Logo */}
-                <div className="pb-6 border-b border-neutral-border">
-                  <h3 className="text-sm font-medium text-text-primary mb-3">
-                    Organization Logo
-                  </h3>
-                  <div className="flex items-center gap-4">
-                    {selectedOrg.logo_url ? (
-                      <img
-                        src={selectedOrg.logo_url}
-                        alt={selectedOrg.name}
-                        className="w-16 h-16 rounded-lg object-cover"
-                      />
-                    ) : (
-                      <div className="w-16 h-16 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                        <Building2 className="w-8 h-8 text-brand-primary" />
-                      </div>
-                    )}
-                    <div>
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleLogoUpload}
-                        disabled={uploadingLogo}
-                        className="hidden"
-                        id="logo-upload"
-                      />
-                      <label htmlFor="logo-upload">
-                        <Button
-                          type="button"
-                          variant="outline"
-                          size="sm"
-                          disabled={uploadingLogo}
-                          onClick={() => document.getElementById('logo-upload')?.click()}
-                        >
-                          {uploadingLogo ? (
-                            <>
-                              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                              Uploading...
-                            </>
-                          ) : (
-                            <>
-                              <Upload className="w-4 h-4 mr-2" />
-                              {selectedOrg.logo_url ? 'Change Logo' : 'Upload Logo'}
-                            </>
-                          )}
-                        </Button>
-                      </label>
-                      <p className="text-xs text-text-muted mt-1">
-                        Square image recommended. Max 2MB.
-                      </p>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Dashboard URL */}
-                <div>
-                  <h3 className="text-sm font-medium text-text-primary mb-3">
-                    Analytics Dashboard URL
-                  </h3>
-                  <p className="text-sm text-text-muted mb-3">
-                    Set the analytics dashboard iframe URL for all client users in this organization
-                  </p>
-                  <div className="space-y-3">
-                    <Input
-                      type="url"
-                      value={dashboardUrl}
-                      onChange={(e) => setDashboardUrl(e.target.value)}
-                      placeholder="https://app.reachreporting.com/embed/..."
-                      disabled={savingUrl}
-                      className="font-mono text-sm"
-                    />
-                    <Button
-                      variant="primary"
-                      onClick={handleSaveDashboardUrl}
-                      disabled={savingUrl}
-                    >
-                      {savingUrl ? (
-                        <>
-                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                          Saving...
-                        </>
-                      ) : (
-                        <>
-                          <Save className="w-4 h-4 mr-2" />
-                          Save Dashboard URL
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {activeTab === 'tasks' && selectedOrg && (
-              <ClientOrgTasks
-                orgId={selectedOrg.id}
-                orgName={selectedOrg.name}
-                onCreateTask={handleCreateTaskForOrg}
-              />
-            )}
-
-            {activeTab === 'users' && (
-              <div className="space-y-4">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-text-muted">
-                    Manage users in {selectedOrg.name}
-                  </p>
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto p-8">
+            <TabsContent value="organizations" className="mt-0 h-full">
+              <div className="max-w-6xl space-y-4 pb-8">
+                <div className="flex justify-end mb-4">
                   <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowAddExistingUserModal(true)}
+                    onClick={() => setShowCreateOrgModal(true)}
                   >
-                    <Search className="w-4 h-4 mr-2" />
-                    Add Existing
+                    <Building2 className="w-4 h-4 mr-2" />
+                    New Organization
+                  </Button>
+                </div>
+              {organizations.length === 0 ? (
+                <div className="text-center py-12 bg-card rounded-lg border border-border">
+                  <Building2 className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                  <p className="text-muted-foreground">No client organizations found</p>
+                </div>
+              ) : (
+                organizations.map((org) => (
+                  <button
+                    key={org.id}
+                    onClick={() => handleSelectOrg(org)}
+                    className="w-full bg-card rounded-lg shadow-sm border border-border p-6 hover:shadow-md hover:border-primary/30 transition-all text-left"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-4">
+                        {org.logo_url ? (
+                          <img
+                            src={org.logo_url}
+                            alt={org.name}
+                            className="w-12 h-12 rounded-lg object-cover"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 bg-primary/10 rounded-lg flex items-center justify-center">
+                            <Building2 className="w-6 h-6 text-primary" />
+                          </div>
+                        )}
+                        <div>
+                          <h3 className="text-lg font-semibold text-foreground">
+                            {org.name}
+                          </h3>
+                          <p className="text-sm text-muted-foreground">
+                            {org._count?.users || 0} users • {org._count?.tasks || 0} tasks
+                          </p>
+                        </div>
+                      </div>
+                      <ChevronRight className="w-5 h-5 text-muted-foreground" />
+                    </div>
+                  </button>
+                ))
+              )}
+              </div>
+            </TabsContent>
+
+            <TabsContent value="users" className="mt-0 h-full">
+              {/* All Users Tab Content */}
+              <div className="max-w-6xl space-y-4 pb-8">
+                {/* Stats */}
+                <div className="flex items-center gap-4 text-sm text-muted-foreground">
+                  <span><span className="font-semibold text-foreground">{allUsers.length}</span> users</span>
+                  <span className="text-border">|</span>
+                  <span><span className="font-semibold text-foreground">{allUsers.filter(u => ['admin', 'manager', 'user'].includes(u.role)).length}</span> team</span>
+                  <span className="text-border">|</span>
+                  <span><span className="font-semibold text-foreground">{allUsers.filter(u => ['client', 'client_no_access'].includes(u.role)).length}</span> clients</span>
+                  <span className="text-border">|</span>
+                  <span><span className="font-semibold text-primary">{allUsers.filter(u => u.is_active).length}</span> active</span>
+                </div>
+
+                {/* Toolbar: Search + Filters + Invite */}
+                <div className="flex gap-3 bg-card p-4 rounded-lg border border-border items-center">
+                  <div className="flex-1 relative">
+                    <Input
+                      type="text"
+                      placeholder="Search by name or email..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10"
+                    />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  </div>
+                  <FilterChipGroup label="Role">
+                    <FilterChip label="All" isActive={roleFilter === 'all'} onClick={() => setRoleFilter('all')} size="sm" />
+                    <FilterChip label="Admins" isActive={roleFilter === 'admin'} onClick={() => setRoleFilter('admin')} size="sm" />
+                    <FilterChip label="Managers" isActive={roleFilter === 'manager'} onClick={() => setRoleFilter('manager')} size="sm" />
+                    <FilterChip label="Users" isActive={roleFilter === 'user'} onClick={() => setRoleFilter('user')} size="sm" />
+                    <FilterChip label="Clients" isActive={roleFilter === 'client'} onClick={() => setRoleFilter('client')} size="sm" />
+                  </FilterChipGroup>
+                  <Separator orientation="vertical" className="h-8" />
+                  <FilterChipGroup label="Status">
+                    <FilterChip label="All" isActive={statusFilter === 'all'} onClick={() => setStatusFilter('all')} size="sm" />
+                    <FilterChip label="Active" isActive={statusFilter === 'active'} onClick={() => setStatusFilter('active')} size="sm" />
+                    <FilterChip label="Inactive" isActive={statusFilter === 'inactive'} onClick={() => setStatusFilter('inactive')} size="sm" />
+                  </FilterChipGroup>
+                  <Separator orientation="vertical" className="h-8" />
+                  <Button
+                    size="sm"
+                    onClick={() => setShowInviteUserModal(true)}
+                  >
+                    <UserPlus className="w-4 h-4 mr-2" />
+                    Invite User
                   </Button>
                 </div>
 
-                {loadingUsers ? (
-                  <div className="flex justify-center py-8">
-                    <Loader2 className="w-6 h-6 text-brand-primary animate-spin" />
-                  </div>
-                ) : orgUsers.length === 0 ? (
-                  <div className="text-center py-8 bg-background-subtle rounded-lg">
-                    <Users className="w-12 h-12 mx-auto text-text-muted mb-2" />
-                    <p className="text-text-muted">No users in this organization</p>
-                  </div>
-                ) : (
-                  <div className="space-y-2">
-                    {orgUsers.map((user) => (
-                      <div
-                        key={user.id}
-                        className="flex items-center justify-between p-4 bg-background-subtle rounded-lg border border-neutral-border"
-                      >
-                        <div className="flex items-center gap-3">
-                          <Avatar
-                            name={user.full_name || user.email}
-                            email={user.email}
-                            src={user.avatar_url || undefined}
-                            role={user.role}
-                            size="md"
-                          />
-                          <div>
-                            <p className="font-medium text-text-primary">
-                              {user.full_name || user.email}
-                            </p>
-                            <p className="text-sm text-text-muted">{user.email}</p>
-                            <div className="flex items-center gap-2 mt-1">
-                              <span
-                                className={`text-xs px-2 py-0.5 rounded ${
-                                  user.role === 'admin'
-                                    ? 'bg-brand-navy/10 text-brand-navy'
-                                    : 'bg-brand-slate/10 text-brand-slate'
-                                }`}
-                              >
+                {/* Data Table */}
+                <div className="bg-card rounded-lg border border-border overflow-hidden">
+                  {loadingAllUsers ? (
+                    <div className="flex justify-center py-12">
+                      <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                    </div>
+                  ) : filteredSortedUsers.length === 0 ? (
+                    <div className="text-center py-12">
+                      <Users className="w-12 h-12 mx-auto text-muted-foreground mb-4" />
+                      <p className="text-muted-foreground">
+                        {searchTerm || roleFilter !== 'all' || statusFilter !== 'all'
+                          ? 'No users match your filters'
+                          : 'No users yet'}
+                      </p>
+                    </div>
+                  ) : (
+                    <Table>
+                      <TableHeader>
+                        <TableRow className="bg-background">
+                          <TableHead className="px-4">
+                            <button
+                              onClick={() => handleSort('name')}
+                              className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground"
+                            >
+                              Name / Email
+                              <SortIcon field="name" />
+                            </button>
+                          </TableHead>
+                          <TableHead className="px-4">
+                            <button
+                              onClick={() => handleSort('role')}
+                              className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground"
+                            >
+                              Role
+                              <SortIcon field="role" />
+                            </button>
+                          </TableHead>
+                          <TableHead className="px-4">
+                            <button
+                              onClick={() => handleSort('organization')}
+                              className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground"
+                            >
+                              Organization
+                              <SortIcon field="organization" />
+                            </button>
+                          </TableHead>
+                          <TableHead className="px-4">
+                            <button
+                              onClick={() => handleSort('status')}
+                              className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground"
+                            >
+                              Status
+                              <SortIcon field="status" />
+                            </button>
+                          </TableHead>
+                          <TableHead className="px-4">
+                            <button
+                              onClick={() => handleSort('joined')}
+                              className="flex items-center text-xs font-semibold text-muted-foreground uppercase tracking-wider hover:text-foreground"
+                            >
+                              Joined
+                              <SortIcon field="joined" />
+                            </button>
+                          </TableHead>
+                          <TableHead className="text-right px-4">
+                            <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+                              Actions
+                            </span>
+                          </TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {filteredSortedUsers.map(user => (
+                          <TableRow key={user.id}>
+                            {/* Name / Email */}
+                            <TableCell className="px-4 py-2">
+                              <div className="flex items-center gap-2.5">
+                                <HowardAvatar
+                                  name={user.full_name || user.email}
+                                  email={user.email}
+                                  src={user.avatar_url || undefined}
+                                  role={user.role}
+                                  size="sm"
+                                />
+                                <div className="min-w-0">
+                                  <p className="font-medium text-foreground text-sm truncate">
+                                    {user.full_name || user.email}
+                                  </p>
+                                  <p className="text-xs text-muted-foreground truncate">{user.email}</p>
+                                </div>
+                              </div>
+                            </TableCell>
+
+                            {/* Role */}
+                            <TableCell className="px-4 py-2">
+                              <HowardBadge variant={`role-${user.role}` as any}>
                                 {user.role}
+                              </HowardBadge>
+                            </TableCell>
+
+                            {/* Organization */}
+                            <TableCell className="px-4 py-2">
+                              <Select
+                                value={user.org_id || '__none__'}
+                                onValueChange={(value) => handleReassignUser(user.id, value === '__none__' ? '' : value)}
+                              >
+                                <SelectTrigger className="text-sm max-w-[180px]"><SelectValue /></SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="__none__">No Organization</SelectItem>
+                                  {organizations.map(org => (
+                                    <SelectItem key={org.id} value={org.id}>
+                                      {org.name}
+                                    </SelectItem>
+                                  ))}
+                                </SelectContent>
+                              </Select>
+                            </TableCell>
+
+                            {/* Status */}
+                            <TableCell className="px-4 py-2">
+                              <HowardBadge variant={user.is_active ? 'status-active' : 'status-inactive'}>
+                                {user.is_active ? 'Active' : 'Inactive'}
+                              </HowardBadge>
+                            </TableCell>
+
+                            {/* Joined */}
+                            <TableCell className="px-4 py-2">
+                              <span className="text-sm text-muted-foreground">
+                                {new Date(user.created_at).toLocaleDateString()}
                               </span>
-                              {!user.is_active && (
-                                <span className="text-xs px-2 py-0.5 rounded bg-state-error/10 text-state-error">
-                                  Inactive
-                                </span>
-                              )}
+                            </TableCell>
+
+                            {/* Actions */}
+                            <TableCell className="px-4 py-2">
+                              <div className="flex items-center justify-end gap-1">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleEditUser(user)}
+                                  title="Edit user"
+                                >
+                                  <Pencil className="w-4 h-4" />
+                                </Button>
+                                {user.is_active && (
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleSendMagicLink(user.id, user.email)}
+                                    title="Send magic link"
+                                  >
+                                    <Send className="w-4 h-4" />
+                                  </Button>
+                                )}
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => handleDeactivateUser(user)}
+                                  disabled={deletingUserId === user.id}
+                                  title={user.is_active ? 'Deactivate user' : 'Activate user'}
+                                >
+                                  <Power className={`w-4 h-4 ${user.is_active ? 'text-destructive' : 'text-primary'}`} />
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  )}
+                </div>
+              </div>
+            </TabsContent>
+          </div>
+        </Tabs>
+      </div>
+
+      {/* Organization Details Dialog */}
+      {selectedOrg && (
+        <Dialog open={showOrgModal} onOpenChange={(open) => { if (!open) { setShowOrgModal(false); setSelectedOrg(null) } }}>
+          <DialogContent className="sm:max-w-4xl">
+            <DialogHeader>
+              <DialogTitle>{selectedOrg.name}</DialogTitle>
+            </DialogHeader>
+            <Tabs value={activeTab} onValueChange={(value) => setActiveTab(value as 'dashboard' | 'tasks' | 'users')}>
+              <TabsList className="h-auto rounded-none bg-transparent border-b border-border p-0 gap-6 w-full justify-start">
+                <TabsTrigger className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 py-3 font-medium text-sm" value="dashboard">
+                  <LinkIcon className="w-4 h-4 mr-2" />
+                  Dashboard URL
+                </TabsTrigger>
+                <TabsTrigger className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 py-3 font-medium text-sm" value="tasks">
+                  Tasks
+                </TabsTrigger>
+                <TabsTrigger className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 py-3 font-medium text-sm" value="users">
+                  <Users className="w-4 h-4 mr-2" />
+                  Users ({orgUsers.length})
+                </TabsTrigger>
+              </TabsList>
+
+              <TabsContent value="dashboard">
+                <div className="space-y-6">
+                  {/* Organization Logo */}
+                  <div className="pb-6 border-b border-border">
+                    <h3 className="text-sm font-medium text-foreground mb-3">
+                      Organization Logo
+                    </h3>
+                    <div className="flex items-center gap-4">
+                      {selectedOrg.logo_url ? (
+                        <img
+                          src={selectedOrg.logo_url}
+                          alt={selectedOrg.name}
+                          className="w-16 h-16 rounded-lg object-cover"
+                        />
+                      ) : (
+                        <div className="w-16 h-16 bg-primary/10 rounded-lg flex items-center justify-center">
+                          <Building2 className="w-8 h-8 text-primary" />
+                        </div>
+                      )}
+                      <div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={uploadingLogo}
+                          className="hidden"
+                          id="logo-upload"
+                        />
+                        <label htmlFor="logo-upload">
+                          <Button
+                            type="button"
+                            variant="outline"
+                            size="sm"
+                            disabled={uploadingLogo}
+                            onClick={() => document.getElementById('logo-upload')?.click()}
+                          >
+                            {uploadingLogo ? (
+                              <>
+                                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                                Uploading...
+                              </>
+                            ) : (
+                              <>
+                                <Upload className="w-4 h-4 mr-2" />
+                                {selectedOrg.logo_url ? 'Change Logo' : 'Upload Logo'}
+                              </>
+                            )}
+                          </Button>
+                        </label>
+                        <p className="text-xs text-muted-foreground mt-1">
+                          Square image recommended. Max 2MB.
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Dashboard URL */}
+                  <div>
+                    <h3 className="text-sm font-medium text-foreground mb-3">
+                      Analytics Dashboard URL
+                    </h3>
+                    <p className="text-sm text-muted-foreground mb-3">
+                      Set the analytics dashboard iframe URL for all client users in this organization
+                    </p>
+                    <div className="space-y-3">
+                      <Input
+                        type="url"
+                        value={dashboardUrl}
+                        onChange={(e) => setDashboardUrl(e.target.value)}
+                        placeholder="https://app.reachreporting.com/embed/..."
+                        disabled={savingUrl}
+                        className="font-mono text-sm"
+                      />
+                      <Button
+                        onClick={handleSaveDashboardUrl}
+                        disabled={savingUrl}
+                      >
+                        {savingUrl ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Saving...
+                          </>
+                        ) : (
+                          <>
+                            <Save className="w-4 h-4 mr-2" />
+                            Save Dashboard URL
+                          </>
+                        )}
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              <TabsContent value="tasks">
+                {selectedOrg && (
+                  <ClientOrgTasks
+                    orgId={selectedOrg.id}
+                    orgName={selectedOrg.name}
+                    onCreateTask={handleCreateTaskForOrg}
+                  />
+                )}
+              </TabsContent>
+
+              <TabsContent value="users">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <p className="text-sm text-muted-foreground">
+                      Manage users in {selectedOrg.name}
+                    </p>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => setShowAddExistingUserModal(true)}
+                    >
+                      <Search className="w-4 h-4 mr-2" />
+                      Add Existing
+                    </Button>
+                  </div>
+
+                  {loadingUsers ? (
+                    <div className="flex justify-center py-8">
+                      <Loader2 className="w-6 h-6 text-primary animate-spin" />
+                    </div>
+                  ) : orgUsers.length === 0 ? (
+                    <div className="text-center py-8 bg-background rounded-lg">
+                      <Users className="w-12 h-12 mx-auto text-muted-foreground mb-2" />
+                      <p className="text-muted-foreground">No users in this organization</p>
+                    </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {orgUsers.map((user) => (
+                        <div
+                          key={user.id}
+                          className="flex items-center justify-between p-4 bg-background rounded-lg border border-border"
+                        >
+                          <div className="flex items-center gap-3">
+                            <HowardAvatar
+                              name={user.full_name || user.email}
+                              email={user.email}
+                              src={user.avatar_url || undefined}
+                              role={user.role}
+                              size="md"
+                            />
+                            <div>
+                              <p className="font-medium text-foreground">
+                                {user.full_name || user.email}
+                              </p>
+                              <p className="text-sm text-muted-foreground">{user.email}</p>
+                              <div className="flex items-center gap-2 mt-1">
+                                <HowardBadge variant={`role-${user.role}` as any}>
+                                  {user.role}
+                                </HowardBadge>
+                                {!user.is_active && (
+                                  <HowardBadge variant="status-inactive">
+                                    Inactive
+                                  </HowardBadge>
+                                )}
+                              </div>
                             </div>
                           </div>
+                          <div className="flex items-center gap-2">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleEditUser(user)}
+                            >
+                              <Pencil className="w-4 h-4" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={() => handleDeleteOrgUser(user)}
+                              disabled={deletingUserId === user.id}
+                            >
+                              <Trash2 className="w-4 h-4 text-destructive" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleEditUser(user)}
-                          >
-                            <Pencil className="w-4 h-4" />
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => handleDeleteOrgUser(user)}
-                            disabled={deletingUserId === user.id}
-                          >
-                            <Trash2 className="w-4 h-4 text-state-error" />
-                          </Button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            )}
-          </div>
-        </Modal>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </TabsContent>
+            </Tabs>
+          </DialogContent>
+        </Dialog>
       )}
 
       {/* Invite User Modal (from org modal - kept for backward compat but no longer shown) */}
@@ -1242,6 +1208,7 @@ export default function ClientsPage() {
           }}
           user={selectedUser}
           onComplete={handleEditComplete}
+          organizations={organizations.map(o => ({ id: o.id, name: o.name }))}
         />
       )}
 
@@ -1257,68 +1224,64 @@ export default function ClientsPage() {
         />
       )}
 
-      {/* Create Organization Modal */}
-      <Modal
-        isOpen={showCreateOrgModal}
-        onClose={() => {
-          setShowCreateOrgModal(false)
-          setNewOrgName('')
-        }}
-        title="Create New Organization"
-        size="md"
-      >
-        <form onSubmit={handleCreateOrg} className="space-y-4">
-          <div>
-            <label htmlFor="orgName" className="block text-sm font-medium text-text-primary mb-2">
-              Organization Name *
-            </label>
-            <Input
-              id="orgName"
-              type="text"
-              value={newOrgName}
-              onChange={(e) => setNewOrgName(e.target.value)}
-              placeholder="e.g., Acme Corporation"
-              required
-              disabled={creatingOrg}
-              autoFocus
-            />
-            <p className="text-xs text-text-muted mt-1">
-              This will be the client organization name
-            </p>
-          </div>
+      {/* Create Organization Dialog */}
+      <Dialog open={showCreateOrgModal} onOpenChange={(open) => { if (!open) { setShowCreateOrgModal(false); setNewOrgName('') } }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>Create New Organization</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleCreateOrg} className="space-y-4">
+            <div>
+              <Label htmlFor="orgName" className="mb-2">
+                Organization Name *
+              </Label>
+              <Input
+                id="orgName"
+                type="text"
+                value={newOrgName}
+                onChange={(e) => setNewOrgName(e.target.value)}
+                placeholder="e.g., Acme Corporation"
+                required
+                disabled={creatingOrg}
+                autoFocus
+              />
+              <p className="text-xs text-muted-foreground mt-1">
+                This will be the client organization name
+              </p>
+            </div>
 
-          <div className="flex items-center justify-end gap-3 pt-4 border-t border-neutral-border">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => {
-                setShowCreateOrgModal(false)
-                setNewOrgName('')
-              }}
-              disabled={creatingOrg}
-            >
-              Cancel
-            </Button>
-            <Button
-              type="submit"
-              variant="primary"
-              disabled={creatingOrg || !newOrgName.trim()}
-            >
-              {creatingOrg ? (
-                <>
-                  <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                  Creating...
-                </>
-              ) : (
-                <>
-                  <Building2 className="w-4 h-4 mr-2" />
-                  Create Organization
-                </>
-              )}
-            </Button>
-          </div>
-        </form>
-      </Modal>
+            <div className="flex items-center justify-end gap-3 pt-4 border-t border-border">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={() => {
+                  setShowCreateOrgModal(false)
+                  setNewOrgName('')
+                }}
+                disabled={creatingOrg}
+              >
+                Cancel
+              </Button>
+              <Button
+                type="submit"
+                disabled={creatingOrg || !newOrgName.trim()}
+              >
+                {creatingOrg ? (
+                  <>
+                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                    Creating...
+                  </>
+                ) : (
+                  <>
+                    <Building2 className="w-4 h-4 mr-2" />
+                    Create Organization
+                  </>
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Task Modal */}
       <TaskModal
@@ -1331,16 +1294,21 @@ export default function ClientsPage() {
         profile={currentProfile}
       />
 
-      {/* Confirm Dialog */}
-      <ConfirmDialog
-        isOpen={confirmDialog.isOpen}
-        onClose={() => setConfirmDialog(prev => ({ ...prev, isOpen: false }))}
-        onConfirm={confirmDialog.onConfirm}
-        title={confirmDialog.title}
-        message={confirmDialog.message}
-        variant={confirmDialog.variant}
-        confirmLabel={confirmDialog.confirmLabel}
-      />
+      {/* Confirm AlertDialog */}
+      <AlertDialog open={confirmDialog.isOpen} onOpenChange={(open) => { if (!open) setConfirmDialog(prev => ({ ...prev, isOpen: false })) }}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{confirmDialog.title}</AlertDialogTitle>
+            <AlertDialogDescription>{confirmDialog.message}</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDialog.onConfirm} className={confirmDialog.variant === 'danger' ? 'bg-destructive text-destructive-foreground hover:bg-destructive/90' : ''}>
+              {confirmDialog.confirmLabel}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
     </>
   )

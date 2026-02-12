@@ -1,4 +1,30 @@
-import { Skeleton } from './Skeleton'
+'use client'
+
+import * as React from 'react'
+import { Loader2 } from 'lucide-react'
+import { Skeleton } from '@/components/ui/skeleton'
+import { cn } from '@/lib/utils'
+
+interface LoadingSpinnerProps {
+  size?: 'sm' | 'md' | 'lg'
+  className?: string
+  text?: string
+}
+
+const spinnerSizes = {
+  sm: 'w-4 h-4',
+  md: 'w-8 h-8',
+  lg: 'w-12 h-12',
+}
+
+function LoadingSpinner({ size = 'md', className, text }: LoadingSpinnerProps) {
+  return (
+    <div className={cn('flex flex-col items-center justify-center gap-3', className)}>
+      <Loader2 className={cn(spinnerSizes[size], 'animate-spin text-primary')} />
+      {text && <p className="text-sm text-muted-foreground">{text}</p>}
+    </div>
+  )
+}
 
 interface PageSkeletonProps {
   hasTopbar?: boolean
@@ -6,16 +32,11 @@ interface PageSkeletonProps {
   variant?: 'list' | 'table' | 'cards'
 }
 
-export function PageSkeleton({
-  hasTopbar = true,
-  hasFilters = false,
-  variant = 'list',
-}: PageSkeletonProps) {
+function PageSkeleton({ hasTopbar = true, hasFilters = false, variant = 'list' }: PageSkeletonProps) {
   return (
     <div className="flex-1 flex flex-col">
-      {/* Topbar */}
       {hasTopbar && (
-        <div className="sticky top-0 z-10 bg-white border-b border-neutral-border shadow-sm">
+        <div className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
           <div className="px-8 py-4 flex items-center justify-between">
             <div>
               <Skeleton className="h-7 w-32 mb-2" />
@@ -25,10 +46,7 @@ export function PageSkeleton({
           </div>
         </div>
       )}
-
-      {/* Main Content */}
       <div className="flex-1 overflow-auto p-8">
-        {/* Filters */}
         {hasFilters && (
           <div className="mb-6">
             <div className="flex gap-4">
@@ -38,8 +56,6 @@ export function PageSkeleton({
             </div>
           </div>
         )}
-
-        {/* Content based on variant */}
         {variant === 'list' && <ListSkeleton />}
         {variant === 'table' && <TableSkeleton />}
         {variant === 'cards' && <CardsSkeleton />}
@@ -52,7 +68,7 @@ function ListSkeleton() {
   return (
     <div className="space-y-4">
       {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="p-4 border border-neutral-border rounded-lg">
+        <div key={i} className="p-4 border border-border rounded-lg">
           <div className="flex items-start justify-between">
             <div className="flex-1">
               <Skeleton className="h-5 w-3/4 mb-2" />
@@ -69,17 +85,15 @@ function ListSkeleton() {
 
 function TableSkeleton() {
   return (
-    <div className="border border-neutral-border rounded-lg overflow-hidden">
-      {/* Header */}
-      <div className="flex gap-4 p-4 bg-neutral-100 border-b border-neutral-border">
+    <div className="border border-border rounded-lg overflow-hidden">
+      <div className="flex gap-4 p-4 bg-secondary border-b border-border">
         <Skeleton className="h-4 w-1/4" />
         <Skeleton className="h-4 w-1/4" />
         <Skeleton className="h-4 w-1/4" />
         <Skeleton className="h-4 w-1/4" />
       </div>
-      {/* Rows */}
       {[1, 2, 3, 4, 5].map((i) => (
-        <div key={i} className="flex gap-4 p-4 border-b border-neutral-border last:border-b-0">
+        <div key={i} className="flex gap-4 p-4 border-b border-border last:border-b-0">
           <Skeleton className="h-10 w-1/4" />
           <Skeleton className="h-10 w-1/4" />
           <Skeleton className="h-10 w-1/4" />
@@ -94,7 +108,7 @@ function CardsSkeleton() {
   return (
     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
       {[1, 2, 3, 4, 5, 6].map((i) => (
-        <div key={i} className="p-6 border border-neutral-border rounded-lg">
+        <div key={i} className="p-6 border border-border rounded-lg">
           <Skeleton className="h-6 w-3/4 mb-4" />
           <Skeleton className="h-4 w-full mb-2" />
           <Skeleton className="h-4 w-5/6 mb-4" />
@@ -107,3 +121,31 @@ function CardsSkeleton() {
     </div>
   )
 }
+
+function TaskBoardSkeleton() {
+  return (
+    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-6">
+      {[1, 2, 3].map((col) => (
+        <div key={col} className="space-y-4">
+          <div className="flex items-center justify-between pb-3 border-b border-border">
+            <Skeleton className="h-5 w-24" />
+            <Skeleton className="h-5 w-8" />
+          </div>
+          {[1, 2, 3].map((task) => (
+            <div key={task} className="p-4 border border-border rounded-lg bg-card">
+              <Skeleton className="h-5 w-3/4 mb-3" />
+              <Skeleton className="h-4 w-full mb-2" />
+              <Skeleton className="h-4 w-2/3 mb-4" />
+              <div className="flex items-center justify-between">
+                <Skeleton className="h-6 w-16" />
+                <Skeleton className="h-8 w-8 rounded-full" />
+              </div>
+            </div>
+          ))}
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export { LoadingSpinner, PageSkeleton, TaskBoardSkeleton }

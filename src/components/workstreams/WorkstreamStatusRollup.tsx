@@ -22,10 +22,10 @@ export function WorkstreamStatusRollup({
   return (
     <div className={`${className || ''}`}>
       {/* Compact Status Display */}
-      <div className="flex items-center gap-4 pt-3 border-t border-gray-200">
+      <div className="flex items-center gap-4 pt-3 border-t border-border">
         {/* Overall Status */}
         <div className="flex items-center gap-2">
-          <span className="text-xs font-medium text-gray-500">Status:</span>
+          <span className="text-xs font-medium text-muted-foreground">Status:</span>
           <WorkstreamStatusBadge status={overallStatus} size="sm" showLabel={true} />
         </div>
 
@@ -54,7 +54,7 @@ export function WorkstreamStatusRollup({
         {/* Progress Bar */}
         {totalEntries > 0 && (
           <div className="flex-1 max-w-xs">
-            <div className="flex h-1.5 rounded-full overflow-hidden bg-gray-100">
+            <div className="flex h-1.5 rounded-full overflow-hidden bg-secondary">
               {totalRed > 0 && (
                 <div
                   className="bg-red-500"

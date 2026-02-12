@@ -2,11 +2,15 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { Avatar } from '@/components/ui/Avatar'
-import { User, Lock, Loader2 } from 'lucide-react'
-import { useUpdateUserProfile, useChangePassword } from '@/lib/api/hooks'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { Separator } from '@/components/ui/separator'
+import { HowardAvatar } from '@/components/ui/howard-avatar'
+import { Switch } from '@/components/ui/switch'
+import { User, Lock, Bell, Loader2 } from 'lucide-react'
+import { useUpdateUserProfile, useChangePassword, useNotificationPreferences, useUpdateNotificationPreferences } from '@/lib/api/hooks'
 
 interface ProfileData {
   full_name: string | null
@@ -31,6 +35,8 @@ export default function SettingsPage() {
   // Use TanStack Query hooks
   const updateProfile = useUpdateUserProfile()
   const changePassword = useChangePassword()
+  const { data: notifPrefs, isLoading: notifLoading } = useNotificationPreferences()
+  const updateNotifPrefs = useUpdateNotificationPreferences()
 
   useEffect(() => {
     loadProfile()
@@ -93,7 +99,7 @@ export default function SettingsPage() {
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-brand-primary animate-spin" />
+        <Loader2 className="w-8 h-8 text-primary animate-spin" />
       </div>
     )
   }
@@ -101,12 +107,12 @@ export default function SettingsPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sticky Topbar */}
-      <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
+      <div className="flex-shrink-0 bg-card border-b border-border shadow-sm">
         <div className="px-8 py-4">
-          <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+          <h1 className="text-xl font-semibold tracking-tight text-foreground">
             Settings
           </h1>
-          <p className="text-sm text-text-muted mt-1">
+          <p className="text-sm text-muted-foreground mt-1">
             Manage your account settings and preferences
           </p>
         </div>
@@ -116,169 +122,210 @@ export default function SettingsPage() {
       <div className="flex-1 overflow-auto p-8">
         <div className="max-w-4xl space-y-6">
           {/* Profile Settings */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-border">
-            <div className="p-6 border-b border-neutral-border">
+          <Card>
+            <CardHeader>
               <div className="flex items-center gap-3">
-                <User className="w-5 h-5 text-brand-primary" />
+                <User className="w-5 h-5 text-primary" />
                 <div>
-                  <h2 className="text-lg font-semibold text-text-primary">Profile Settings</h2>
-                  <p className="text-sm text-text-muted mt-1">
+                  <CardTitle className="text-lg">Profile Settings</CardTitle>
+                  <CardDescription>
                     Update your personal information and avatar
-                  </p>
+                  </CardDescription>
                 </div>
               </div>
-            </div>
+            </CardHeader>
 
-            <form onSubmit={handleProfileUpdate} className="p-6 space-y-6">
-              {/* Avatar - Display only */}
-              <div className="flex items-center gap-4 pb-4 border-b border-neutral-border">
-                <Avatar
-                  name={fullName || profile?.email || ''}
-                  email={profile?.email || ''}
-                  src={profile?.avatar_url || undefined}
-                  size="xl"
-                />
+            <CardContent>
+              <form onSubmit={handleProfileUpdate} className="space-y-6">
+                {/* Avatar - Display only */}
+                <div className="flex items-center gap-4 pb-4 border-b border-border">
+                  <HowardAvatar
+                    name={fullName || profile?.email || ''}
+                    email={profile?.email || ''}
+                    src={profile?.avatar_url || undefined}
+                    size="xl"
+                  />
+                  <div>
+                    <p className="text-sm font-medium text-foreground">Profile Picture</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Contact your administrator to change your avatar
+                    </p>
+                  </div>
+                </div>
+
+                {/* Email (read-only) */}
+                <div className="space-y-2">
+                  <Label>Email Address</Label>
+                  <Input
+                    type="email"
+                    value={profile?.email || ''}
+                    disabled
+                    className="bg-secondary"
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Contact your administrator to change your email
+                  </p>
+                </div>
+
+                {/* Full Name */}
+                <div className="space-y-2">
+                  <Label htmlFor="fullName">Full Name</Label>
+                  <Input
+                    id="fullName"
+                    type="text"
+                    value={fullName}
+                    onChange={(e) => setFullName(e.target.value)}
+                    placeholder="Enter your full name"
+                    disabled={updateProfile.isPending}
+                  />
+                </div>
+
+                {/* Actions */}
+                <Separator />
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={updateProfile.isPending}
+                  >
+                    {updateProfile.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Saving...
+                      </>
+                    ) : (
+                      'Save Changes'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
+
+          {/* Email Notifications */}
+          <Card>
+            <CardHeader>
+              <div className="flex items-center gap-3">
+                <Bell className="w-5 h-5 text-primary" />
                 <div>
-                  <p className="text-sm font-medium text-text-primary">Profile Picture</p>
-                  <p className="text-xs text-text-muted mt-1">
-                    Contact your administrator to change your avatar
-                  </p>
+                  <CardTitle className="text-lg">Email Notifications</CardTitle>
+                  <CardDescription>
+                    Choose which email notifications you receive
+                  </CardDescription>
                 </div>
               </div>
+            </CardHeader>
 
-              {/* Email (read-only) */}
-              <div>
-                <label className="block text-sm font-medium text-text-primary mb-2">
-                  Email Address
-                </label>
-                <Input
-                  type="email"
-                  value={profile?.email || ''}
-                  disabled
-                  className="bg-background-elevated"
-                />
-                <p className="text-xs text-text-muted mt-1">
-                  Contact your administrator to change your email
-                </p>
-              </div>
-
-              {/* Full Name */}
-              <div>
-                <label htmlFor="fullName" className="block text-sm font-medium text-text-primary mb-2">
-                  Full Name
-                </label>
-                <Input
-                  id="fullName"
-                  type="text"
-                  value={fullName}
-                  onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Enter your full name"
-                  disabled={updateProfile.isPending}
-                />
-              </div>
-
-              {/* Actions */}
-              <div className="flex justify-end pt-4 border-t border-neutral-border">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={updateProfile.isPending}
-                >
-                  {updateProfile.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Saving...
-                    </>
-                  ) : (
-                    'Save Changes'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
+            <CardContent>
+              {notifLoading ? (
+                <div className="flex justify-center py-4">
+                  <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {[
+                    { key: 'task_assigned' as const, label: 'Task Assigned', description: 'When a task is assigned to you' },
+                    { key: 'task_status_changed' as const, label: 'Status Changes', description: 'When a task you created or are assigned to changes status' },
+                    { key: 'task_comment_added' as const, label: 'New Comments', description: 'When someone comments on your tasks' },
+                    { key: 'task_mentioned' as const, label: 'Mentions', description: 'When someone @mentions you in a comment' },
+                    { key: 'file_uploaded' as const, label: 'File Uploads', description: 'When files are uploaded to your channels' },
+                  ].map(({ key, label, description }) => (
+                    <div key={key} className="flex items-center justify-between py-2">
+                      <div>
+                        <p className="text-sm font-medium text-foreground">{label}</p>
+                        <p className="text-xs text-muted-foreground">{description}</p>
+                      </div>
+                      <Switch
+                        checked={notifPrefs?.[key] ?? true}
+                        onCheckedChange={(checked) => {
+                          updateNotifPrefs.mutate({ [key]: checked })
+                        }}
+                        disabled={updateNotifPrefs.isPending}
+                      />
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
 
           {/* Change Password */}
-          <div className="bg-white rounded-lg shadow-sm border border-neutral-border">
-            <div className="p-6 border-b border-neutral-border">
+          <Card>
+            <CardHeader>
               <div className="flex items-center gap-3">
-                <Lock className="w-5 h-5 text-brand-primary" />
+                <Lock className="w-5 h-5 text-primary" />
                 <div>
-                  <h2 className="text-lg font-semibold text-text-primary">Change Password</h2>
-                  <p className="text-sm text-text-muted mt-1">
+                  <CardTitle className="text-lg">Change Password</CardTitle>
+                  <CardDescription>
                     Update your password to keep your account secure
-                  </p>
+                  </CardDescription>
                 </div>
               </div>
-            </div>
+            </CardHeader>
 
-            <form onSubmit={handlePasswordChange} className="p-6 space-y-6">
-              {/* Current Password */}
-              <div>
-                <label htmlFor="currentPassword" className="block text-sm font-medium text-text-primary mb-2">
-                  Current Password
-                </label>
-                <Input
-                  id="currentPassword"
-                  type="password"
-                  value={currentPassword}
-                  onChange={(e) => setCurrentPassword(e.target.value)}
-                  placeholder="Enter your current password"
-                  disabled={changePassword.isPending}
-                />
-              </div>
+            <CardContent>
+              <form onSubmit={handlePasswordChange} className="space-y-6">
+                {/* Current Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="currentPassword">Current Password</Label>
+                  <Input
+                    id="currentPassword"
+                    type="password"
+                    value={currentPassword}
+                    onChange={(e) => setCurrentPassword(e.target.value)}
+                    placeholder="Enter your current password"
+                    disabled={changePassword.isPending}
+                  />
+                </div>
 
-              {/* New Password */}
-              <div>
-                <label htmlFor="newPassword" className="block text-sm font-medium text-text-primary mb-2">
-                  New Password
-                </label>
-                <Input
-                  id="newPassword"
-                  type="password"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Enter your new password"
-                  disabled={changePassword.isPending}
-                />
-                <p className="text-xs text-text-muted mt-1">
-                  Must be at least 6 characters
-                </p>
-              </div>
+                {/* New Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="newPassword">New Password</Label>
+                  <Input
+                    id="newPassword"
+                    type="password"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Enter your new password"
+                    disabled={changePassword.isPending}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Must be at least 6 characters
+                  </p>
+                </div>
 
-              {/* Confirm New Password */}
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium text-text-primary mb-2">
-                  Confirm New Password
-                </label>
-                <Input
-                  id="confirmPassword"
-                  type="password"
-                  value={confirmPassword}
-                  onChange={(e) => setConfirmPassword(e.target.value)}
-                  placeholder="Confirm your new password"
-                  disabled={changePassword.isPending}
-                />
-              </div>
+                {/* Confirm New Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm New Password</Label>
+                  <Input
+                    id="confirmPassword"
+                    type="password"
+                    value={confirmPassword}
+                    onChange={(e) => setConfirmPassword(e.target.value)}
+                    placeholder="Confirm your new password"
+                    disabled={changePassword.isPending}
+                  />
+                </div>
 
-              {/* Actions */}
-              <div className="flex justify-end pt-4 border-t border-neutral-border">
-                <Button
-                  type="submit"
-                  variant="primary"
-                  disabled={changePassword.isPending}
-                >
-                  {changePassword.isPending ? (
-                    <>
-                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Changing Password...
-                    </>
-                  ) : (
-                    'Change Password'
-                  )}
-                </Button>
-              </div>
-            </form>
-          </div>
+                {/* Actions */}
+                <Separator />
+                <div className="flex justify-end">
+                  <Button
+                    type="submit"
+                    disabled={changePassword.isPending}
+                  >
+                    {changePassword.isPending ? (
+                      <>
+                        <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                        Changing Password...
+                      </>
+                    ) : (
+                      'Change Password'
+                    )}
+                  </Button>
+                </div>
+              </form>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </div>

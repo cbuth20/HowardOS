@@ -1,8 +1,8 @@
 'use client'
 
 import { TaskView } from '@/types/tasks'
-import { Select, SelectOption } from '@/components/ui/Select'
-import { FilterChip } from '@/components/ui/FilterChip'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { FilterChip } from '@/components/ui/howard-filter-chip'
 
 interface User {
   id: string
@@ -11,13 +11,23 @@ interface User {
   avatar_url: string | null
 }
 
+interface Organization {
+  id: string
+  name: string
+}
+
 interface TaskFiltersProps {
   activeTab: TaskView
   onTabChange: (tab: TaskView) => void
   assigneeFilter: string | null
   onAssigneeChange: (assignee: string | null) => void
+  orgFilter?: string | null
+  onOrgChange?: (orgId: string | null) => void
+  longOutstanding?: boolean
+  onLongOutstandingChange?: (value: boolean) => void
   users: User[]
-  userRole: 'admin' | 'client' | undefined
+  organizations?: Organization[]
+  userRole: string | undefined
 }
 
 const viewTabs: { value: TaskView; label: string; adminOnly?: boolean }[] = [
@@ -32,24 +42,22 @@ export function TaskFilters({
   onTabChange,
   assigneeFilter,
   onAssigneeChange,
+  orgFilter,
+  onOrgChange,
+  longOutstanding,
+  onLongOutstandingChange,
   users,
+  organizations = [],
   userRole,
 }: TaskFiltersProps) {
+  const isTeam = ['admin', 'manager', 'user'].includes(userRole || '')
   const availableTabs = viewTabs.filter(
-    tab => !tab.adminOnly || userRole === 'admin'
+    tab => !tab.adminOnly || isTeam
   )
 
-  const assigneeOptions: SelectOption[] = [
-    { value: '', label: 'All Assignees' },
-    ...users.map(user => ({
-      value: user.id,
-      label: user.full_name || user.email,
-    })),
-  ]
-
   return (
-    <div className="flex flex-col sm:flex-row gap-3 mb-3 md:mb-4 pb-3 border-b border-neutral-border">
-      {/* View Tabs */}
+    <div className="flex flex-col gap-3 mb-3 md:mb-4 pb-3 border-b border-border">
+      {/* Row 1: View Tabs */}
       <div className="flex gap-1.5 overflow-x-auto pb-1 -mx-4 px-4 md:mx-0 md:px-0 scrollbar-hide">
         <div className="flex gap-1.5 min-w-min">
           {availableTabs.map((tab) => (
@@ -64,15 +72,52 @@ export function TaskFilters({
         </div>
       </div>
 
-      {/* Assignee Filter (Admin only) */}
-      {userRole === 'admin' && (
-        <div className="sm:ml-auto w-full sm:w-48">
-          <Select
-            value={assigneeFilter || ''}
-            onChange={(e) => onAssigneeChange(e.target.value || null)}
-            options={assigneeOptions}
-            className="text-xs"
-          />
+      {/* Row 2: Filters (team only) */}
+      {isTeam && (
+        <div className="flex flex-wrap gap-2 items-center">
+          {/* Assignee Filter */}
+          <div className="w-full sm:w-44">
+            <Select
+              value={assigneeFilter || '__all__'}
+              onValueChange={(value) => onAssigneeChange(value === '__all__' ? null : value)}
+            >
+              <SelectTrigger className="text-xs h-8"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__all__">All Assignees</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>{user.full_name || user.email}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+
+          {/* Org Filter */}
+          {organizations.length > 0 && onOrgChange && (
+            <div className="w-full sm:w-44">
+              <Select
+                value={orgFilter || '__all__'}
+                onValueChange={(value) => onOrgChange(value === '__all__' ? null : value)}
+              >
+                <SelectTrigger className="text-xs h-8"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__all__">All Clients</SelectItem>
+                  {organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
+          {/* Long Outstanding Toggle */}
+          {onLongOutstandingChange && (
+            <FilterChip
+              label="30+ Days"
+              isActive={longOutstanding || false}
+              onClick={() => onLongOutstandingChange(!longOutstanding)}
+              size="sm"
+            />
+          )}
         </div>
       )}
     </div>

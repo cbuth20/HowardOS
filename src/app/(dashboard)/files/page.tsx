@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { FolderOpen, Plus } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { ChannelList } from '@/components/files/ChannelList'
 import { ChannelContentView } from '@/components/files/ChannelContentView'
 import { CreateChannelModal } from '@/components/files/CreateChannelModal'
@@ -10,7 +10,7 @@ import { useFileChannels } from '@/lib/api/hooks'
 import { createClient } from '@/lib/supabase/client'
 
 interface UserProfile {
-  role: 'admin' | 'client'
+  role: string
   org_id: string
 }
 
@@ -45,7 +45,8 @@ export default function FilesPage() {
     }
   }
 
-  const isAdmin = profile?.role === 'admin'
+  const isTeam = ['admin', 'manager', 'user'].includes(profile?.role || '')
+  const isAdmin = isTeam // team members get admin-like file access
   const selectedChannel = channels.find((c) => c.id === selectedChannelId)
 
   // Client view: if only one channel, show it directly without sidebar
@@ -54,16 +55,16 @@ export default function FilesPage() {
   return (
     <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
       {/* Sticky Topbar */}
-      <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
+      <div className="flex-shrink-0 bg-card border-b border-border shadow-sm">
         <div className="px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <h1 className="text-xl flex gap-2 font-semibold tracking-tight text-text-primary">
-              <FolderOpen className="w-6 h-6 text-brand-primary" />
+            <h1 className="text-xl flex gap-2 font-semibold tracking-tight text-foreground">
+              <FolderOpen className="w-6 h-6 text-primary" />
               File channels
             </h1>
           </div>
           {isAdmin && (
-            <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+            <Button onClick={() => setShowCreateModal(true)}>
               <Plus className="w-4 h-4 mr-2" />
               New Channel
             </Button>
@@ -75,7 +76,7 @@ export default function FilesPage() {
       <div className="flex-1 flex min-h-0 overflow-hidden">
         {/* Left panel - Channel list (hidden for single-channel clients) */}
         {!isClientSingleChannel && (
-          <div className="w-72 border-r border-neutral-border flex flex-col bg-background-elevated overflow-hidden flex-shrink-0">
+          <div className="w-72 border-r border-border flex flex-col bg-secondary overflow-hidden flex-shrink-0">
             <ChannelList
               channels={channels}
               selectedChannelId={selectedChannelId}
@@ -86,7 +87,7 @@ export default function FilesPage() {
         )}
 
         {/* Right panel - Channel content */}
-        <div className="flex-1 flex flex-col overflow-hidden bg-white">
+        <div className="flex-1 flex flex-col overflow-hidden bg-card">
           {selectedChannelId && selectedChannel ? (
             <ChannelContentView
               channelId={selectedChannelId}
@@ -96,21 +97,21 @@ export default function FilesPage() {
             />
           ) : channelsLoading ? (
             <div className="flex-1 flex items-center justify-center">
-              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-brand-primary" />
+              <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary" />
             </div>
           ) : (
             <div className="flex-1 flex flex-col items-center justify-center text-center px-8">
-              <FolderOpen className="w-16 h-16 text-text-muted mb-4" />
-              <h3 className="text-lg font-medium text-text-primary mb-2">
+              <FolderOpen className="w-16 h-16 text-muted-foreground mb-4" />
+              <h3 className="text-lg font-medium text-foreground mb-2">
                 {isAdmin ? 'No file channels yet' : 'No files shared with you'}
               </h3>
-              <p className="text-sm text-text-muted mb-6 max-w-md">
+              <p className="text-sm text-muted-foreground mb-6 max-w-md">
                 {isAdmin
                   ? 'Create a file channel to start sharing files with your clients. Each channel is linked to a client organization.'
                   : 'Your advisor will create a file channel and share files with you here.'}
               </p>
               {isAdmin && (
-                <Button variant="primary" onClick={() => setShowCreateModal(true)}>
+                <Button onClick={() => setShowCreateModal(true)}>
                   <Plus className="w-4 h-4 mr-2" />
                   Create First Channel
                 </Button>

@@ -1,8 +1,16 @@
 import { z } from 'zod'
 
 // Task schemas
-export const TaskStatusSchema = z.enum(['pending', 'in_progress', 'completed', 'hidden', 'cancelled'])
+export const TaskStatusSchema = z.enum(['pending', 'in_progress', 'completed', 'cancelled'])
 export const TaskPrioritySchema = z.enum(['low', 'medium', 'high', 'urgent'])
+export const RecurrenceFrequencySchema = z.enum(['weekly', 'monthly', 'quarterly'])
+
+export const RecurrenceRuleSchema = z.object({
+  frequency: RecurrenceFrequencySchema,
+  interval: z.number().int().min(1).max(12).default(1),
+  day_of_week: z.number().int().min(0).max(6).optional(),
+  day_of_month: z.number().int().min(1).max(31).optional(),
+})
 
 export const CreateTaskSchema = z.object({
   title: z.string().min(1, 'Title is required').max(200, 'Title must be less than 200 characters'),
@@ -12,6 +20,9 @@ export const CreateTaskSchema = z.object({
   assigned_to: z.string().uuid().optional().nullable(),
   due_date: z.string().datetime().optional().nullable(),
   target_org_id: z.string().uuid().optional(),
+  is_internal: z.boolean().optional(),
+  is_recurring: z.boolean().optional(),
+  recurrence_rule: RecurrenceRuleSchema.optional().nullable(),
 })
 
 export const UpdateTaskSchema = CreateTaskSchema.partial()
@@ -51,13 +62,15 @@ export const CreateChannelFolderSchema = z.object({
 })
 
 // User schemas
-export const UserRoleSchema = z.enum(['admin', 'client'])
+export const UserRoleSchema = z.enum(['admin', 'manager', 'user', 'client', 'client_no_access'])
 
 export const InviteUserSchema = z.object({
   email: z.string().email('Invalid email address'),
   full_name: z.string().min(1, 'Name is required').max(100, 'Name must be less than 100 characters'),
   role: UserRoleSchema,
   org_id: z.string().uuid('Invalid organization ID'),
+  allowed_org_ids: z.array(z.string().uuid()).optional(),
+  org_ids: z.array(z.string().uuid()).optional(),
 })
 
 export const UpdateProfileSchema = z.object({

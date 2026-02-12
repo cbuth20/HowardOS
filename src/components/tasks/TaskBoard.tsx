@@ -26,7 +26,6 @@ const columns: { status: TaskStatus; title: string }[] = [
   { status: 'pending', title: 'To Do' },
   { status: 'in_progress', title: 'In Progress' },
   { status: 'completed', title: 'Done' },
-  { status: 'hidden', title: 'Hidden' },
 ]
 
 export function TaskBoard({ tasks, onTaskUpdate, onTaskClick, canEditTask }: TaskBoardProps) {

@@ -165,9 +165,9 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
         })
       }
 
-      // List all workstreams (admin only - for overview page)
-      if (userRole !== 'admin') {
-        return errorResponse('Admin access required', 403)
+      // List all workstreams (team members only - for overview page)
+      if (!['admin', 'manager', 'user'].includes(userRole)) {
+        return errorResponse('Team member access required', 403)
       }
 
       const { data: workstreams, error } = await (supabaseAdmin as any)
@@ -214,9 +214,9 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
       return successResponse({ workstreams: workstreamsWithStatus })
     }
 
-    // POST - Create workstream for org (admin only)
+    // POST - Create workstream for org (admin/manager only)
     if (event.httpMethod === 'POST') {
-      if (userRole !== 'admin') {
+      if (!['admin', 'manager'].includes(userRole)) {
         return errorResponse('Admin access required', 403)
       }
 
@@ -274,9 +274,9 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
       return { statusCode: 201, body: JSON.stringify(successResponse({ workstream })) }
     }
 
-    // PATCH - Update workstream metadata (admin only)
+    // PATCH - Update workstream metadata (admin/manager only)
     if (event.httpMethod === 'PATCH') {
-      if (userRole !== 'admin') {
+      if (!['admin', 'manager'].includes(userRole)) {
         return errorResponse('Admin access required', 403)
       }
 
@@ -324,9 +324,9 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
       return successResponse({ workstream })
     }
 
-    // DELETE - Delete workstream (admin only)
+    // DELETE - Delete workstream (admin/manager only)
     if (event.httpMethod === 'DELETE') {
-      if (userRole !== 'admin') {
+      if (!['admin', 'manager'].includes(userRole)) {
         return errorResponse('Admin access required', 403)
       }
 

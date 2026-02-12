@@ -1,4 +1,4 @@
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { LoadingSpinner } from '@/components/ui/howard-loading'
 
 export default function UsersLoading() {
   return (

@@ -1,7 +1,6 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { X } from 'lucide-react'
 import {
   WorkstreamEntryWithDetails,
   WorkstreamVertical,
@@ -9,6 +8,14 @@ import {
   WorkstreamStatus,
   WorkstreamTiming,
 } from '@/types/entities'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Label } from '@/components/ui/label'
+import { useSoftwareCatalog } from '@/lib/api/hooks/useSoftwareCatalog'
+import { useWorkstreamTemplates } from '@/lib/api/hooks/useWorkstreams'
 
 interface WorkstreamEntryModalProps {
   isOpen: boolean
@@ -31,6 +38,10 @@ export function WorkstreamEntryModal({
   users,
   isSubmitting = false,
 }: WorkstreamEntryModalProps) {
+  const { data: softwareCatalog = [] } = useSoftwareCatalog()
+  const { data: templatesData } = useWorkstreamTemplates()
+  const templates = (templatesData as any)?.templates || []
+
   const [formData, setFormData] = useState({
     name: '',
     description: '',
@@ -88,69 +99,97 @@ export function WorkstreamEntryModal({
     onSubmit(payload)
   }
 
-  if (!isOpen) return null
-
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="bg-white rounded-lg shadow-xl w-full max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-200">
-          <h2 className="text-xl font-semibold text-gray-900">
-            {entry ? 'Edit Entry' : 'Create Entry'}
-          </h2>
-          <button
-            onClick={onClose}
-            className="text-gray-400 hover:text-gray-600 transition-colors"
-          >
-            <X className="h-5 w-5" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-hidden flex flex-col">
+        <DialogHeader>
+          <DialogTitle>{entry ? 'Edit Entry' : 'Create Entry'}</DialogTitle>
+        </DialogHeader>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto px-6 py-4 space-y-4">
+        <form onSubmit={handleSubmit} className="flex-1 overflow-y-auto space-y-4">
+          {/* Template Auto-fill (create mode only) */}
+          {!entry && templates.length > 0 && (
+            <div className="p-3 bg-secondary/50 rounded-lg border border-border">
+              <Label className="mb-1 text-xs font-medium">
+                Auto-fill from Template
+              </Label>
+              <Select
+                value="__none__"
+                onValueChange={(templateId) => {
+                  if (templateId === '__none__') return
+                  const tmpl = templates.find((t: any) => t.id === templateId)
+                  if (!tmpl) return
+                  setFormData((prev) => ({
+                    ...prev,
+                    name: tmpl.name || prev.name,
+                    description: tmpl.description || prev.description,
+                    vertical_id: tmpl.vertical_id || prev.vertical_id,
+                    timing: tmpl.timing || prev.timing,
+                    associated_software: tmpl.associated_software || prev.associated_software,
+                  }))
+                }}
+              >
+                <SelectTrigger className="h-9">
+                  <SelectValue placeholder="Select a template to auto-fill..." />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Choose a template...</SelectItem>
+                  {templates.map((tmpl: any) => (
+                    <SelectItem key={tmpl.id} value={tmpl.id}>
+                      {tmpl.name}
+                      {tmpl.vertical?.name && (
+                        <span className="text-muted-foreground ml-1">({tmpl.vertical.name})</span>
+                      )}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          )}
+
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Name <span className="text-red-500">*</span>
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
               placeholder="e.g., Weekly cash flow update"
             />
           </div>
 
           {/* Vertical */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Vertical <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.vertical_id}
-              onChange={(e) => setFormData({ ...formData, vertical_id: e.target.value })}
+            </Label>
+            <Select
+              value={formData.vertical_id || undefined}
+              onValueChange={(value) => setFormData({ ...formData, vertical_id: value })}
               required
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
             >
-              <option value="">Select a vertical</option>
-              {verticals.map((vertical) => (
-                <option key={vertical.id} value={vertical.id}>
-                  {vertical.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger><SelectValue placeholder="Select a vertical" /></SelectTrigger>
+              <SelectContent>
+                {verticals.map((vertical) => (
+                  <SelectItem key={vertical.id} value={vertical.id}>
+                    {vertical.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
-            <textarea
+            <Label className="mb-1">Description</Label>
+            <Textarea
               value={formData.description}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
               rows={3}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
               placeholder="Describe this workstream entry..."
             />
           </div>
@@ -158,99 +197,111 @@ export function WorkstreamEntryModal({
           {/* Row: Timing & Status */}
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Timing</label>
-              <select
-                value={formData.timing}
-                onChange={(e) => setFormData({ ...formData, timing: e.target.value as WorkstreamTiming })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+              <Label className="mb-1">Timing</Label>
+              <Select
+                value={formData.timing || '__none__'}
+                onValueChange={(value) => setFormData({ ...formData, timing: (value === '__none__' ? '' : value) as WorkstreamTiming | '' })}
               >
-                <option value="">Select timing</option>
-                <option value="daily">Daily</option>
-                <option value="weekly">Weekly</option>
-                <option value="monthly">Monthly</option>
-                <option value="quarterly">Quarterly</option>
-                <option value="annual">Annual</option>
-                <option value="ad-hoc">Ad-hoc</option>
-              </select>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="__none__">Select timing</SelectItem>
+                  <SelectItem value="daily">Daily</SelectItem>
+                  <SelectItem value="weekly">Weekly</SelectItem>
+                  <SelectItem value="monthly">Monthly</SelectItem>
+                  <SelectItem value="quarterly">Quarterly</SelectItem>
+                  <SelectItem value="annual">Annual</SelectItem>
+                  <SelectItem value="ad-hoc">Ad-hoc</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Status</label>
-              <select
+              <Label className="mb-1">Status</Label>
+              <Select
                 value={formData.status}
-                onChange={(e) => setFormData({ ...formData, status: e.target.value as WorkstreamStatus })}
-                className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+                onValueChange={(value) => setFormData({ ...formData, status: value as WorkstreamStatus })}
               >
-                <option value="green">🟢 On Track</option>
-                <option value="yellow">🟡 In Progress</option>
-                <option value="red">🔴 Blocked</option>
-              </select>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="green">Active</SelectItem>
+                  <SelectItem value="yellow">Resolving</SelectItem>
+                  <SelectItem value="red">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
           {/* Associated Software */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Associated Software
-            </label>
-            <input
-              type="text"
-              value={formData.associated_software}
-              onChange={(e) => setFormData({ ...formData, associated_software: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
-              placeholder="e.g., QuickBooks, Excel"
-            />
+            </Label>
+            <Select
+              value={formData.associated_software || '__none__'}
+              onValueChange={(value) => setFormData({ ...formData, associated_software: value === '__none__' ? '' : value })}
+            >
+              <SelectTrigger><SelectValue placeholder="Select software..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">None</SelectItem>
+                {softwareCatalog.map((sw) => (
+                  <SelectItem key={sw.id} value={sw.name}>
+                    {sw.name}
+                    {sw.category && <span className="text-muted-foreground ml-1">({sw.category})</span>}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Point Person */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Point Person</label>
-            <select
-              value={formData.point_person_id}
-              onChange={(e) => setFormData({ ...formData, point_person_id: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
+            <Label className="mb-1">Point Person</Label>
+            <Select
+              value={formData.point_person_id || '__unassigned__'}
+              onValueChange={(value) => setFormData({ ...formData, point_person_id: value === '__unassigned__' ? '' : value })}
             >
-              <option value="">Unassigned</option>
-              {users.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.full_name} ({user.email})
-                </option>
-              ))}
-            </select>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__unassigned__">Unassigned</SelectItem>
+                {users.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.full_name} ({user.email})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
-            <textarea
+            <Label className="mb-1">Notes</Label>
+            <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
               rows={2}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand-primary focus:border-transparent"
               placeholder="Additional notes or context..."
             />
           </div>
-        </form>
 
-        {/* Footer */}
-        <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-gray-200 bg-gray-50">
-          <button
-            type="button"
-            onClick={onClose}
-            disabled={isSubmitting}
-            className="px-4 py-2 text-gray-700 hover:bg-gray-100 rounded-lg transition-colors disabled:opacity-50"
-          >
-            Cancel
-          </button>
-          <button
-            onClick={handleSubmit}
-            disabled={isSubmitting}
-            className="px-4 py-2 bg-brand-primary text-white rounded-lg hover:bg-brand-secondary transition-colors disabled:opacity-50"
-          >
-            {isSubmitting ? 'Saving...' : entry ? 'Update Entry' : 'Create Entry'}
-          </button>
-        </div>
-      </div>
-    </div>
+          {/* Footer */}
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={onClose}
+              variant="outline"
+              disabled={isSubmitting}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isSubmitting}
+            >
+              {isSubmitting ? 'Saving...' : entry ? 'Update Entry' : 'Create Entry'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -18,9 +18,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
         slug
       )
     `)
-    .eq('role', 'client')
+    .in('role', ['client', 'client_no_access'])
     .neq('org_id', profile.org_id)
-    .eq('is_active', true)
     .order('full_name')
 
   if (clientsError) {
@@ -48,4 +47,4 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     clients: clients || [],
     clientsByOrg,
   })
-}, { requireAuth: true, requireAdmin: true })
+}, { requireAuth: true, requireRole: ['admin', 'manager'] })

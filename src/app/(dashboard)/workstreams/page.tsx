@@ -13,12 +13,14 @@ import { WorkstreamTemplateList } from '@/components/workstreams/WorkstreamTempl
 import { ClientWorkstreamList } from '@/components/workstreams/ClientWorkstreamList'
 import { WorkstreamDetailView } from '@/components/workstreams/WorkstreamDetailView'
 import { WorkstreamStatusBadge } from '@/components/workstreams/WorkstreamStatusBadge'
-import { ClipboardList } from 'lucide-react'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import { Card, CardContent } from '@/components/ui/card'
+import { ClipboardList, AlertCircle, CheckCircle2 } from 'lucide-react'
 
 interface Profile {
   id: string
   org_id: string
-  role: 'admin' | 'client'
+  role: string
   full_name: string | null
   email: string
 }
@@ -46,7 +48,7 @@ export default function WorkstreamsPage() {
     loadProfile()
   }, [])
 
-  const isAdmin = profile?.role === 'admin'
+  const isAdmin = ['admin', 'manager'].includes(profile?.role || '')
 
   // Admin view state
   const [activeTab, setActiveTab] = useState<'templates' | 'workstreams'>('templates')
@@ -87,8 +89,8 @@ export default function WorkstreamsPage() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4" />
-          <p className="text-text-muted">Loading...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading...</p>
         </div>
       </div>
     )
@@ -102,124 +104,114 @@ export default function WorkstreamsPage() {
     const greenWorkstreams = allWorkstreams.filter((w) => w.overall_status === 'green').length
 
     return (
-      <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
+      <Tabs value={activeTab} onValueChange={(value) => { setActiveTab(value as 'templates' | 'workstreams'); setSelectedWorkstreamId(null) }} className="flex-1 flex flex-col min-h-0 overflow-hidden">
         {/* Sticky Topbar */}
-        <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
+        <div className="flex-shrink-0 bg-card border-b border-border shadow-sm">
           <div className="px-8 py-4 flex items-center justify-between">
             <div>
               <div className="flex gap-2">
-                <ClipboardList className="w-6 h-6 text-brand-primary" />
-                <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+                <ClipboardList className="w-6 h-6 text-primary" />
+                <h1 className="text-xl font-semibold tracking-tight text-foreground">
                   Workstreams
                 </h1>
               </div>
-              <p className="text-sm text-text-muted">
+              <p className="text-sm text-muted-foreground">
                 Manage workstream templates and client workstreams
               </p>
             </div>
           </div>
 
           {/* Tabs */}
-          <div className="px-8 flex gap-4 border-b border-neutral-border">
-            <button
-              onClick={() => {
-                setActiveTab('templates')
-                setSelectedWorkstreamId(null)
-              }}
-              className={`px-4 py-3 font-medium border-b-2 transition-colors ${
-                activeTab === 'templates'
-                  ? 'border-brand-primary text-brand-primary'
-                  : 'border-transparent text-text-muted hover:text-text-primary'
-              }`}
-            >
-              Templates Library
-            </button>
-            <button
-              onClick={() => {
-                setActiveTab('workstreams')
-                setSelectedWorkstreamId(null)
-              }}
-              className={`px-4 py-3 font-medium border-b-2 transition-colors ${
-                activeTab === 'workstreams'
-                  ? 'border-brand-primary text-brand-primary'
-                  : 'border-transparent text-text-muted hover:text-text-primary'
-              }`}
-            >
-              Client Workstreams
-            </button>
+          <div className="px-8">
+            <TabsList className="h-auto rounded-none bg-transparent border-b-0 p-0 gap-6">
+              <TabsTrigger className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 py-3 font-medium" value="templates">
+                Templates Library
+              </TabsTrigger>
+              <TabsTrigger className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent data-[state=active]:shadow-none data-[state=active]:text-primary px-1 py-3 font-medium" value="workstreams">
+                Client Workstreams
+              </TabsTrigger>
+            </TabsList>
           </div>
         </div>
 
         {/* Main Content */}
         <div className="flex-1 overflow-auto p-8">
-          {/* Stats Cards (only show on workstreams tab) */}
-          {activeTab === 'workstreams' && (
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-              <div className="relative bg-background-card rounded-lg shadow-sm border border-neutral-border p-4 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-brand-primary before:rounded-t-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-                    <ClipboardList className="w-5 h-5 text-brand-primary" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-brand-navy">{totalWorkstreams}</p>
-                    <p className="text-xs text-text-muted">Total Workstreams</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative bg-background-card rounded-lg shadow-sm border border-neutral-border p-4 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-red-500 before:rounded-t-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center">
-                    <WorkstreamStatusBadge status="red" size="md" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-brand-navy">{redWorkstreams}</p>
-                    <p className="text-xs text-text-muted">Issues/Blocked</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="relative bg-background-card rounded-lg shadow-sm border border-neutral-border p-4 before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-green-500 before:rounded-t-lg">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
-                    <WorkstreamStatusBadge status="green" size="md" />
-                  </div>
-                  <div>
-                    <p className="text-2xl font-bold text-brand-navy">{greenWorkstreams}</p>
-                    <p className="text-xs text-text-muted">On Track</p>
-                  </div>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {activeTab === 'templates' ? (
+          <TabsContent value="templates" className="mt-0">
             <WorkstreamTemplateList />
-          ) : selectedWorkstreamId ? (
-            loadingSelectedWorkstream ? (
-              <div className="flex items-center justify-center py-12">
-                <div className="text-center">
-                  <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4" />
-                  <p className="text-text-muted">Loading workstream...</p>
+          </TabsContent>
+
+          <TabsContent value="workstreams" className="mt-0">
+            {/* Stats Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+              <Card className="relative before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-howard-evergreen before:rounded-t-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-howard-evergreen/10 rounded-lg flex items-center justify-center">
+                      <ClipboardList className="w-5 h-5 text-howard-evergreen" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{totalWorkstreams}</p>
+                      <p className="text-xs text-muted-foreground">Total Workstreams</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-red-500 before:rounded-t-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-red-500/10 rounded-lg flex items-center justify-center">
+                      <AlertCircle className="w-5 h-5 text-red-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{redWorkstreams}</p>
+                      <p className="text-xs text-muted-foreground">Issues/Blocked</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="relative before:absolute before:top-0 before:left-0 before:right-0 before:h-1 before:bg-green-500 before:rounded-t-xl">
+                <CardContent className="p-4">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 bg-green-500/10 rounded-lg flex items-center justify-center">
+                      <CheckCircle2 className="w-5 h-5 text-green-500" />
+                    </div>
+                    <div>
+                      <p className="text-2xl font-bold text-foreground">{greenWorkstreams}</p>
+                      <p className="text-xs text-muted-foreground">On Track</p>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            </div>
+
+            {selectedWorkstreamId ? (
+              loadingSelectedWorkstream ? (
+                <div className="flex items-center justify-center py-12">
+                  <div className="text-center">
+                    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+                    <p className="text-muted-foreground">Loading workstream...</p>
+                  </div>
                 </div>
-              </div>
-            ) : selectedWorkstream ? (
-              <WorkstreamDetailView
-                workstream={selectedWorkstream}
-                isAdmin={true}
-                onBack={() => setSelectedWorkstreamId(null)}
+              ) : selectedWorkstream ? (
+                <WorkstreamDetailView
+                  workstream={selectedWorkstream}
+                  isAdmin={true}
+                  onBack={() => setSelectedWorkstreamId(null)}
+                />
+              ) : null
+            ) : (
+              <ClientWorkstreamList
+                workstreams={allWorkstreams}
+                organizations={organizations}
+                loading={loadingAllWorkstreams}
+                onSelectWorkstream={(id) => setSelectedWorkstreamId(id)}
               />
-            ) : null
-          ) : (
-            <ClientWorkstreamList
-              workstreams={allWorkstreams}
-              organizations={organizations}
-              loading={loadingAllWorkstreams}
-              onSelectWorkstream={(id) => setSelectedWorkstreamId(id)}
-            />
-          )}
+            )}
+          </TabsContent>
         </div>
-      </div>
+      </Tabs>
     )
   }
 
@@ -228,8 +220,8 @@ export default function WorkstreamsPage() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4" />
-          <p className="text-text-muted">Loading your workstream...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading your workstream...</p>
         </div>
       </div>
     )
@@ -238,11 +230,11 @@ export default function WorkstreamsPage() {
   if (!clientWorkstream) {
     return (
       <div className="flex-1 flex flex-col min-h-0 overflow-hidden">
-        <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
+        <div className="flex-shrink-0 bg-card border-b border-border shadow-sm">
           <div className="px-8 py-4">
             <div className="flex gap-2">
-              <ClipboardList className="w-6 h-6 text-brand-primary" />
-              <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+              <ClipboardList className="w-6 h-6 text-primary" />
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
                 Your Workstream
               </h1>
             </div>
@@ -250,9 +242,9 @@ export default function WorkstreamsPage() {
         </div>
 
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-center py-12 text-text-muted">
-            <ClipboardList className="h-16 w-16 mx-auto mb-4 text-neutral-border" />
-            <p className="text-lg font-medium text-text-primary">No workstream assigned</p>
+          <div className="text-center py-12 text-muted-foreground">
+            <ClipboardList className="h-16 w-16 mx-auto mb-4 text-border" />
+            <p className="text-lg font-medium text-foreground">No workstream assigned</p>
             <p className="text-sm mt-2">
               Your workstream hasn't been set up yet. Please contact your administrator.
             </p>

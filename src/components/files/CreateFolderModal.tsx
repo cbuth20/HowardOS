@@ -1,8 +1,10 @@
 'use client'
 
 import { useState } from 'react'
-import { Modal, ModalFooter } from '@/components/ui/Modal'
-import { Button } from '@/components/ui/Button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
 import { Loader2 } from 'lucide-react'
 import { useCreateChannelFolder } from '@/lib/api/hooks'
 
@@ -47,45 +49,46 @@ export function CreateFolderModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={handleClose} title="New folder" size="sm">
-      <div className="space-y-4">
-        <div>
-          <label className="block text-sm font-medium text-text-primary mb-1.5">
-            Folder name
-          </label>
-          <input
-            type="text"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Enter folder name"
-            className="w-full px-3 py-2.5 rounded-md border border-neutral-border bg-white text-text-primary text-sm focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-brand-primary"
-            autoFocus
-            onKeyDown={(e) => {
-              if (e.key === 'Enter') handleCreate()
-            }}
-          />
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader><DialogTitle>New folder</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          <div>
+            <Label className="mb-1.5">
+              Folder name
+            </Label>
+            <Input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder="Enter folder name"
+              autoFocus
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') handleCreate()
+              }}
+            />
+          </div>
         </div>
-      </div>
 
-      <ModalFooter>
-        <Button variant="ghost" onClick={handleClose}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          onClick={handleCreate}
-          disabled={!name.trim() || createFolder.isPending}
-        >
-          {createFolder.isPending ? (
-            <>
-              <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-              Creating...
-            </>
-          ) : (
-            'Create'
-          )}
-        </Button>
-      </ModalFooter>
-    </Modal>
+        <DialogFooter>
+          <Button variant="ghost" onClick={handleClose}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleCreate}
+            disabled={!name.trim() || createFolder.isPending}
+          >
+            {createFolder.isPending ? (
+              <>
+                <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                Creating...
+              </>
+            ) : (
+              'Create'
+            )}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

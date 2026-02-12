@@ -9,7 +9,7 @@ import { WorkstreamDetailView } from '@/components/workstreams/WorkstreamDetailV
 interface Profile {
   id: string
   org_id: string
-  role: 'admin' | 'client'
+  role: string
   full_name: string | null
   email: string
 }
@@ -39,7 +39,7 @@ export default function WorkstreamDetailPage() {
     loadProfile()
   }, [])
 
-  const isAdmin = profile?.role === 'admin'
+  const isAdmin = ['admin', 'manager'].includes(profile?.role || '')
 
   // Fetch workstream
   const {
@@ -53,8 +53,8 @@ export default function WorkstreamDetailPage() {
     return (
       <div className="flex-1 flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary mx-auto mb-4" />
-          <p className="text-text-muted">Loading workstream...</p>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4" />
+          <p className="text-muted-foreground">Loading workstream...</p>
         </div>
       </div>
     )

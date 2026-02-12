@@ -1,23 +1,32 @@
 import type { Metadata, Viewport } from 'next'
-import { Roboto, Crimson_Text } from 'next/font/google'
-import { Toaster } from 'react-hot-toast'
+import { Instrument_Serif, DM_Sans, JetBrains_Mono } from 'next/font/google'
+import { Toaster } from 'sonner'
 import { Providers } from './providers'
 import { ErrorBoundary } from '@/components/ErrorBoundary'
 import './globals.css'
 
-// Body and sub-headers - Roboto Light
-const roboto = Roboto({
-  weight: ['300', '400', '500', '700'],
+// Display / Headlines - Instrument Serif
+const instrumentSerif = Instrument_Serif({
+  weight: ['400'],
+  style: ['normal', 'italic'],
   subsets: ['latin'],
-  variable: '--font-roboto',
+  variable: '--font-instrument',
   display: 'swap',
 })
 
-// Headers - Crimson Text (Sitka-like serif alternative)
-const crimsonText = Crimson_Text({
-  weight: ['400', '600', '700'],
+// Body / UI - DM Sans
+const dmSans = DM_Sans({
+  weight: ['300', '400', '500', '600'],
   subsets: ['latin'],
-  variable: '--font-crimson',
+  variable: '--font-dm-sans',
+  display: 'swap',
+})
+
+// System / Mono - JetBrains Mono
+const jetbrainsMono = JetBrains_Mono({
+  weight: ['300', '400'],
+  subsets: ['latin'],
+  variable: '--font-jetbrains',
   display: 'swap',
 })
 
@@ -41,29 +50,17 @@ export default function RootLayout({
   children: React.ReactNode
 }) {
   return (
-    <html lang="en" className={`${roboto.variable} ${crimsonText.variable}`}>
-      <body className={roboto.className}>
+    <html lang="en" className={`${instrumentSerif.variable} ${dmSans.variable} ${jetbrainsMono.variable}`}>
+      <body className={dmSans.className}>
         <ErrorBoundary>
           <Providers>
             <Toaster
               position="top-right"
               toastOptions={{
                 style: {
-                  background: '#FFFFFF',
-                  color: '#465352',
-                  border: '1px solid #D3D3D3',
-                },
-                success: {
-                  iconTheme: {
-                    primary: '#758C7C',
-                    secondary: '#FFFFFF',
-                  },
-                },
-                error: {
-                  iconTheme: {
-                    primary: '#C85A54',
-                    secondary: '#FFFFFF',
-                  },
+                  background: '#EDEAE4',
+                  color: '#111110',
+                  border: '1px solid #D4D0C8',
                 },
               }}
             />

@@ -4,11 +4,21 @@ import { DashboardLayoutClient } from '@/components/layout/DashboardLayoutClient
 // import { OnboardingCheck } from '@/components/onboarding/OnboardingCheck'
 
 interface ProfileData {
-  role: 'admin' | 'client'
+  role: string
   full_name: string | null
   avatar_url: string | null
   organizations: {
     name: string
+  } | null
+}
+
+interface UserOrgData {
+  org_id: string
+  is_primary: boolean
+  organization: {
+    id: string
+    name: string
+    slug: string
   } | null
 }
 
@@ -33,6 +43,12 @@ export default async function DashboardLayout({
     .eq('id', user.id)
     .single() as { data: ProfileData | null }
 
+  // Get user's org memberships for multi-org users
+  const { data: userOrgs } = await (supabase as any)
+    .from('user_organizations')
+    .select('org_id, is_primary, organization:organizations(id, name, slug)')
+    .eq('user_id', user.id) as { data: UserOrgData[] | null }
+
   return (
     <DashboardLayoutClient
       userRole={profile?.role}
@@ -40,19 +56,14 @@ export default async function DashboardLayout({
       userName={profile?.full_name || undefined}
       userEmail={user.email || ''}
       userAvatar={profile?.avatar_url}
+      userOrgs={(userOrgs || []).map(uo => ({
+        orgId: uo.org_id,
+        orgName: uo.organization?.name || 'Unknown',
+        orgSlug: uo.organization?.slug || '',
+        isPrimary: uo.is_primary,
+      }))}
     >
       {children}
-      {/* Temporarily disabled until storage and DB are set up */}
-      {/* <OnboardingCheck
-        user={{
-          id: user.id,
-          email: user.email || '',
-          full_name: profile?.full_name || '',
-          role: profile?.role || 'client',
-          is_onboarded: profile?.is_onboarded || false,
-        }}
-        orgName={profile?.organizations?.name || ''}
-      /> */}
     </DashboardLayoutClient>
   )
 }

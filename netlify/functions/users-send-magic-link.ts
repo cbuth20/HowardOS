@@ -76,4 +76,4 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
       email: userProfile.email,
     },
   })
-}, { requireAuth: true, requireAdmin: true })
+}, { requireAuth: true, requireRole: ['admin', 'manager'] })

@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { Plus, FileText, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import { Button } from '@/components/ui/button'
 import { WorkstreamWithEntriesAndRollup, WorkstreamEntryWithDetails, WorkstreamStatus } from '@/types/entities'
 import { useWorkstreamVerticals } from '@/lib/api/hooks/useWorkstreams'
 import { useClients } from '@/lib/api/hooks/useUsers'
@@ -16,7 +17,8 @@ import { WorkstreamEntriesList } from './WorkstreamEntriesList'
 import { WorkstreamStatusRollup } from './WorkstreamStatusRollup'
 import { WorkstreamEntryModal } from './WorkstreamEntryModal'
 import { BulkAddEntriesModal } from './BulkAddEntriesModal'
-import toast from 'react-hot-toast'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { toast } from 'sonner'
 
 interface WorkstreamDetailViewProps {
   workstream: WorkstreamWithEntriesAndRollup
@@ -29,6 +31,7 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
   const [showEntryModal, setShowEntryModal] = useState(false)
   const [showBulkAddModal, setShowBulkAddModal] = useState(false)
   const [editingEntry, setEditingEntry] = useState<WorkstreamEntryWithDetails | null>(null)
+  const [confirmDeleteEntry, setConfirmDeleteEntry] = useState<WorkstreamEntryWithDetails | null>(null)
 
   // Handle back navigation
   const handleBack = () => {
@@ -90,15 +93,8 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
   }
 
   // Handle delete entry
-  const handleDeleteEntry = async (entry: WorkstreamEntryWithDetails) => {
-    if (!confirm(`Are you sure you want to delete "${entry.name}"?`)) return
-
-    try {
-      await deleteEntryMutation.mutateAsync(entry.id)
-      toast.success('Entry deleted successfully')
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to delete entry')
-    }
+  const handleDeleteEntry = (entry: WorkstreamEntryWithDetails) => {
+    setConfirmDeleteEntry(entry)
   }
 
   // Handle status change
@@ -135,24 +131,28 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
   }
 
   return (
-    <div className="space-y-6">
-      {/* Back Button */}
-      <button
-        onClick={handleBack}
-        className="inline-flex items-center gap-2 text-sm font-medium text-brand-primary hover:text-brand-secondary transition-colors group"
-      >
-        <ArrowLeft className="h-4 w-4 group-hover:-translate-x-0.5 transition-transform" />
-        Back to Client Workstreams
-      </button>
+    <div className="space-y-6 p-4">
+      {/* Back Button (admin only — clients land directly on their workstream) */}
+      {isAdmin && (
+        <Button
+          variant="ghost"
+          size="sm"
+          onClick={handleBack}
+          className="text-primary"
+        >
+          <ArrowLeft className="h-4 w-4" />
+          Back to Client Workstreams
+        </Button>
+      )}
 
       {/* Header + Actions */}
-      <div className="bg-white border border-neutral-border rounded-lg p-5 shadow-sm">
+      <div className="bg-card border border-border rounded-lg p-5 shadow-sm">
         <div className="flex items-center justify-between mb-3">
           <div>
-            <h2 className="text-lg font-semibold text-text-primary">
+            <h2 className="text-lg font-semibold text-foreground">
               {workstream.organization?.name} - Workstream
             </h2>
-            <p className="text-xs text-text-muted mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {totalEntries} entr{totalEntries !== 1 ? 'ies' : 'y'} across {verticalRollups.length} verticals
             </p>
           </div>
@@ -160,24 +160,25 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
           {/* Admin Actions */}
           {isAdmin && (
             <div className="flex items-center gap-2">
-              <button
+              <Button
+                variant="outline"
+                size="sm"
                 onClick={() => setShowBulkAddModal(true)}
-                className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 text-sm rounded-lg hover:bg-gray-50 transition-colors flex items-center gap-1.5"
               >
-                <FileText className="h-3.5 w-3.5" />
+                <FileText className="h-3.5 w-3.5 mr-1.5" />
                 Add Templates
-              </button>
+              </Button>
 
-              <button
+              <Button
+                size="sm"
                 onClick={() => {
                   setEditingEntry(null)
                   setShowEntryModal(true)
                 }}
-                className="px-3 py-1.5 bg-brand-primary text-white text-sm rounded-lg hover:bg-brand-secondary transition-colors flex items-center gap-1.5"
               >
-                <Plus className="h-3.5 w-3.5" />
+                <Plus className="h-3.5 w-3.5 mr-1.5" />
                 Create Entry
-              </button>
+              </Button>
             </div>
           )}
         </div>
@@ -232,6 +233,28 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
           />
         </>
       )}
+
+      {/* Delete Entry Confirmation */}
+      <ConfirmDialog
+        open={!!confirmDeleteEntry}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteEntry(null) }}
+        title="Delete Entry"
+        description={`Are you sure you want to delete "${confirmDeleteEntry?.name}"?`}
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={async () => {
+          if (confirmDeleteEntry) {
+            try {
+              await deleteEntryMutation.mutateAsync(confirmDeleteEntry.id)
+              toast.success('Entry deleted successfully')
+            } catch (error: any) {
+              toast.error(error.message || 'Failed to delete entry')
+            } finally {
+              setConfirmDeleteEntry(null)
+            }
+          }
+        }}
+      />
     </div>
   )
 }

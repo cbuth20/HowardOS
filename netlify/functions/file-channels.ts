@@ -1,5 +1,5 @@
 import { HandlerEvent } from '@netlify/functions'
-import { withMiddleware, AuthContext } from './lib/middleware'
+import { withMiddleware, AuthContext, isTeamRole, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
 import { CreateFileChannelSchema, UpdateFileChannelSchema } from '../../src/types/schemas'
 
@@ -37,9 +37,9 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
 }, { requireAuth: true })
 
 async function handleGetChannels(profile: any, supabase: any) {
-  // Admins see channels they own, clients see channels for their org
-  const isAdmin = profile.role === 'admin'
-  const filterColumn = isAdmin ? 'org_id' : 'client_org_id'
+  // Team members see channels they own, clients see channels for their org
+  const isTeam = ['admin', 'manager', 'user'].includes(profile.role)
+  const filterColumn = isTeam ? 'org_id' : 'client_org_id'
 
   const { data: channels, error } = await supabase
     .from('file_channels')
@@ -131,8 +131,8 @@ async function handleGetChannel(id: string, profile: any, supabase: any) {
 }
 
 async function handleCreateChannel(event: HandlerEvent, user: any, profile: any, supabase: any) {
-  if (profile.role !== 'admin') {
-    throw { statusCode: 403, message: 'Admin access required' }
+  if (!isAdminOrManagerRole(profile.role)) {
+    throw { statusCode: 403, message: 'Admin or manager access required' }
   }
 
   const body = JSON.parse(event.body || '{}')
@@ -198,8 +198,8 @@ async function handleCreateChannel(event: HandlerEvent, user: any, profile: any,
 }
 
 async function handleUpdateChannel(event: HandlerEvent, id: string, profile: any, supabase: any) {
-  if (profile.role !== 'admin') {
-    throw { statusCode: 403, message: 'Admin access required' }
+  if (!isAdminOrManagerRole(profile.role)) {
+    throw { statusCode: 403, message: 'Admin or manager access required' }
   }
 
   const body = JSON.parse(event.body || '{}')
@@ -225,8 +225,8 @@ async function handleUpdateChannel(event: HandlerEvent, id: string, profile: any
 }
 
 async function handleDeleteChannel(id: string, user: any, profile: any, supabase: any) {
-  if (profile.role !== 'admin') {
-    throw { statusCode: 403, message: 'Admin access required' }
+  if (!isAdminOrManagerRole(profile.role)) {
+    throw { statusCode: 403, message: 'Admin or manager access required' }
   }
 
   // Get channel first for logging

@@ -16,6 +16,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     full_name: body.fullName || body.full_name,
     role: body.role,
     org_id: body.orgId || body.org_id,
+    allowed_org_ids: body.allowed_org_ids || body.allowedOrgIds,
+    org_ids: body.org_ids || body.orgIds,
   })
 
   if (!validation.success) {
@@ -27,8 +29,13 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     }
   }
 
-  const { email, full_name, role, org_id } = validation.data
+  const { email, full_name, role, org_id, allowed_org_ids, org_ids } = validation.data
   console.log('Validated data:', { email, full_name, role, org_id })
+
+  // Only admins can create admin/manager roles
+  if (['admin', 'manager'].includes(role) && profile.role !== 'admin') {
+    throw { statusCode: 403, message: 'Only admins can create admin or manager roles' }
+  }
 
   // Use admin client
   console.log('Creating admin client...')
@@ -91,6 +98,64 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
 
   const inviterName = inviterProfile?.full_name || 'Your administrator'
 
+  // For client_no_access role: create profile only, no auth user needed
+  if (role === 'client_no_access') {
+    console.log('Creating client_no_access profile (no auth user)')
+
+    // Generate a placeholder UUID for the profile
+    const placeholderId = crypto.randomUUID()
+
+    // Create a no-login auth user (disabled by default)
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+      email,
+      email_confirm: false,
+      user_metadata: { full_name, role, org_id },
+      ban_duration: '876000h', // Effectively permanently banned from login
+    })
+
+    if (authError) {
+      console.error('Failed to create auth user for client_no_access:', authError)
+      throw { statusCode: 500, message: `Failed to create user: ${authError.message}` }
+    }
+
+    const userId = authData.user.id
+
+    // Update the auto-created profile
+    await (adminClient as any)
+      .from('profiles')
+      .update({
+        full_name,
+        role: 'client_no_access',
+        org_id,
+        is_active: true, // Active for tagging purposes, just can't login
+      })
+      .eq('id', userId)
+
+    // Create user_organizations entry
+    await (adminClient as any)
+      .from('user_organizations')
+      .insert({ user_id: userId, org_id, is_primary: true })
+
+    // Add additional org memberships
+    if (org_ids && org_ids.length > 0) {
+      const additionalOrgs = org_ids.filter(id => id !== org_id)
+      if (additionalOrgs.length > 0) {
+        await (adminClient as any)
+          .from('user_organizations')
+          .insert(additionalOrgs.map(oid => ({
+            user_id: userId,
+            org_id: oid,
+            is_primary: false,
+          })))
+      }
+    }
+
+    return successResponse({
+      message: 'Contact created successfully (no login access)',
+      details: { email, full_name, role },
+    })
+  }
+
   let userId: string
 
   // If auth user exists (and profile might exist or not)
@@ -109,6 +174,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
           role,
           org_id,
           is_active: false,
+          ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
         })
         .eq('id', userId)
 
@@ -131,6 +197,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
           role,
           org_id,
           is_active: false,
+          ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
         })
 
       if (profileError) {
@@ -175,6 +242,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
         role,
         org_id,
         is_active: false, // Will be activated when they accept the invite
+        ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
       })
       .eq('id', userId)
       .select()
@@ -198,7 +266,29 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     console.log('Profile updated successfully:', updatedProfile)
   }
 
-  // Generate magic link and send ONLY our custom email via Resend
+  // Create user_organizations entry for the primary org
+  await (adminClient as any)
+    .from('user_organizations')
+    .upsert({ user_id: userId, org_id, is_primary: true }, { onConflict: 'user_id,org_id' })
+
+  // Add additional org memberships if provided
+  if (org_ids && org_ids.length > 0) {
+    const additionalOrgs = org_ids.filter(id => id !== org_id)
+    if (additionalOrgs.length > 0) {
+      await (adminClient as any)
+        .from('user_organizations')
+        .upsert(
+          additionalOrgs.map(oid => ({
+            user_id: userId,
+            org_id: oid,
+            is_primary: false,
+          })),
+          { onConflict: 'user_id,org_id' }
+        )
+    }
+  }
+
+  // Generate magic link and send ONLY our custom email via Postmark
   console.log('Generating magic link for:', email)
   const { data: magicLinkData, error: magicLinkError } = await adminClient.auth.admin.generateLink({
     type: 'magiclink',
@@ -216,8 +306,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     }
   }
 
-  console.log('Magic link generated, sending email via Resend')
-  // Send invitation email via Resend (this is the ONLY email sent)
+  console.log('Magic link generated, sending email via Postmark')
+  // Send invitation email via Postmark (this is the ONLY email sent)
   try {
     await sendInvitationEmail({
       to: email,
@@ -243,4 +333,4 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
       role,
     },
   })
-}, { requireAuth: true, requireAdmin: true })
+}, { requireAuth: true, requireRole: ['admin', 'manager'] })

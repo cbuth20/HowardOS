@@ -180,8 +180,8 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
 
     // POST - Create single entry or bulk create from templates (admin only)
     if (event.httpMethod === 'POST') {
-      if (userRole !== 'admin') {
-        return errorResponse('Admin access required', 403)
+      if (!['admin', 'manager'].includes(userRole)) {
+        return errorResponse('Admin or manager access required', 403)
       }
 
       const body = JSON.parse(event.body || '{}')
@@ -307,8 +307,8 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
 
     // PATCH - Update entry (admin only)
     if (event.httpMethod === 'PATCH') {
-      if (userRole !== 'admin') {
-        return errorResponse('Admin access required', 403)
+      if (!['admin', 'manager'].includes(userRole)) {
+        return errorResponse('Admin or manager access required', 403)
       }
 
       if (!entryId) {
@@ -361,8 +361,8 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
 
     // DELETE - Soft delete entry (admin only)
     if (event.httpMethod === 'DELETE') {
-      if (userRole !== 'admin') {
-        return errorResponse('Admin access required', 403)
+      if (!['admin', 'manager'].includes(userRole)) {
+        return errorResponse('Admin or manager access required', 403)
       }
 
       if (!entryId) {

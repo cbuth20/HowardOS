@@ -21,15 +21,26 @@ import {
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
-import { HowardLogo } from '@/components/ui/HowardLogo'
-import { Avatar } from '@/components/ui/Avatar'
+import { Button } from '@/components/ui/button'
+import { HowardLogo } from '@/components/ui/howard-logo'
+import { HowardAvatar } from '@/components/ui/howard-avatar'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
+import { toast } from 'sonner'
+import type { UserOrgInfo } from './DashboardLayoutClient'
 
 interface SidebarProps {
-  userRole?: 'admin' | 'client'
+  userRole?: string
   orgName?: string
   userName?: string
   userEmail?: string
   userAvatar?: string | null
+  userOrgs?: UserOrgInfo[]
   isOpen?: boolean
   onClose?: () => void
 }
@@ -48,37 +59,18 @@ interface Organization {
   }>
 }
 
-export function Sidebar({ userRole = 'client', orgName, userName, userEmail, userAvatar, isOpen = true, onClose }: SidebarProps) {
+export function Sidebar({ userRole = 'client', orgName, userName, userEmail, userAvatar, userOrgs = [], isOpen = true, onClose }: SidebarProps) {
   const pathname = usePathname()
   const router = useRouter()
   const supabase = createClient()
 
-  const [showUserMenu, setShowUserMenu] = useState(false)
   const [showClientSwitcher, setShowClientSwitcher] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loadingOrgs, setLoadingOrgs] = useState(false)
   const [switching, setSwitching] = useState<string | null>(null)
-  const userMenuRef = useRef<HTMLDivElement>(null)
   const sidebarRef = useRef<HTMLDivElement>(null)
 
   const DEV_PASSWORD = 'password'
-
-  // Close user menu when clicking outside
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (userMenuRef.current && !userMenuRef.current.contains(event.target as Node)) {
-        setShowUserMenu(false)
-      }
-    }
-
-    if (showUserMenu) {
-      document.addEventListener('mousedown', handleClickOutside)
-    }
-
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside)
-    }
-  }, [showUserMenu])
 
   useEffect(() => {
     if (showClientSwitcher && organizations.length === 0) {
@@ -127,14 +119,14 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
 
   const handleSwitchToOrg = async (org: Organization) => {
     if (process.env.NODE_ENV === 'production') {
-      alert('Client switching is only available in development')
+      toast.error('Client switching is only available in development')
       return
     }
 
     // Get the first client from this organization
     const firstClient = org.clients?.[0]
     if (!firstClient) {
-      alert('No active clients found in this organization')
+      toast.error('No active clients found in this organization')
       return
     }
 
@@ -150,7 +142,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       })
 
       if (error) {
-        alert(`Failed to switch to client.\n\nMake sure this account was created with password: ${DEV_PASSWORD}\n\nError: ${error.message}`)
+        toast.error(`Failed to switch. Make sure this account uses password: ${DEV_PASSWORD}`)
         return
       }
 
@@ -158,7 +150,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       router.push('/dashboard')
       router.refresh()
     } catch (error: any) {
-      alert(`Error: ${error.message}`)
+      toast.error(error.message)
     } finally {
       setSwitching(null)
     }
@@ -176,31 +168,31 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       label: 'Dashboard',
       href: '/dashboard',
       icon: LayoutDashboard,
-      roles: ['admin', 'client'],
+      roles: ['admin', 'manager', 'user', 'client'],
     },
     {
       label: 'Files',
       href: '/files',
       icon: FolderOpen,
-      roles: ['admin', 'client'],
+      roles: ['admin', 'manager', 'user', 'client'],
     },
     {
       label: 'Tasks',
       href: '/tasks',
       icon: CheckSquare,
-      roles: ['admin', 'client'],
+      roles: ['admin', 'manager', 'user', 'client'],
     },
     {
       label: 'Workstreams',
       href: '/workstreams',
       icon: ClipboardList,
-      roles: ['admin', 'client'],
+      roles: ['admin', 'manager', 'user', 'client'],
     },
     {
       label: 'Clients',
       href: '/clients',
       icon: Users,
-      roles: ['admin'],
+      roles: ['admin', 'manager'],
     },
   ]
 
@@ -248,7 +240,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       <aside
         ref={sidebarRef}
         className={`
-          w-64 bg-background-subtle border-r border-neutral-border flex flex-col h-screen
+          w-64 bg-background border-r border-border flex flex-col h-screen
           fixed md:static inset-y-0 left-0 z-50
           transform transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'}
@@ -257,69 +249,85 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       {/* Mobile Close Button */}
       {onClose && (
         <div className="md:hidden p-4 flex justify-end">
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={onClose}
-            className="p-2 hover:bg-neutral-gray-100 rounded-md transition-colors"
             aria-label="Close menu"
           >
-            <X className="w-5 h-5 text-text-secondary" />
-          </button>
+            <X className="w-5 h-5 text-foreground/80" />
+          </Button>
         </div>
       )}
 
       {/* User Profile Dropdown */}
       <div className="p-4">
-        <div className="relative" ref={userMenuRef}>
-          <button
-            onClick={() => setShowUserMenu(!showUserMenu)}
-            className="w-full flex items-center gap-3 p-3 bg-brand-navy rounded-lg shadow-sm hover:shadow-md hover:bg-brand-navy/90 transition-all"
-          >
-            <Avatar
-              name={userName || userEmail || 'User'}
-              email={userEmail}
-              role={userRole}
-              src={userAvatar || undefined}
-              size="md"
-            />
-            <div className="flex-1 text-left min-w-0">
-              <p className="text-sm font-semibold text-white truncate">
-                {userName || userEmail}
-              </p>
-              <p className="text-xs text-white/70 truncate">{orgName}</p>
-            </div>
-            <ChevronDown
-              className={`w-4 h-4 text-white/70 transition-transform ${
-                showUserMenu ? 'rotate-180' : ''
-              }`}
-            />
-          </button>
-
-          {/* Dropdown Menu */}
-          {showUserMenu && (
-            <div className="absolute top-full left-0 right-0 mt-2 bg-background-card rounded-lg shadow-xl border border-neutral-border py-2 z-50"
-              style={{ backgroundColor: '#FFFFFF' }}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              className="w-full flex items-center gap-3 p-3 bg-howard-evergreen rounded-lg shadow-sm hover:shadow-md hover:bg-howard-ink/90 transition-all"
             >
-              <Link
-                href="/settings"
-                onClick={() => setShowUserMenu(false)}
-                className="flex items-center gap-3 px-4 py-2 hover:bg-background-hover transition-colors"
-              >
-                <Settings className="w-4 h-4 text-text-secondary" />
-                <span className="text-sm text-text-primary">Account Settings</span>
+              <HowardAvatar
+                name={userName || userEmail || 'User'}
+                email={userEmail}
+                role={userRole}
+                src={userAvatar || undefined}
+                size="md"
+              />
+              <div className="flex-1 text-left min-w-0">
+                <p className="text-sm font-semibold text-white truncate">
+                  {userName || userEmail}
+                </p>
+                <p className="text-xs text-white/70 truncate">{orgName}</p>
+              </div>
+              <ChevronDown className="w-4 h-4 text-white/70 transition-transform" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+            <DropdownMenuItem asChild>
+              <Link href="/settings" className="flex items-center gap-3">
+                <Settings className="w-4 h-4 text-foreground/80" />
+                <span className="text-sm text-foreground">Account Settings</span>
               </Link>
-
-              <div className="my-2 border-t border-neutral-border"></div>
-              <button
-                onClick={handleLogout}
-                className="w-full flex items-center gap-3 px-4 py-2 hover:bg-background-hover transition-colors text-left"
-              >
-                <LogOut className="w-4 h-4 text-state-error" />
-                <span className="text-sm text-state-error">Logout</span>
-              </button>
-            </div>
-          )}
-        </div>
+            </DropdownMenuItem>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-3">
+              <LogOut className="w-4 h-4 text-destructive" />
+              <span className="text-sm text-destructive">Logout</span>
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
+
+      {/* Org Switcher for multi-org users */}
+      {userOrgs.length > 1 && (
+        <div className="px-4 pb-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button className="w-full flex items-center gap-2 px-3 py-2 bg-secondary rounded-md hover:bg-secondary/80 transition-colors text-left">
+                <Building2 className="w-4 h-4 text-muted-foreground flex-shrink-0" />
+                <span className="text-sm text-foreground truncate flex-1">{orgName || 'Select Org'}</span>
+                <ChevronDown className="w-3.5 h-3.5 text-muted-foreground flex-shrink-0" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
+              {userOrgs.map((org) => (
+                <DropdownMenuItem
+                  key={org.orgId}
+                  className="flex items-center gap-2"
+                  disabled={org.orgName === orgName}
+                >
+                  <Building2 className="w-4 h-4 text-muted-foreground" />
+                  <span className={org.orgName === orgName ? 'font-medium' : ''}>{org.orgName}</span>
+                  {org.isPrimary && (
+                    <span className="text-[10px] text-muted-foreground ml-auto">Primary</span>
+                  )}
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+      )}
 
       {/* Navigation */}
       <nav className="flex-1 p-4">
@@ -334,8 +342,8 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                   href={item.href}
                   className={`relative flex items-center gap-3 px-4 py-3 rounded-md transition-all ${
                     isActive
-                      ? 'bg-brand-primary/10 text-brand-navy font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-brand-primary before:rounded-r'
-                      : 'text-text-secondary hover:bg-neutral-gray-100 hover:text-text-primary'
+                      ? 'bg-primary/15 text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-primary before:rounded-r'
+                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
                   }`}
                 >
                   <Icon className="w-5 h-5" />
@@ -348,13 +356,13 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       </nav>
 
       {/* Dev Tools section */}
-      <div className="p-4 border-t border-neutral-border">
+      <div className="p-4 border-t border-border">
         {/* Client Switcher (Admin Only, Dev Mode) */}
-        {userRole === 'admin' && process.env.NODE_ENV !== 'production' && (
+        {['admin', 'manager'].includes(userRole) && process.env.NODE_ENV !== 'production' && (
           <div>
             <button
               onClick={() => setShowClientSwitcher(!showClientSwitcher)}
-              className="flex items-center justify-between gap-3 px-4 py-3 rounded-md text-text-secondary hover:bg-neutral-gray-100 hover:text-text-primary transition-colors w-full"
+              className="flex items-center justify-between gap-3 px-4 py-3 rounded-md text-muted-foreground hover:bg-secondary hover:text-foreground transition-colors w-full"
             >
               <div className="flex items-center gap-3">
                 <UserCog className="w-5 h-5" />
@@ -369,13 +377,13 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
 
             {/* Dropdown with organizations */}
             {showClientSwitcher && (
-              <div className="mt-2 bg-background-elevated border border-neutral-border rounded-md p-2 max-h-64 overflow-y-auto shadow-sm">
+              <div className="mt-2 bg-secondary border border-border rounded-md p-2 max-h-64 overflow-y-auto shadow-sm">
                 {loadingOrgs ? (
                   <div className="flex items-center justify-center py-4">
-                    <Loader2 className="w-5 h-5 animate-spin text-brand-primary" />
+                    <Loader2 className="w-5 h-5 animate-spin text-primary" />
                   </div>
                 ) : organizations.length === 0 ? (
-                  <p className="text-xs text-text-muted text-center py-4">
+                  <p className="text-xs text-muted-foreground text-center py-4">
                     No organizations with active clients found
                   </p>
                 ) : (
@@ -385,9 +393,9 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                         key={org.id}
                         onClick={() => handleSwitchToOrg(org)}
                         disabled={switching !== null}
-                        className="w-full text-left px-3 py-2 rounded text-sm text-text-primary hover:bg-neutral-gray-100 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
+                        className="w-full text-left px-3 py-2 rounded text-sm text-foreground hover:bg-secondary transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-3"
                       >
-                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-neutral-gray-100 flex items-center justify-center flex-shrink-0">
+                        <div className="w-8 h-8 rounded-lg overflow-hidden bg-secondary flex items-center justify-center flex-shrink-0">
                           {org.logo_url ? (
                             <img
                               src={org.logo_url}
@@ -395,19 +403,19 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                               className="w-full h-full object-cover"
                             />
                           ) : (
-                            <Building2 className="w-4 h-4 text-text-muted" />
+                            <Building2 className="w-4 h-4 text-muted-foreground" />
                           )}
                         </div>
                         <div className="flex-1 min-w-0">
                           <p className="font-medium truncate">
                             {org.name}
                           </p>
-                          <p className="text-xs text-text-muted truncate">
+                          <p className="text-xs text-muted-foreground truncate">
                             {org.clients?.length || 0} client{org.clients?.length !== 1 ? 's' : ''}
                           </p>
                         </div>
                         {switching === org.id && (
-                          <Loader2 className="w-4 h-4 animate-spin text-brand-primary flex-shrink-0" />
+                          <Loader2 className="w-4 h-4 animate-spin text-primary flex-shrink-0" />
                         )}
                       </button>
                     ))}

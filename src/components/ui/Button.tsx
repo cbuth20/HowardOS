@@ -1,51 +1,57 @@
-import React from 'react'
+import * as React from "react"
+import { Slot } from "@radix-ui/react-slot"
+import { cva, type VariantProps } from "class-variance-authority"
 
-export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: 'primary' | 'secondary' | 'destructive' | 'ghost' | 'outline'
-  size?: 'sm' | 'md' | 'lg'
-  children: React.ReactNode
+import { cn } from "@/lib/utils"
+
+const buttonVariants = cva(
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-howard-evergreen focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 [&_svg]:pointer-events-none [&_svg]:size-4 [&_svg]:shrink-0",
+  {
+    variants: {
+      variant: {
+        default:
+          "bg-howard-evergreen text-howard-parchment shadow-md hover:bg-howard-forest hover:shadow-lg active:scale-[0.98]",
+        destructive:
+          "bg-destructive text-destructive-foreground shadow-sm hover:bg-destructive/90 active:scale-[0.98]",
+        outline:
+          "border-2 border-howard-evergreen bg-background text-howard-evergreen shadow-sm hover:bg-howard-evergreen hover:text-howard-parchment active:scale-[0.98]",
+        secondary:
+          "bg-secondary text-secondary-foreground shadow-sm hover:bg-secondary/80 active:scale-[0.98]",
+        ghost: "hover:bg-howard-evergreen/10 hover:text-howard-evergreen",
+        link: "text-howard-evergreen underline-offset-4 hover:underline",
+      },
+      size: {
+        default: "h-9 px-4 py-2",
+        sm: "h-8 rounded-md px-3 text-xs",
+        lg: "h-10 rounded-md px-8",
+        icon: "h-9 w-9",
+      },
+    },
+    defaultVariants: {
+      variant: "default",
+      size: "default",
+    },
+  }
+)
+
+export interface ButtonProps
+  extends React.ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {
+  asChild?: boolean
 }
 
-export function Button({
-  variant = 'primary',
-  size = 'md',
-  className = '',
-  children,
-  disabled,
-  ...props
-}: ButtonProps) {
-  const baseStyles = 'inline-flex items-center justify-center font-medium rounded-md transition-all focus:outline-none focus:ring-2 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed'
-
-  const variantStyles = {
-    // Primary: Deep sage for call-to-action buttons
-    primary: 'bg-action-primary text-white hover:bg-action-primary-hover shadow-sm hover:shadow-md focus:ring-action-primary',
-
-    // Secondary: Light mint sage for secondary actions
-    secondary: 'bg-[#95CBA7] text-white hover:bg-[#7FBC94] shadow-sm hover:shadow-md focus:ring-[#95CBA7]',
-
-    // Destructive: Error red with white text
-    destructive: 'bg-state-error text-white hover:bg-state-error/90 shadow-sm hover:shadow-md focus:ring-state-error',
-
-    // Ghost: Transparent with subtle hover
-    ghost: 'text-text-primary hover:bg-background-hover hover:text-brand-navy focus:ring-action-primary',
-
-    // Outline: Border style for secondary actions
-    outline: 'border-2 border-neutral-border text-text-primary hover:border-action-primary hover:bg-background-hover hover:text-action-primary focus:ring-action-primary',
+const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
+  ({ className, variant, size, asChild = false, ...props }, ref) => {
+    const Comp = asChild ? Slot : "button"
+    return (
+      <Comp
+        className={cn(buttonVariants({ variant, size, className }))}
+        ref={ref}
+        {...props}
+      />
+    )
   }
+)
+Button.displayName = "Button"
 
-  const sizeStyles = {
-    sm: 'px-3 py-2 text-sm min-h-[36px]',
-    md: 'px-4 py-2.5 text-sm min-h-[40px]',
-    lg: 'px-6 py-3 text-base min-h-[44px]',
-  }
-
-  return (
-    <button
-      className={`${baseStyles} ${variantStyles[variant]} ${sizeStyles[size]} ${className}`}
-      disabled={disabled}
-      {...props}
-    >
-      {children}
-    </button>
-  )
-}
+export { Button, buttonVariants }

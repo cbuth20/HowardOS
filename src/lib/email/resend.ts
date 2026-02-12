@@ -16,7 +16,7 @@ export interface InvitationEmailParams {
   to: string
   inviteLink: string
   fullName: string
-  role: 'admin' | 'client'
+  role: string
   inviterName: string
 }
 
@@ -176,17 +176,17 @@ export async function sendInvitationEmail({
                           Hi ${fullName},
                         </p>
                         <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
-                          ${inviterName} has invited you to join HowardOS as ${role === 'admin' ? 'an administrator' : 'a client'}.
+                          ${inviterName} has invited you to join HowardOS as ${{admin: 'an administrator', manager: 'a manager', user: 'a team member', client: 'a client', client_no_access: 'a contact'}[role] || 'a member'}.
                           Click the button below to accept your invitation and set up your account.
                         </p>
 
                         <!-- Role Badge -->
-                        <div style="margin: 0 0 24px 0; padding: 12px; background-color: ${role === 'admin' ? '#0A2540' : '#64748b'}15; border-radius: 8px; border-left: 4px solid ${role === 'admin' ? '#0A2540' : '#64748b'};">
+                        <div style="margin: 0 0 24px 0; padding: 12px; background-color: ${['admin', 'manager'].includes(role) ? '#0A2540' : '#64748b'}15; border-radius: 8px; border-left: 4px solid ${['admin', 'manager'].includes(role) ? '#0A2540' : '#64748b'};">
                           <p style="margin: 0; color: #475569; font-size: 14px;">
-                            <strong style="color: ${role === 'admin' ? '#0A2540' : '#64748b'};">Your Role:</strong> ${role === 'admin' ? 'Administrator' : 'Client'}
+                            <strong style="color: ${['admin', 'manager'].includes(role) ? '#0A2540' : '#64748b'};">Your Role:</strong> ${{admin: 'Administrator', manager: 'Manager', user: 'Team Member', client: 'Client', client_no_access: 'Contact'}[role] || role}
                           </p>
                           <p style="margin: 8px 0 0 0; color: #64748b; font-size: 13px;">
-                            ${role === 'admin'
+                            ${['admin', 'manager'].includes(role)
                               ? 'You have full access to manage users, files, tasks, and settings.'
                               : 'You can view and manage your files, tasks, and collaborate with your team.'}
                           </p>

@@ -7,15 +7,16 @@ import { TaskView, TaskStatus, TaskFormData } from '@/types/tasks'
 import { TaskBoard } from '@/components/tasks/TaskBoard'
 import { TaskFilters } from '@/components/tasks/TaskFilters'
 import { TaskModal } from '@/components/tasks/TaskModal'
-import { Button } from '@/components/ui/Button'
-import { LoadingSpinner } from '@/components/ui/LoadingSpinner'
+import { Button } from '@/components/ui/button'
+import { LoadingSpinner } from '@/components/ui/howard-loading'
 import { canEditTask } from '@/lib/auth/permissions'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useTasks, useUpdateTask, useCreateTask, useDeleteTask } from '@/lib/api/hooks'
 
 interface Profile {
   id: string
   org_id: string
-  role: 'admin' | 'client'
+  role: string
   full_name: string | null
   email: string
 }
@@ -25,7 +26,7 @@ interface User {
   full_name: string | null
   email: string
   avatar_url: string | null
-  role: 'admin' | 'client'
+  role: string
   org_id: string
 }
 
@@ -43,10 +44,13 @@ export default function TasksPage() {
   // Filters
   const [activeTab, setActiveTab] = useState<TaskView>('my-tasks')
   const [assigneeFilter, setAssigneeFilter] = useState<string | null>(null)
+  const [orgFilter, setOrgFilter] = useState<string | null>(null)
+  const [longOutstanding, setLongOutstanding] = useState(false)
 
   // Modal
   const [isModalOpen, setIsModalOpen] = useState(false)
   const [selectedTask, setSelectedTask] = useState<any | null>(null)
+  const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState<string | null>(null)
 
   const supabase = createClient()
 
@@ -54,6 +58,8 @@ export default function TasksPage() {
   const { data: tasks = [], isLoading, refetch } = useTasks({
     view: activeTab,
     assignee: assigneeFilter || undefined,
+    org_id: orgFilter || undefined,
+    long_outstanding: longOutstanding || undefined,
   })
 
   const updateTask = useUpdateTask()
@@ -123,7 +129,7 @@ export default function TasksPage() {
     try {
       if (!profile) return
 
-      if (profile.role !== 'admin') return
+      if (!['admin', 'manager', 'user'].includes(profile.role)) return
 
       const { data } = await (supabase as any)
         .from('organizations')
@@ -156,15 +162,7 @@ export default function TasksPage() {
   }
 
   const handleTaskDelete = async (taskId: string) => {
-    if (!confirm('Are you sure you want to delete this task?')) return
-
-    try {
-      await deleteTask.mutateAsync(taskId)
-      setIsModalOpen(false)
-      setSelectedTask(null)
-    } catch (error) {
-      // Error is already handled by the mutation hook
-    }
+    setConfirmDeleteTaskId(taskId)
   }
 
   const handleCreateTask = () => {
@@ -201,22 +199,21 @@ export default function TasksPage() {
   return (
     <div className="flex-1 flex flex-col">
       {/* Sticky Topbar */}
-      <div className="sticky top-0 z-10 bg-white border-b border-neutral-border shadow-sm">
+      <div className="sticky top-0 z-10 bg-card border-b border-border shadow-sm">
         <div className="px-8 py-4 flex items-center justify-between">
           <div>
             <div className="flex gap-2">
-              <CheckSquare className="w-6 h-6 text-brand-primary" />
-              <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+              <CheckSquare className="w-6 h-6 text-primary" />
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
                 Tasks
               </h1>
             </div>
-            <p className="text-sm text-text-muted">
+            <p className="text-sm text-muted-foreground">
               {isLoading ? 'Loading...' : `${tasks.length} ${tasks.length === 1 ? 'task' : 'tasks'}`}
             </p>
           </div>
           <Button
             onClick={handleCreateTask}
-            variant="primary"
           >
             <Plus className="w-4 h-4 mr-2" />
             New Task
@@ -232,7 +229,12 @@ export default function TasksPage() {
           onTabChange={handleTabChange}
           assigneeFilter={assigneeFilter}
           onAssigneeChange={handleAssigneeChange}
+          orgFilter={orgFilter}
+          onOrgChange={setOrgFilter}
+          longOutstanding={longOutstanding}
+          onLongOutstandingChange={setLongOutstanding}
           users={users}
+          organizations={organizations}
           userRole={profile.role}
         />
 
@@ -261,6 +263,28 @@ export default function TasksPage() {
         users={users}
         organizations={organizations}
         profile={profile}
+      />
+
+      {/* Delete Task Confirmation */}
+      <ConfirmDialog
+        open={!!confirmDeleteTaskId}
+        onOpenChange={(open) => { if (!open) setConfirmDeleteTaskId(null) }}
+        title="Delete Task"
+        description="Are you sure you want to delete this task?"
+        confirmLabel="Delete"
+        variant="destructive"
+        onConfirm={async () => {
+          if (!confirmDeleteTaskId) return
+          const taskId = confirmDeleteTaskId
+          setConfirmDeleteTaskId(null)
+          try {
+            await deleteTask.mutateAsync(taskId)
+            setIsModalOpen(false)
+            setSelectedTask(null)
+          } catch (error) {
+            // Error is already handled by the mutation hook
+          }
+        }}
       />
     </div>
   )

@@ -1,5 +1,5 @@
 import { HandlerEvent } from '@netlify/functions'
-import { withMiddleware, AuthContext } from './lib/middleware'
+import { withMiddleware, AuthContext, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
 import { ShareFileSchema } from '../../src/types/schemas'
 import { sendFileNotificationEmail } from '../../src/lib/email/postmark'
@@ -18,8 +18,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
 }, { requireAuth: true })
 
 async function handleShareFile(event: HandlerEvent, user: any, profile: any, supabase: any) {
-  if (profile.role !== 'admin') {
-    throw { statusCode: 403, message: 'Admin access required' }
+  if (!isAdminOrManagerRole(profile.role)) {
+    throw { statusCode: 403, message: 'Admin or manager access required' }
   }
 
   const body = JSON.parse(event.body || '{}')
@@ -96,12 +96,12 @@ async function handleShareFile(event: HandlerEvent, user: any, profile: any, sup
 
     const uploaderName = uploaderProfile?.full_name || uploaderProfile?.email || 'Someone'
 
-    // Get all admins in the organization
+    // Get all team members in the organization
     const { data: admins } = await supabase
       .from('profiles')
       .select('id, email, full_name')
       .eq('org_id', profile.org_id)
-      .eq('role', 'admin')
+      .in('role', ['admin', 'manager'])
       .eq('is_active', true) as { data: Array<{ id: string; email: string; full_name: string }> | null }
 
     // Get the users who were shared the file

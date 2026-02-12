@@ -203,4 +203,4 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
     console.error('Unexpected error:', error)
     return errorResponse('Internal server error')
   }
-}, { requireAuth: true, requireAdmin: true })
+}, { requireAuth: true, requireRole: ['admin', 'manager'] })

@@ -7,7 +7,7 @@ import type {
   UpdateWorkstreamSchemaInput,
   AssignWorkstreamInput,
 } from '@/types/schemas'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 // Query keys
 export const workstreamKeys = {

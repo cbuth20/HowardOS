@@ -1,118 +1,50 @@
-interface AvatarProps {
-  name: string
-  email?: string
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
-  role?: 'admin' | 'client'
-  src?: string
-  className?: string
-}
+"use client"
 
-export function Avatar({
-  name,
-  email,
-  size = 'md',
-  role,
-  src,
-  className = '',
-}: AvatarProps) {
-  // Get initials from name
-  const getInitials = (name: string) => {
-    const parts = name.trim().split(' ')
-    if (parts.length >= 2) {
-      return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase()
-    }
-    return name.slice(0, 2).toUpperCase()
-  }
+import * as React from "react"
+import * as AvatarPrimitive from "@radix-ui/react-avatar"
 
-  const initials = getInitials(name)
+import { cn } from "@/lib/utils"
 
-  // Size classes
-  const sizeClasses = {
-    xs: 'w-6 h-6 text-xs',
-    sm: 'w-8 h-8 text-sm',
-    md: 'w-10 h-10 text-base',
-    lg: 'w-12 h-12 text-lg',
-    xl: 'w-16 h-16 text-2xl',
-  }
+const Avatar = React.forwardRef<
+  React.ElementRef<typeof AvatarPrimitive.Root>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Root>
+>(({ className, ...props }, ref) => (
+  <AvatarPrimitive.Root
+    ref={ref}
+    className={cn(
+      "relative flex h-10 w-10 shrink-0 overflow-hidden rounded-full",
+      className
+    )}
+    {...props}
+  />
+))
+Avatar.displayName = AvatarPrimitive.Root.displayName
 
-  // Role-based colors
-  const roleColors = {
-    admin: 'bg-brand-navy text-white',
-    client: 'bg-brand-slate text-white',
-    default: 'bg-brand-primary text-white',
-  }
+const AvatarImage = React.forwardRef<
+  React.ElementRef<typeof AvatarPrimitive.Image>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Image>
+>(({ className, ...props }, ref) => (
+  <AvatarPrimitive.Image
+    ref={ref}
+    className={cn("aspect-square h-full w-full", className)}
+    {...props}
+  />
+))
+AvatarImage.displayName = AvatarPrimitive.Image.displayName
 
-  const colorClass = role ? roleColors[role] : roleColors.default
+const AvatarFallback = React.forwardRef<
+  React.ElementRef<typeof AvatarPrimitive.Fallback>,
+  React.ComponentPropsWithoutRef<typeof AvatarPrimitive.Fallback>
+>(({ className, ...props }, ref) => (
+  <AvatarPrimitive.Fallback
+    ref={ref}
+    className={cn(
+      "flex h-full w-full items-center justify-center rounded-full bg-muted",
+      className
+    )}
+    {...props}
+  />
+))
+AvatarFallback.displayName = AvatarPrimitive.Fallback.displayName
 
-  if (src) {
-    return (
-      <div className={`${sizeClasses[size]} rounded-full overflow-hidden flex-shrink-0 ${className}`}>
-        <img
-          src={src}
-          alt={name}
-          className="w-full h-full object-cover"
-        />
-      </div>
-    )
-  }
-
-  return (
-    <div
-      className={`${sizeClasses[size]} ${colorClass} rounded-full flex items-center justify-center font-semibold flex-shrink-0 ${className}`}
-      title={email || name}
-    >
-      {initials}
-    </div>
-  )
-}
-
-interface AvatarGroupProps {
-  users: Array<{
-    name: string
-    email?: string
-    role?: 'admin' | 'client'
-    src?: string
-  }>
-  max?: number
-  size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl'
-  className?: string
-}
-
-export function AvatarGroup({ users, max = 3, size = 'md', className = '' }: AvatarGroupProps) {
-  const visibleUsers = users.slice(0, max)
-  const remaining = users.length - max
-
-  return (
-    <div className={`flex -space-x-2 ${className}`}>
-      {visibleUsers.map((user, index) => (
-        <Avatar
-          key={index}
-          name={user.name}
-          email={user.email}
-          role={user.role}
-          src={user.src}
-          size={size}
-          className="ring-2 ring-background-DEFAULT"
-        />
-      ))}
-      {remaining > 0 && (
-        <div
-          className={`${
-            size === 'xs'
-              ? 'w-6 h-6 text-xs'
-              : size === 'sm'
-              ? 'w-8 h-8 text-sm'
-              : size === 'md'
-              ? 'w-10 h-10 text-base'
-              : size === 'lg'
-              ? 'w-12 h-12 text-lg'
-              : 'w-16 h-16 text-2xl'
-          } bg-neutral-gray-200 text-text-secondary rounded-full flex items-center justify-center font-semibold ring-2 ring-background-DEFAULT flex-shrink-0`}
-          title={`+${remaining} more`}
-        >
-          +{remaining}
-        </div>
-      )}
-    </div>
-  )
-}
+export { Avatar, AvatarImage, AvatarFallback }

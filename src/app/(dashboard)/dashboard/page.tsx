@@ -1,10 +1,11 @@
 import { createClient } from '@/lib/supabase/server'
+import { Input } from '@/components/ui/input'
 import Script from 'next/script'
 
 interface ProfileData {
   full_name: string | null
   email: string
-  role: 'admin' | 'client'
+  role: string
   dashboard_iframe_url: string | null
   organizations: {
     name: string
@@ -64,15 +65,15 @@ export default async function DashboardPage() {
   return (
     <div className="flex-1 flex flex-col overflow-hidden">
       {/* Sticky Topbar */}
-      <div className="flex-shrink-0 bg-white border-b border-neutral-border shadow-sm">
+      <div className="flex-shrink-0 bg-card border-b border-border shadow-sm">
         <div className="px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-4">
             <div>
-              <h1 className="text-xl font-semibold tracking-tight text-text-primary">
+              <h1 className="text-xl font-semibold tracking-tight text-foreground">
                 Welcome back, {profile?.full_name || profile?.email}
               </h1>
-              <p className="text-sm text-text-muted">
-                {profile?.organizations?.name} • {profile?.role === 'admin' ? 'Administrator' : 'Client'}
+              <p className="text-sm text-muted-foreground">
+                {profile?.organizations?.name} • {{admin: 'Administrator', manager: 'Manager', user: 'Team Member', client: 'Client', client_no_access: 'Contact'}[profile?.role || ''] || profile?.role}
               </p>
             </div>
           </div>
@@ -80,12 +81,12 @@ export default async function DashboardPage() {
           {/* Search and Actions */}
           <div className="flex items-center gap-3">
             <div className="relative">
-              <input
+              <Input
                 type="search"
                 placeholder="Search..."
-                className="pl-9 pr-4 py-2 text-sm border border-neutral-border rounded-lg focus:outline-none focus:ring-2 focus:ring-brand-primary/20 focus:border-brand-primary w-64"
+                className="pl-9 w-64"
               />
-              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-text-muted" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
               </svg>
             </div>
@@ -98,26 +99,26 @@ export default async function DashboardPage() {
         {/* Stats */}
         <div className="flex items-center gap-6 mb-8 text-sm">
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-primary/10 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-8 h-8 bg-primary/10 rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
               </svg>
             </div>
             <div>
-              <p className="text-lg font-bold text-brand-navy leading-tight">{filesCount || 0}</p>
-              <p className="text-xs text-text-muted">Files</p>
+              <p className="text-lg font-bold text-foreground leading-tight">{filesCount || 0}</p>
+              <p className="text-xs text-muted-foreground">Files</p>
             </div>
           </div>
-          <div className="w-px h-8 bg-neutral-border" />
+          <div className="w-px h-8 bg-border" />
           <div className="flex items-center gap-2">
-            <div className="w-8 h-8 bg-brand-slate/10 rounded-lg flex items-center justify-center">
-              <svg className="w-4 h-4 text-brand-slate" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <div className="w-8 h-8 bg-muted rounded-lg flex items-center justify-center">
+              <svg className="w-4 h-4 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" />
               </svg>
             </div>
             <div>
-              <p className="text-lg font-bold text-brand-navy leading-tight">{tasksCount || 0}</p>
-              <p className="text-xs text-text-muted">Pending Tasks</p>
+              <p className="text-lg font-bold text-foreground leading-tight">{tasksCount || 0}</p>
+              <p className="text-xs text-muted-foreground">Pending Tasks</p>
             </div>
           </div>
         </div>
@@ -125,10 +126,10 @@ export default async function DashboardPage() {
         {/* Analytics Dashboard */}
         {profile?.dashboard_iframe_url && (
           <div className="mb-8">
-            <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border">
-              <div className="p-6 border-b border-neutral-border">
-                <h2 className="text-lg font-semibold text-text-primary">Analytics Dashboard</h2>
-                <p className="text-sm text-text-muted mt-1">Real-time performance metrics</p>
+            <div className="bg-card rounded-lg shadow-sm border border-border">
+              <div className="p-6 border-b border-border">
+                <h2 className="text-lg font-semibold text-foreground">Analytics Dashboard</h2>
+                <p className="text-sm text-muted-foreground mt-1">Real-time performance metrics</p>
               </div>
               <div className="p-6">
                 <div
@@ -160,9 +161,9 @@ export default async function DashboardPage() {
         {/* Recent Activity */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Recent Files */}
-          <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border">
-            <div className="p-6 border-b border-neutral-border">
-              <h2 className="text-lg font-semibold text-text-primary">Recent Files</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">Recent Files</h2>
             </div>
             <div className="p-6">
               {recentFiles && recentFiles.length > 0 ? (
@@ -170,29 +171,29 @@ export default async function DashboardPage() {
                   {recentFiles.map((file) => (
                     <li key={file.id} className="flex items-center justify-between py-2">
                       <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-brand-primary/10 rounded flex items-center justify-center">
-                          <svg className="w-4 h-4 text-brand-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+                          <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
                           </svg>
                         </div>
-                        <span className="text-sm font-medium text-text-primary">{file.name}</span>
+                        <span className="text-sm font-medium text-foreground">{file.name}</span>
                       </div>
-                      <span className="text-xs text-text-muted">
+                      <span className="text-xs text-muted-foreground">
                         {new Date(file.created_at).toLocaleDateString()}
                       </span>
                     </li>
                   ))}
                 </ul>
               ) : (
-                <p className="text-text-muted text-sm">No files yet</p>
+                <p className="text-muted-foreground text-sm">No files yet</p>
               )}
             </div>
           </div>
 
           {/* Recent Tasks */}
-          <div className="bg-background-card rounded-lg shadow-sm border border-neutral-border">
-            <div className="p-6 border-b border-neutral-border">
-              <h2 className="text-lg font-semibold text-text-primary">Recent Tasks</h2>
+          <div className="bg-card rounded-lg shadow-sm border border-border">
+            <div className="p-6 border-b border-border">
+              <h2 className="text-lg font-semibold text-foreground">Recent Tasks</h2>
             </div>
             <div className="p-6">
               {recentTasks && recentTasks.length > 0 ? (
@@ -201,17 +202,17 @@ export default async function DashboardPage() {
                     <li key={task.id} className="flex items-center justify-between py-2">
                       <div className="flex items-center gap-3">
                         <div className={`w-2 h-2 rounded-full ${
-                          task.priority === 'urgent' ? 'bg-state-error' :
-                          task.priority === 'high' ? 'bg-brand-terracotta' :
-                          task.priority === 'medium' ? 'bg-brand-slate' :
-                          'bg-text-muted'
+                          task.priority === 'urgent' ? 'bg-destructive' :
+                          task.priority === 'high' ? 'bg-amber-500' :
+                          task.priority === 'medium' ? 'bg-muted-foreground' :
+                          'bg-muted'
                         }`} />
-                        <span className="text-sm font-medium text-text-primary">{task.title}</span>
+                        <span className="text-sm font-medium text-foreground">{task.title}</span>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded ${
-                        task.status === 'completed' ? 'bg-state-success/10 text-state-success' :
-                        task.status === 'in_progress' ? 'bg-brand-slate/10 text-brand-slate' :
-                        'bg-text-muted/10 text-text-muted'
+                        task.status === 'completed' ? 'bg-primary/10 text-primary' :
+                        task.status === 'in_progress' ? 'bg-muted text-muted-foreground' :
+                        'bg-muted text-muted-foreground'
                       }`}>
                         {task.status.replace('_', ' ')}
                       </span>
@@ -219,7 +220,7 @@ export default async function DashboardPage() {
                   ))}
                 </ul>
               ) : (
-                <p className="text-text-muted text-sm">No tasks yet</p>
+                <p className="text-muted-foreground text-sm">No tasks yet</p>
               )}
             </div>
           </div>

@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { ChevronDown, ChevronUp, Clock, User, Package, Edit2, Trash2 } from 'lucide-react'
 import { WorkstreamEntryWithDetails, WorkstreamStatus } from '@/types/entities'
 import { WorkstreamStatusBadge } from './WorkstreamStatusBadge'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Button } from '@/components/ui/button'
 
 interface WorkstreamEntryCardProps {
   entry: WorkstreamEntryWithDetails
@@ -23,23 +25,26 @@ export function WorkstreamEntryCard({
   const [isExpanded, setIsExpanded] = useState(false)
 
   return (
-    <div className="rounded-lg border border-gray-200 bg-white hover:shadow-md transition-shadow">
+    <div className="rounded-lg border border-border bg-card hover:shadow-md transition-shadow">
       {/* Card Header */}
       <div className="p-4">
         <div className="flex items-start gap-4">
           {/* Status Badge */}
           <div className="flex-shrink-0">
             {isAdmin && onStatusChange ? (
-              <select
+              <Select
                 value={entry.status}
-                onChange={(e) => onStatusChange(entry, e.target.value as WorkstreamStatus)}
-                className="text-xs rounded-full border-0 font-medium cursor-pointer focus:ring-2 focus:ring-brand-primary"
-                onClick={(e) => e.stopPropagation()}
+                onValueChange={(value) => onStatusChange(entry, value as WorkstreamStatus)}
               >
-                <option value="green">🟢 On Track</option>
-                <option value="yellow">🟡 In Progress</option>
-                <option value="red">🔴 Blocked</option>
-              </select>
+                <SelectTrigger className="h-7 w-auto text-xs rounded-full border-0 font-medium cursor-pointer focus:ring-2 focus:ring-primary" onClick={(e) => e.stopPropagation()}>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="green">Active</SelectItem>
+                  <SelectItem value="yellow">Resolving</SelectItem>
+                  <SelectItem value="red">Blocked</SelectItem>
+                </SelectContent>
+              </Select>
             ) : (
               <WorkstreamStatusBadge status={entry.status} size="md" showLabel={true} />
             )}
@@ -48,34 +53,38 @@ export function WorkstreamEntryCard({
           {/* Entry Info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-start justify-between gap-2">
-              <h4 className="font-semibold text-gray-900">{entry.name}</h4>
+              <h4 className="font-semibold text-foreground">{entry.name}</h4>
 
               {/* Admin Actions */}
               {isAdmin && (
                 <div className="flex items-center gap-1 flex-shrink-0">
                   {onEdit && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => onEdit(entry)}
-                      className="p-1.5 text-gray-400 hover:text-brand-primary hover:bg-gray-50 rounded transition-colors"
+                      className="h-8 w-8 text-muted-foreground hover:text-primary"
                       title="Edit entry"
                     >
                       <Edit2 className="h-4 w-4" />
-                    </button>
+                    </Button>
                   )}
                   {onDelete && (
-                    <button
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       onClick={() => onDelete(entry)}
-                      className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded transition-colors"
+                      className="h-8 w-8 text-muted-foreground hover:text-red-600 hover:bg-red-50"
                       title="Delete entry"
                     >
                       <Trash2 className="h-4 w-4" />
-                    </button>
+                    </Button>
                   )}
                 </div>
               )}
             </div>
 
-            <div className="flex flex-wrap items-center gap-3 text-sm text-gray-600 mt-2">
+            <div className="flex flex-wrap items-center gap-3 text-sm text-foreground/80 mt-2">
               {entry.timing && (
                 <span className="flex items-center gap-1">
                   <Clock className="h-3.5 w-3.5" />
@@ -100,9 +109,11 @@ export function WorkstreamEntryCard({
 
             {/* Short description or expand button */}
             {(entry.description || entry.notes || entry.custom_sop) && (
-              <button
+              <Button
+                variant="link"
+                size="sm"
                 onClick={() => setIsExpanded(!isExpanded)}
-                className="mt-2 flex items-center gap-1 text-sm text-brand-primary hover:text-brand-secondary transition-colors"
+                className="mt-2 flex items-center gap-1 p-0 h-auto"
               >
                 {isExpanded ? (
                   <>
@@ -115,7 +126,7 @@ export function WorkstreamEntryCard({
                     <ChevronDown className="h-4 w-4" />
                   </>
                 )}
-              </button>
+              </Button>
             )}
           </div>
         </div>
@@ -123,20 +134,20 @@ export function WorkstreamEntryCard({
 
       {/* Expanded Content */}
       {isExpanded && (
-        <div className="border-t border-gray-200 p-4 bg-gray-50 space-y-3">
+        <div className="border-t border-border p-4 bg-secondary space-y-3">
           {/* Description */}
           {entry.description && (
             <div>
-              <h5 className="text-sm font-medium text-gray-700 mb-1">Description</h5>
-              <p className="text-sm text-gray-600">{entry.description}</p>
+              <h5 className="text-sm font-medium text-foreground/80 mb-1">Description</h5>
+              <p className="text-sm text-foreground/80">{entry.description}</p>
             </div>
           )}
 
           {/* Notes */}
           {entry.notes && (
             <div>
-              <h5 className="text-sm font-medium text-gray-700 mb-1">Notes</h5>
-              <p className="text-sm text-gray-600 bg-white rounded p-2 border border-gray-200">
+              <h5 className="text-sm font-medium text-foreground/80 mb-1">Notes</h5>
+              <p className="text-sm text-foreground/80 bg-card rounded p-2 border border-border">
                 {entry.notes}
               </p>
             </div>
@@ -145,8 +156,8 @@ export function WorkstreamEntryCard({
           {/* SOP */}
           {entry.custom_sop && (
             <div>
-              <h5 className="text-sm font-medium text-gray-700 mb-1">SOP</h5>
-              <div className="text-sm text-gray-600 bg-white rounded p-2 border border-gray-200">
+              <h5 className="text-sm font-medium text-foreground/80 mb-1">SOP</h5>
+              <div className="text-sm text-foreground/80 bg-card rounded p-2 border border-border">
                 {typeof entry.custom_sop === 'string' ? (
                   <p>{entry.custom_sop}</p>
                 ) : (

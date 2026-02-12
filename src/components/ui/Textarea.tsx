@@ -1,32 +1,22 @@
-import React from 'react'
+import * as React from "react"
 
-export interface TextareaProps extends React.TextareaHTMLAttributes<HTMLTextAreaElement> {
-  label?: string
-  error?: string
-}
+import { cn } from "@/lib/utils"
 
-export const Textarea = React.forwardRef<HTMLTextAreaElement, TextareaProps>(
-  ({ label, error, className = '', ...props }, ref) => {
-    return (
-      <div className="w-full">
-        {label && (
-          <label className="block text-xs font-medium text-text-primary mb-1.5">
-            {label}
-          </label>
-        )}
-        <textarea
-          ref={ref}
-          className={`w-full px-2.5 py-1.5 border border-neutral-border rounded-md text-sm text-text-primary placeholder-text-muted focus:outline-none focus:ring-2 focus:ring-brand-primary focus:border-transparent disabled:bg-muted-DEFAULT disabled:cursor-not-allowed resize-y ${
-            error ? 'border-state-error focus:ring-state-error' : ''
-          } ${className}`}
-          {...props}
-        />
-        {error && (
-          <p className="mt-1 text-xs text-state-error">{error}</p>
-        )}
-      </div>
-    )
-  }
-)
+const Textarea = React.forwardRef<
+  HTMLTextAreaElement,
+  React.ComponentProps<"textarea">
+>(({ className, ...props }, ref) => {
+  return (
+    <textarea
+      className={cn(
+        "flex min-h-[60px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-base shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-howard-evergreen focus-visible:border-howard-evergreen disabled:cursor-not-allowed disabled:opacity-50 md:text-sm transition-all",
+        className
+      )}
+      ref={ref}
+      {...props}
+    />
+  )
+})
+Textarea.displayName = "Textarea"
 
-Textarea.displayName = 'Textarea'
+export { Textarea }

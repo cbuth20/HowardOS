@@ -6,7 +6,12 @@ import { Plus, ChevronRight, Building2, Search } from 'lucide-react'
 import { WorkstreamWithEntriesAndRollup } from '@/types/entities'
 import { WorkstreamStatusBadge } from './WorkstreamStatusBadge'
 import { useCreateClientWorkstream } from '@/lib/api/hooks/useWorkstreams'
-import toast from 'react-hot-toast'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
+import { toast } from 'sonner'
 
 interface ClientWorkstreamListProps {
   workstreams: WorkstreamWithEntriesAndRollup[]
@@ -29,30 +34,13 @@ export function ClientWorkstreamList({
   })
 
   const createWorkstreamMutation = useCreateClientWorkstream()
+  const [confirmCreateOrg, setConfirmCreateOrg] = useState<{ id: string; name: string } | null>(null)
 
   // Handle create workstream for an org
-  const handleCreateWorkstream = async (orgId: string) => {
+  const handleCreateWorkstream = (orgId: string) => {
     const org = organizations.find((o) => o.id === orgId)
     if (!org) return
-
-    if (!confirm(`Create a new workstream for ${org.name}?`)) return
-
-    try {
-      const result = await createWorkstreamMutation.mutateAsync({
-        org_id: orgId,
-        name: 'Workstream',
-        notes: null,
-      })
-      toast.success('Workstream created successfully')
-      // Navigate to the new workstream
-      if (onSelectWorkstream) {
-        onSelectWorkstream(result.workstream.id)
-      } else {
-        router.push(`/workstreams/${result.workstream.id}`)
-      }
-    } catch (error: any) {
-      toast.error(error.message || 'Failed to create workstream')
-    }
+    setConfirmCreateOrg({ id: org.id, name: org.name })
   }
 
   // Handle navigate to workstream
@@ -64,9 +52,14 @@ export function ClientWorkstreamList({
     }
   }
 
-  // Find orgs without workstreams
+  // Find orgs without workstreams OR with empty workstreams (0 entries)
   const orgsWithWorkstreams = new Set(workstreams.map((w) => w.org_id))
   const orgsWithoutWorkstreams = organizations.filter((org) => !orgsWithWorkstreams.has(org.id))
+  const emptyWorkstreams = workstreams.filter((w) => (w.total_entries || 0) === 0)
+  const orgsNeedingAttention = [
+    ...orgsWithoutWorkstreams.map(org => ({ id: org.id, name: org.name, hasWorkstream: false })),
+    ...emptyWorkstreams.map(w => ({ id: w.org_id, name: w.organization?.name || 'Unknown', hasWorkstream: true, workstreamId: w.id })),
+  ]
 
   // Filter workstreams
   const filteredWorkstreams = workstreams.filter((w) => {
@@ -90,7 +83,7 @@ export function ClientWorkstreamList({
     return (
       <div className="space-y-2">
         {[1, 2, 3, 4, 5].map((i) => (
-          <div key={i} className="animate-pulse h-16 bg-gray-100 rounded-lg" />
+          <div key={i} className="animate-pulse h-16 bg-secondary rounded-lg" />
         ))}
       </div>
     )
@@ -101,44 +94,48 @@ export function ClientWorkstreamList({
       {/* Filters */}
       <div className="flex flex-col sm:flex-row gap-3">
         <div className="relative flex-1">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-          <input
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
             type="text"
             value={filters.search}
             onChange={(e) => setFilters({ ...filters, search: e.target.value })}
             placeholder="Search organizations..."
-            className="w-full pl-10 pr-4 py-2 rounded-lg border border-gray-300 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+            className="pl-10"
           />
         </div>
-        <select
-          value={filters.org_id}
-          onChange={(e) => setFilters({ ...filters, org_id: e.target.value })}
-          className="rounded-lg border border-gray-300 px-4 py-2 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+        <Select
+          value={filters.org_id || '__all__'}
+          onValueChange={(value) => setFilters({ ...filters, org_id: value === '__all__' ? '' : value })}
         >
-          <option value="">All Organizations ({workstreams.length})</option>
-          {organizations.map((org) => (
-            <option key={org.id} value={org.id}>
-              {org.name}
-            </option>
-          ))}
-        </select>
+          <SelectTrigger className="w-auto"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Organizations ({workstreams.length})</SelectItem>
+            {organizations.map((org) => (
+              <SelectItem key={org.id} value={org.id}>
+                {org.name}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
 
-        <select
-          value={filters.status}
-          onChange={(e) => setFilters({ ...filters, status: e.target.value })}
-          className="rounded-lg border border-gray-300 px-4 py-2 focus:border-brand-primary focus:outline-none focus:ring-2 focus:ring-brand-primary/20"
+        <Select
+          value={filters.status || '__all__'}
+          onValueChange={(value) => setFilters({ ...filters, status: value === '__all__' ? '' : value })}
         >
-          <option value="">All Statuses</option>
-          <option value="red">🔴 Red</option>
-          <option value="yellow">🟡 Yellow</option>
-          <option value="green">🟢 Green</option>
-        </select>
+          <SelectTrigger className="w-auto"><SelectValue /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="__all__">All Statuses</SelectItem>
+            <SelectItem value="red">Blocked</SelectItem>
+            <SelectItem value="yellow">Resolving</SelectItem>
+            <SelectItem value="green">Active</SelectItem>
+          </SelectContent>
+        </Select>
       </div>
 
       {/* Workstreams Table */}
-      {filteredWorkstreams.length === 0 && orgsWithoutWorkstreams.length === 0 ? (
-        <div className="text-center py-12 text-gray-500 border border-dashed rounded-lg">
-          <Building2 className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+      {filteredWorkstreams.length === 0 && orgsNeedingAttention.length === 0 ? (
+        <div className="text-center py-12 text-muted-foreground border border-dashed rounded-lg">
+          <Building2 className="h-12 w-12 mx-auto mb-4 text-muted-foreground/50" />
           <p className="font-medium">No workstreams yet</p>
           <p className="text-sm mt-2">
             Create workstreams for your client organizations to get started
@@ -148,129 +145,165 @@ export function ClientWorkstreamList({
         <>
           {/* Existing Workstreams Table */}
           {filteredWorkstreams.length > 0 && (
-            <div className="border border-gray-200 rounded-lg overflow-hidden">
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-200">
-                  <tr>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+            <div className="border border-border rounded-lg overflow-hidden">
+              <Table>
+                <TableHeader className="bg-secondary">
+                  <TableRow>
+                    <TableHead className="px-4 text-xs uppercase tracking-wider">
                       Organization
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 text-xs uppercase tracking-wider">
                       Status
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Entries
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 text-xs uppercase tracking-wider">
+                      Items
+                    </TableHead>
+                    <TableHead className="px-4 text-xs uppercase tracking-wider">
                       Verticals
-                    </th>
-                    <th className="text-left px-4 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
+                    </TableHead>
+                    <TableHead className="px-4 text-xs uppercase tracking-wider">
                       Status Breakdown
-                    </th>
-                    <th className="w-10"></th>
-                  </tr>
-                </thead>
-                <tbody className="bg-white divide-y divide-gray-100">
+                    </TableHead>
+                    <TableHead className="w-10"></TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="bg-card">
                   {filteredWorkstreams.map((workstream) => {
                     const totalRed = workstream.vertical_rollups?.reduce((sum, r) => sum + r.red_count, 0) || 0
                     const totalYellow = workstream.vertical_rollups?.reduce((sum, r) => sum + r.yellow_count, 0) || 0
                     const totalGreen = workstream.vertical_rollups?.reduce((sum, r) => sum + r.green_count, 0) || 0
 
                     return (
-                      <tr
+                      <TableRow
                         key={workstream.id}
                         onClick={() => handleNavigate(workstream.id)}
-                        className="hover:bg-gray-50 transition-colors cursor-pointer"
+                        className="cursor-pointer"
                       >
-                        <td className="px-4 py-3">
+                        <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                            <span className="font-medium text-gray-900">
+                            <Building2 className="h-4 w-4 text-muted-foreground flex-shrink-0" />
+                            <span className="font-medium text-foreground">
                               {workstream.organization?.name}
                             </span>
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
                           <WorkstreamStatusBadge
                             status={workstream.overall_status || 'yellow'}
                             size="sm"
                             showLabel={true}
                           />
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm font-semibold text-gray-900">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <span className="text-sm font-semibold text-foreground">
                             {workstream.total_entries || 0}
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="text-sm text-gray-600">
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <span className="text-sm text-foreground/80">
                             {workstream.vertical_rollups?.length || 0} active
                           </span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <div className="flex items-center gap-2 text-xs">
-                            {totalRed > 0 && (
-                              <span className="text-red-600 font-medium">{totalRed}🔴</span>
-                            )}
-                            {totalYellow > 0 && (
-                              <span className="text-yellow-600 font-medium">{totalYellow}🟡</span>
-                            )}
-                            {totalGreen > 0 && (
-                              <span className="text-green-600 font-medium">{totalGreen}🟢</span>
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <div className="flex items-center gap-1.5 w-full min-w-[120px]">
+                            {(workstream.total_entries || 0) > 0 ? (
+                              <>
+                                <div className="flex-1 h-2 rounded-full bg-secondary overflow-hidden flex">
+                                  {totalGreen > 0 && (
+                                    <div
+                                      className="h-full bg-green-500"
+                                      style={{ width: `${(totalGreen / (workstream.total_entries || 1)) * 100}%` }}
+                                    />
+                                  )}
+                                  {totalYellow > 0 && (
+                                    <div
+                                      className="h-full bg-yellow-500"
+                                      style={{ width: `${(totalYellow / (workstream.total_entries || 1)) * 100}%` }}
+                                    />
+                                  )}
+                                  {totalRed > 0 && (
+                                    <div
+                                      className="h-full bg-red-500"
+                                      style={{ width: `${(totalRed / (workstream.total_entries || 1)) * 100}%` }}
+                                    />
+                                  )}
+                                </div>
+                                <span className="text-[10px] text-muted-foreground whitespace-nowrap">
+                                  {totalGreen}/{totalYellow}/{totalRed}
+                                </span>
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">-</span>
                             )}
                           </div>
-                        </td>
-                        <td className="px-4 py-3">
-                          <ChevronRight className="h-4 w-4 text-gray-400" />
-                        </td>
-                      </tr>
+                        </TableCell>
+                        <TableCell className="px-4 py-3">
+                          <ChevronRight className="h-4 w-4 text-muted-foreground" />
+                        </TableCell>
+                      </TableRow>
                     )
                   })}
-                </tbody>
-              </table>
+                </TableBody>
+              </Table>
             </div>
           )}
 
-          {/* Organizations without workstreams */}
-          {!filters.org_id && !filters.status && !filters.search && orgsWithoutWorkstreams.length > 0 && (
+          {/* Organizations needing attention (no workstream or 0 entries) */}
+          {!filters.org_id && !filters.status && !filters.search && orgsNeedingAttention.length > 0 && (
             <div className="space-y-3">
-              <div className="pt-2 border-t border-gray-200">
-                <h3 className="text-sm font-medium text-gray-700 mb-3">
-                  Organizations without workstreams ({orgsWithoutWorkstreams.length})
+              <div className="pt-2 border-t border-border">
+                <h3 className="text-sm font-medium text-foreground/80 mb-3">
+                  Needs Setup ({orgsNeedingAttention.length})
                 </h3>
               </div>
 
-              <div className="border border-gray-200 rounded-lg overflow-hidden">
-                <table className="w-full">
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {orgsWithoutWorkstreams.map((org) => (
-                      <tr key={org.id} className="hover:bg-gray-50">
-                        <td className="px-4 py-3">
+              <div className="border border-border rounded-lg overflow-hidden">
+                <Table>
+                  <TableBody className="bg-card">
+                    {orgsNeedingAttention.map((item) => (
+                      <TableRow key={item.id + (item.hasWorkstream ? '-ws' : '')}>
+                        <TableCell className="px-4 py-3">
                           <div className="flex items-center gap-2">
-                            <Building2 className="h-4 w-4 text-gray-400" />
+                            <Building2 className="h-4 w-4 text-muted-foreground" />
                             <div>
-                              <div className="font-medium text-gray-900">{org.name}</div>
-                              <div className="text-xs text-gray-500">No workstream created yet</div>
+                              <div className="font-medium text-foreground">{item.name}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {item.hasWorkstream ? 'Workstream has no entries' : 'No workstream created yet'}
+                              </div>
                             </div>
                           </div>
-                        </td>
-                        <td className="px-4 py-3 text-right">
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleCreateWorkstream(org.id)
-                            }}
-                            disabled={createWorkstreamMutation.isPending}
-                            className="px-3 py-1.5 bg-white border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50 text-sm flex items-center gap-2"
-                          >
-                            <Plus className="h-3.5 w-3.5" />
-                            Create Workstream
-                          </button>
-                        </td>
-                      </tr>
+                        </TableCell>
+                        <TableCell className="px-4 py-3 text-right">
+                          {item.hasWorkstream ? (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleNavigate((item as any).workstreamId)
+                              }}
+                            >
+                              Add Entries
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleCreateWorkstream(item.id)
+                              }}
+                              disabled={createWorkstreamMutation.isPending}
+                            >
+                              <Plus className="h-3.5 w-3.5 mr-2" />
+                              Create Workstream
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </tbody>
-                </table>
+                  </TableBody>
+                </Table>
               </div>
             </div>
           )}
@@ -279,30 +312,61 @@ export function ClientWorkstreamList({
 
       {/* Summary Stats */}
       {filteredWorkstreams.length > 0 && (
-        <div className="flex gap-6 text-sm text-gray-600 pt-2 border-t border-gray-200">
+        <div className="flex gap-6 text-sm text-foreground/80 pt-2 border-t border-border">
           <div>
-            Total: <span className="font-semibold text-gray-900">{filteredWorkstreams.length}</span>
+            Total: <span className="font-semibold text-foreground">{filteredWorkstreams.length}</span>
           </div>
           <div className="flex items-center gap-1">
             <WorkstreamStatusBadge status="red" size="sm" />
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {filteredWorkstreams.filter((w) => w.overall_status === 'red').length}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <WorkstreamStatusBadge status="yellow" size="sm" />
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {filteredWorkstreams.filter((w) => w.overall_status === 'yellow').length}
             </span>
           </div>
           <div className="flex items-center gap-1">
             <WorkstreamStatusBadge status="green" size="sm" />
-            <span className="font-semibold text-gray-900">
+            <span className="font-semibold text-foreground">
               {filteredWorkstreams.filter((w) => w.overall_status === 'green').length}
             </span>
           </div>
         </div>
       )}
+
+      {/* Create Workstream Confirmation */}
+      <ConfirmDialog
+        open={!!confirmCreateOrg}
+        onOpenChange={(open) => { if (!open) setConfirmCreateOrg(null) }}
+        title="Create Workstream"
+        description={`Create a new workstream for ${confirmCreateOrg?.name}?`}
+        confirmLabel="Create"
+        variant="default"
+        onConfirm={async () => {
+          if (!confirmCreateOrg) return
+          const { id: orgId } = confirmCreateOrg
+          setConfirmCreateOrg(null)
+
+          try {
+            const result = await createWorkstreamMutation.mutateAsync({
+              org_id: orgId,
+              name: 'Workstream',
+              notes: null,
+            })
+            toast.success('Workstream created successfully')
+            if (onSelectWorkstream) {
+              onSelectWorkstream(result.workstream.id)
+            } else {
+              router.push(`/workstreams/${result.workstream.id}`)
+            }
+          } catch (error: any) {
+            toast.error(error.message || 'Failed to create workstream')
+          }
+        }}
+      />
     </div>
   )
 }

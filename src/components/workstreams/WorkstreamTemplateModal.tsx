@@ -4,8 +4,13 @@ import { useState, useEffect } from 'react'
 import { useWorkstreamVerticals, useCreateWorkstreamTemplate, useUpdateWorkstreamTemplate } from '@/lib/api/hooks/useWorkstreams'
 import { WorkstreamTemplateWithVertical, WorkstreamTiming } from '@/types/entities'
 import { CreateWorkstreamTemplateInput } from '@/types/schemas'
-import { Button } from '@/components/ui/Button'
-import { Modal, ModalFooter } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { useSoftwareCatalog } from '@/lib/api/hooks/useSoftwareCatalog'
 
 interface WorkstreamTemplateModalProps {
   isOpen: boolean
@@ -26,6 +31,8 @@ export function WorkstreamTemplateModal({ isOpen, onClose, template }: Workstrea
   const { data: verticals = [], isLoading: loadingVerticals } = useWorkstreamVerticals()
   const createMutation = useCreateWorkstreamTemplate()
   const updateMutation = useUpdateWorkstreamTemplate()
+
+  const { data: softwareCatalog = [] } = useSoftwareCatalog()
 
   const [formData, setFormData] = useState<CreateWorkstreamTemplateInput>({
     vertical_id: '',
@@ -77,44 +84,43 @@ export function WorkstreamTemplateModal({ isOpen, onClose, template }: Workstrea
   const isLoading = createMutation.isPending || updateMutation.isPending
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={template ? 'Edit Template' : 'Create Template'}
-      size="lg"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>{template ? 'Edit Template' : 'Create Template'}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Vertical Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Vertical <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.vertical_id}
-              onChange={(e) => setFormData({ ...formData, vertical_id: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            </Label>
+            <Select
+              value={formData.vertical_id || undefined}
+              onValueChange={(value) => setFormData({ ...formData, vertical_id: value })}
               required
               disabled={loadingVerticals || isLoading}
             >
-              <option value="">Select a vertical...</option>
-              {verticals.map((vertical) => (
-                <option key={vertical.id} value={vertical.id}>
-                  {vertical.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger><SelectValue placeholder="Select a vertical..." /></SelectTrigger>
+              <SelectContent>
+                {verticals.map((vertical) => (
+                  <SelectItem key={vertical.id} value={vertical.id}>
+                    {vertical.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Name */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Name <span className="text-red-500">*</span>
-            </label>
-            <input
+            </Label>
+            <Input
               type="text"
               value={formData.name}
               onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
               placeholder="e.g., Bank Reconciliation"
               required
               maxLength={200}
@@ -124,13 +130,12 @@ export function WorkstreamTemplateModal({ isOpen, onClose, template }: Workstrea
 
           {/* Description */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Description
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               value={formData.description || ''}
               onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
               placeholder="Brief description of this workstream..."
               rows={3}
               disabled={isLoading}
@@ -139,76 +144,85 @@ export function WorkstreamTemplateModal({ isOpen, onClose, template }: Workstrea
 
           {/* Associated Software */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Associated Software
-            </label>
-            <input
-              type="text"
-              value={formData.associated_software || ''}
-              onChange={(e) => setFormData({ ...formData, associated_software: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              placeholder="e.g., QuickBooks, Excel, NetSuite"
+            </Label>
+            <Select
+              value={formData.associated_software || '__none__'}
+              onValueChange={(value) => setFormData({ ...formData, associated_software: value === '__none__' ? '' : value })}
               disabled={isLoading}
-            />
+            >
+              <SelectTrigger><SelectValue placeholder="Select software..." /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">None</SelectItem>
+                {softwareCatalog.map((sw) => (
+                  <SelectItem key={sw.id} value={sw.name}>
+                    {sw.name}
+                    {sw.category && <span className="text-muted-foreground ml-1">({sw.category})</span>}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Timing */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Timing
-            </label>
-            <select
-              value={formData.timing || ''}
-              onChange={(e) => setFormData({ ...formData, timing: (e.target.value || null) as WorkstreamTiming | null })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
+            </Label>
+            <Select
+              value={formData.timing || '__none__'}
+              onValueChange={(value) => setFormData({ ...formData, timing: (value === '__none__' ? null : value) as WorkstreamTiming | null })}
               disabled={isLoading}
             >
-              <option value="">Select timing...</option>
-              {timingOptions.map((option) => (
-                <option key={option.value} value={option.value}>
-                  {option.label}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">Select timing...</SelectItem>
+                {timingOptions.map((option) => (
+                  <SelectItem key={option.value} value={option.value}>
+                    {option.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Display Order */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Display Order
-            </label>
-            <input
+            </Label>
+            <Input
               type="number"
               value={formData.display_order}
               onChange={(e) => setFormData({ ...formData, display_order: parseInt(e.target.value) || 0 })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              min="0"
+              min={0}
               disabled={isLoading}
             />
-            <p className="text-xs text-gray-500 mt-1">
+            <p className="text-xs text-muted-foreground mt-1">
               Lower numbers appear first
             </p>
           </div>
 
-        {/* Actions */}
-        <ModalFooter>
-          <Button
-            type="button"
-            onClick={onClose}
-            variant="secondary"
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Saving...' : template ? 'Update' : 'Create'}
-          </Button>
-        </ModalFooter>
-      </form>
-    </Modal>
+          {/* Actions */}
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={onClose}
+              variant="outline"
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Saving...' : template ? 'Update' : 'Create'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

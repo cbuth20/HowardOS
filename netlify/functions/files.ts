@@ -1,5 +1,5 @@
 import { HandlerEvent } from '@netlify/functions'
-import { withMiddleware, AuthContext } from './lib/middleware'
+import { withMiddleware, AuthContext, isTeamRole, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
 
 const FILE_SELECT_QUERY = `
@@ -11,11 +11,11 @@ const FILE_SELECT_QUERY = `
   )
 `
 
-export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, supabase }: AuthContext) => {
+export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, userOrgs, supabase }: AuthContext) => {
   const method = event.httpMethod
 
   if (method === 'GET') {
-    return handleGetFiles(event, user, profile, supabase)
+    return handleGetFiles(event, user, profile, userOrgs, supabase)
   }
   if (method === 'DELETE') {
     return handleDeleteFile(event, user, profile, supabase)
@@ -24,7 +24,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
   throw { statusCode: 405, message: 'Method not allowed' }
 }, { requireAuth: true })
 
-async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supabase: any) {
+async function handleGetFiles(event: HandlerEvent, user: any, profile: any, userOrgs: string[], supabase: any) {
   const params = event.queryStringParameters || {}
   const folderPath = params.folderPath || '/'
   const view = params.view || 'all'
@@ -32,7 +32,7 @@ async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supa
 
   // Channel-scoped file queries
   if (channelId) {
-    return handleGetChannelFiles(channelId, folderPath, user, profile, supabase)
+    return handleGetChannelFiles(channelId, folderPath, user, profile, userOrgs, supabase)
   }
 
   // For clients, get files uploaded by them OR shared with them
@@ -63,14 +63,20 @@ async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supa
     })
   }
 
-  // For admins
+  // For team members
   let query = supabase
     .from('files')
     .select(FILE_SELECT_QUERY)
-    .eq('org_id', profile.org_id)
     .eq('folder_path', folderPath)
     .is('channel_id', null)
     .order('created_at', { ascending: false })
+
+  // User role: filter by allowed_org_ids
+  if (profile.role === 'user' && profile.allowed_org_ids?.length > 0) {
+    query = query.in('org_id', profile.allowed_org_ids)
+  } else {
+    query = query.eq('org_id', profile.org_id)
+  }
 
   if (view === 'my-files') {
     query = query.eq('uploaded_by', user.id)
@@ -89,7 +95,7 @@ async function handleGetFiles(event: HandlerEvent, user: any, profile: any, supa
   })
 }
 
-async function handleGetChannelFiles(channelId: string, folderPath: string, user: any, profile: any, supabase: any) {
+async function handleGetChannelFiles(channelId: string, folderPath: string, user: any, profile: any, userOrgs: string[], supabase: any) {
   // Verify channel access
   const { data: channel, error: channelError } = await supabase
     .from('file_channels')
@@ -106,9 +112,17 @@ async function handleGetChannelFiles(channelId: string, folderPath: string, user
     throw { statusCode: 404, message: 'Channel not found' }
   }
 
-  // Check access: admin org or client org
-  if (channel.org_id !== profile.org_id && channel.client_org_id !== profile.org_id) {
-    throw { statusCode: 403, message: 'Access denied' }
+  // Check access: team members via org_id, clients via user_organizations
+  if (isTeamRole(profile.role)) {
+    // Team members check: their org owns the channel
+    if (channel.org_id !== profile.org_id) {
+      throw { statusCode: 403, message: 'Access denied' }
+    }
+  } else {
+    // Client check: their org is the client_org_id
+    if (!userOrgs.includes(channel.client_org_id)) {
+      throw { statusCode: 403, message: 'Access denied' }
+    }
   }
 
   // Get files in this channel at this folder path
@@ -167,8 +181,8 @@ async function handleDeleteFile(event: HandlerEvent, user: any, profile: any, su
     throw { statusCode: 404, message: 'File not found' }
   }
 
-  // Check permissions
-  const canDelete = profile.role === 'admin' || file.uploaded_by === user.id
+  // Check permissions: admin/manager can delete any, uploaders can delete own
+  const canDelete = isAdminOrManagerRole(profile.role) || file.uploaded_by === user.id
 
   if (!canDelete) {
     throw { statusCode: 403, message: 'Permission denied' }
@@ -194,7 +208,7 @@ async function handleDeleteFile(event: HandlerEvent, user: any, profile: any, su
     throw { statusCode: 500, message: 'Failed to delete file record' }
   }
 
-  // Log activity (note: using activity_log table name as per existing code, will fix in migration)
+  // Log activity
   await supabase.from('activity_log').insert({
     org_id: profile.org_id,
     user_id: user.id,

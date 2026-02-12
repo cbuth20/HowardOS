@@ -3,10 +3,11 @@
 import { useState, useEffect } from 'react'
 import { authFetch } from '@/lib/utils/auth-fetch'
 import { Task, TaskStatus, TaskPriority } from '@/types/tasks'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Plus, Loader2, CheckCircle2, Circle, Clock, AlertCircle, LucideIcon } from 'lucide-react'
 import { formatDistanceToNow } from 'date-fns'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 interface ClientOrgTasksProps {
   orgId: string
@@ -15,11 +16,10 @@ interface ClientOrgTasksProps {
 }
 
 const statusConfig: Record<TaskStatus, { label: string; icon: LucideIcon; color: string }> = {
-  pending: { label: 'To Do', icon: Circle, color: 'text-text-muted' },
-  in_progress: { label: 'In Progress', icon: Clock, color: 'text-brand-primary' },
-  completed: { label: 'Done', icon: CheckCircle2, color: 'text-state-success' },
-  hidden: { label: 'Hidden', icon: Circle, color: 'text-text-muted' },
-  cancelled: { label: 'Cancelled', icon: Circle, color: 'text-state-error' },
+  pending: { label: 'To Do', icon: Circle, color: 'text-muted-foreground' },
+  in_progress: { label: 'In Progress', icon: Clock, color: 'text-primary' },
+  completed: { label: 'Done', icon: CheckCircle2, color: 'text-primary' },
+  cancelled: { label: 'Cancelled', icon: Circle, color: 'text-destructive' },
 }
 
 const priorityColors: Record<TaskPriority, string> = {
@@ -99,7 +99,7 @@ export function ClientOrgTasks({ orgId, orgName, onCreateTask }: ClientOrgTasksP
   if (loading) {
     return (
       <div className="flex items-center justify-center py-12">
-        <Loader2 className="w-6 h-6 text-brand-primary animate-spin" />
+        <Loader2 className="w-6 h-6 text-primary animate-spin" />
       </div>
     )
   }
@@ -109,46 +109,34 @@ export function ClientOrgTasks({ orgId, orgName, onCreateTask }: ClientOrgTasksP
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex gap-2">
-          <button
+          <Button
+            variant={filter === 'all' ? 'default' : 'outline'}
+            size="sm"
             onClick={() => setFilter('all')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              filter === 'all'
-                ? 'bg-brand-primary text-white'
-                : 'bg-white text-text-muted border border-neutral-border hover:bg-muted-DEFAULT'
-            }`}
           >
             All ({tasks.length})
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={filter === 'pending' ? 'default' : 'outline'}
+            size="sm"
             onClick={() => setFilter('pending')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              filter === 'pending'
-                ? 'bg-brand-primary text-white'
-                : 'bg-white text-text-muted border border-neutral-border hover:bg-muted-DEFAULT'
-            }`}
           >
             To Do ({tasksByStatus.pending})
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={filter === 'in_progress' ? 'default' : 'outline'}
+            size="sm"
             onClick={() => setFilter('in_progress')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              filter === 'in_progress'
-                ? 'bg-brand-primary text-white'
-                : 'bg-white text-text-muted border border-neutral-border hover:bg-muted-DEFAULT'
-            }`}
           >
             In Progress ({tasksByStatus.in_progress})
-          </button>
-          <button
+          </Button>
+          <Button
+            variant={filter === 'completed' ? 'default' : 'outline'}
+            size="sm"
             onClick={() => setFilter('completed')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-colors ${
-              filter === 'completed'
-                ? 'bg-brand-primary text-white'
-                : 'bg-white text-text-muted border border-neutral-border hover:bg-muted-DEFAULT'
-            }`}
           >
             Done ({tasksByStatus.completed})
-          </button>
+          </Button>
         </div>
         <Button size="sm" onClick={onCreateTask}>
           <Plus className="w-4 h-4 mr-1" />
@@ -159,7 +147,7 @@ export function ClientOrgTasks({ orgId, orgName, onCreateTask }: ClientOrgTasksP
       {/* Tasks List */}
       <div className="space-y-2 max-h-[400px] overflow-y-auto">
         {filteredTasks.length === 0 ? (
-          <div className="text-center py-8 text-text-muted">
+          <div className="text-center py-8 text-muted-foreground">
             <p className="text-sm">No tasks found</p>
           </div>
         ) : (
@@ -172,8 +160,8 @@ export function ClientOrgTasks({ orgId, orgName, onCreateTask }: ClientOrgTasksP
             return (
               <div
                 key={task.id}
-                className={`bg-white border rounded-lg p-3 hover:shadow-sm transition-shadow ${
-                  isOverdue ? 'border-state-error' : 'border-neutral-border'
+                className={`bg-card border rounded-lg p-3 hover:shadow-sm transition-shadow ${
+                  isOverdue ? 'border-destructive' : 'border-border'
                 }`}
               >
                 <div className="flex items-start justify-between gap-3">
@@ -183,45 +171,49 @@ export function ClientOrgTasks({ orgId, orgName, onCreateTask }: ClientOrgTasksP
                         {task.priority}
                       </span>
                       {isOverdue && (
-                        <span className="flex items-center text-xs text-state-error font-medium">
+                        <span className="flex items-center text-xs text-destructive font-medium">
                           <AlertCircle className="w-3 h-3 mr-1" />
                           Overdue
                         </span>
                       )}
                     </div>
-                    <h4 className="font-medium text-sm text-text-primary mb-1">
+                    <h4 className="font-medium text-sm text-foreground mb-1">
                       {task.title}
                     </h4>
                     {task.description && (
-                      <p className="text-xs text-text-muted line-clamp-2 mb-2">
+                      <p className="text-xs text-muted-foreground line-clamp-2 mb-2">
                         {task.description}
                       </p>
                     )}
-                    <div className="flex items-center gap-3 text-xs text-text-muted">
+                    <div className="flex items-center gap-3 text-xs text-muted-foreground">
                       {task.assigned_to_profile && (
                         <span>
                           Assigned to: {task.assigned_to_profile.full_name || task.assigned_to_profile.email}
                         </span>
                       )}
                       {task.due_date && (
-                        <span className={isOverdue ? 'text-state-error font-medium' : ''}>
+                        <span className={isOverdue ? 'text-destructive font-medium' : ''}>
                           Due {formatDistanceToNow(new Date(task.due_date), { addSuffix: true })}
                         </span>
                       )}
                     </div>
                   </div>
                   <div className="flex-shrink-0">
-                    <select
+                    <Select
                       value={task.status}
-                      onChange={(e) => handleStatusChange(task.id, e.target.value as TaskStatus)}
-                      className="text-xs px-2 py-1 border border-neutral-border rounded bg-white"
+                      onValueChange={(value) => handleStatusChange(task.id, value as TaskStatus)}
                     >
-                      {Object.entries(statusConfig).map(([status, config]) => (
-                        <option key={status} value={status}>
-                          {config.label}
-                        </option>
-                      ))}
-                    </select>
+                      <SelectTrigger className="h-7 w-auto text-xs">
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {Object.entries(statusConfig).map(([status, config]) => (
+                          <SelectItem key={status} value={status}>
+                            {config.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
                 </div>
               </div>

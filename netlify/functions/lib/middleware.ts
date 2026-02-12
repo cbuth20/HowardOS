@@ -8,13 +8,45 @@ export interface AuthContext {
     email?: string
   }
   profile: any
+  userOrgs: string[]           // All org IDs the user belongs to (from user_organizations)
   supabase: any
-  supabaseAdmin: any // Service role client without user JWT (bypasses RLS)
+  supabaseAdmin: any           // Service role client without user JWT (bypasses RLS)
 }
 
 export interface HandlerOptions {
   requireAuth?: boolean
   requireAdmin?: boolean
+  requireTeam?: boolean        // Requires admin, manager, or user role
+  requireRole?: string[]       // Requires one of the specified roles
+}
+
+// Role hierarchy helpers
+export function isTeamRole(role: string): boolean {
+  return ['admin', 'manager', 'user'].includes(role)
+}
+
+export function isAdminOrManagerRole(role: string): boolean {
+  return ['admin', 'manager'].includes(role)
+}
+
+/**
+ * Check if a user with the given role + allowed_org_ids can access a specific org
+ */
+export function canAccessOrg(
+  role: string,
+  allowedOrgIds: string[],
+  userOrgs: string[],
+  targetOrgId: string
+): boolean {
+  if (role === 'admin' || role === 'manager') return true
+  if (role === 'user') {
+    if (!allowedOrgIds || allowedOrgIds.length === 0) return true
+    return allowedOrgIds.includes(targetOrgId)
+  }
+  if (role === 'client') {
+    return userOrgs.includes(targetOrgId)
+  }
+  return false
 }
 
 /**
@@ -77,15 +109,37 @@ export function withMiddleware(
         return createErrorResponse(404, 'Profile not found', headers)
       }
 
-      // Admin check
-      if (options.requireAdmin && (profile as any)?.role !== 'admin') {
+      // Block client_no_access from all API access
+      if ((profile as any)?.role === 'client_no_access') {
+        return createErrorResponse(403, 'Account does not have API access', headers)
+      }
+
+      // Role checks
+      if (options.requireAdmin && !['admin'].includes((profile as any)?.role)) {
         return createErrorResponse(403, 'Admin access required', headers)
       }
+
+      if (options.requireTeam && !['admin', 'manager', 'user'].includes((profile as any)?.role)) {
+        return createErrorResponse(403, 'Team member access required', headers)
+      }
+
+      if (options.requireRole && !options.requireRole.includes((profile as any)?.role)) {
+        return createErrorResponse(403, `Required role: ${options.requireRole.join(' or ')}`, headers)
+      }
+
+      // Fetch user's org memberships
+      const { data: orgMemberships } = await (supabaseAdmin as any)
+        .from('user_organizations')
+        .select('org_id')
+        .eq('user_id', user!.id)
+
+      const userOrgs: string[] = (orgMemberships || []).map((m: any) => m.org_id)
 
       // Call handler with context
       const result = await handler(event, {
         user: user!,
         profile: profile! as any,
+        userOrgs,
         supabase: supabase as any,
         supabaseAdmin: supabaseAdmin as any,
       })

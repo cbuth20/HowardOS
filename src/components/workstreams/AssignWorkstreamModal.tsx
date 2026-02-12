@@ -4,8 +4,11 @@ import { useState, useEffect } from 'react'
 import { useAssignWorkstream } from '@/lib/api/hooks/useWorkstreams'
 import { WorkstreamTemplateWithVertical, WorkstreamStatus } from '@/types/entities'
 import { WorkstreamStatusBadge } from './WorkstreamStatusBadge'
-import { Button } from '@/components/ui/Button'
-import { Modal, ModalFooter } from '@/components/ui/Modal'
+import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Label } from '@/components/ui/label'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 
 interface AssignWorkstreamModalProps {
   isOpen: boolean
@@ -78,46 +81,48 @@ export function AssignWorkstreamModal({
   const isLoading = assignMutation.isPending
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={`Assign Workstream: ${template.name}`}
-      size="lg"
-    >
-      <form onSubmit={handleSubmit} className="space-y-4">
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader>
+          <DialogTitle>Assign Workstream: {template.name}</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {/* Organization Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Client Organization <span className="text-red-500">*</span>
-            </label>
-            <select
-              value={formData.org_id}
-              onChange={(e) =>
-                setFormData({ ...formData, org_id: e.target.value, point_person_id: '' })
+            </Label>
+            <Select
+              value={formData.org_id || undefined}
+              onValueChange={(value) =>
+                setFormData({ ...formData, org_id: value, point_person_id: '' })
               }
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
-              required
               disabled={isLoading}
+              required
             >
-              <option value="">Select an organization...</option>
-              {organizations.map((org) => (
-                <option key={org.id} value={org.id}>
-                  {org.name}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select an organization..." />
+              </SelectTrigger>
+              <SelectContent>
+                {organizations.map((org) => (
+                  <SelectItem key={org.id} value={org.id}>
+                    {org.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
 
           {/* Status Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+            <Label className="mb-2">
               Initial Status <span className="text-red-500">*</span>
-            </label>
+            </Label>
             <div className="space-y-2">
               {statusOptions.map((option) => (
                 <label
                   key={option.value}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 p-3 cursor-pointer hover:bg-gray-50"
+                  className="flex items-center gap-3 rounded-lg border border-border p-3 cursor-pointer hover:bg-secondary"
                 >
                   <input
                     type="radio"
@@ -127,13 +132,13 @@ export function AssignWorkstreamModal({
                     onChange={(e) =>
                       setFormData({ ...formData, status: e.target.value as WorkstreamStatus })
                     }
-                    className="h-4 w-4 text-blue-600"
+                    className="h-4 w-4 text-primary"
                     disabled={isLoading}
                   />
                   <WorkstreamStatusBadge status={option.value} size="md" />
                   <div className="flex-1">
-                    <div className="font-medium text-gray-900">{option.label}</div>
-                    <div className="text-xs text-gray-500">{option.description}</div>
+                    <div className="font-medium text-foreground">{option.label}</div>
+                    <div className="text-xs text-muted-foreground">{option.description}</div>
                   </div>
                 </label>
               ))}
@@ -142,24 +147,28 @@ export function AssignWorkstreamModal({
 
           {/* Point Person Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Point Person (Optional)
-            </label>
-            <select
-              value={formData.point_person_id}
-              onChange={(e) => setFormData({ ...formData, point_person_id: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none disabled:bg-gray-50"
+            </Label>
+            <Select
+              value={formData.point_person_id || '__none__'}
+              onValueChange={(value) => setFormData({ ...formData, point_person_id: value === '__none__' ? '' : value })}
               disabled={!formData.org_id || isLoading}
             >
-              <option value="">No point person</option>
-              {availableUsers.map((user) => (
-                <option key={user.id} value={user.id}>
-                  {user.full_name || user.id}
-                </option>
-              ))}
-            </select>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="No point person" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="__none__">No point person</SelectItem>
+                {availableUsers.map((user) => (
+                  <SelectItem key={user.id} value={user.id}>
+                    {user.full_name || user.id}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
             {!formData.org_id && (
-              <p className="text-xs text-gray-500 mt-1">
+              <p className="text-xs text-muted-foreground mt-1">
                 Select an organization first
               </p>
             )}
@@ -167,38 +176,37 @@ export function AssignWorkstreamModal({
 
           {/* Notes */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">
+            <Label className="mb-1">
               Notes (Optional)
-            </label>
-            <textarea
+            </Label>
+            <Textarea
               value={formData.notes}
               onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-              className="w-full rounded-lg border border-gray-300 px-3 py-2 focus:border-blue-500 focus:outline-none"
               placeholder="Add any notes about this assignment..."
               rows={3}
               disabled={isLoading}
             />
           </div>
 
-        {/* Actions */}
-        <ModalFooter>
-          <Button
-            type="button"
-            onClick={onClose}
-            variant="secondary"
-            disabled={isLoading}
-          >
-            Cancel
-          </Button>
-          <Button
-            type="submit"
-            variant="primary"
-            disabled={isLoading}
-          >
-            {isLoading ? 'Assigning...' : 'Assign Workstream'}
-          </Button>
-        </ModalFooter>
-      </form>
-    </Modal>
+          {/* Actions */}
+          <DialogFooter>
+            <Button
+              type="button"
+              onClick={onClose}
+              variant="outline"
+              disabled={isLoading}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="submit"
+              disabled={isLoading}
+            >
+              {isLoading ? 'Assigning...' : 'Assign Workstream'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
   )
 }

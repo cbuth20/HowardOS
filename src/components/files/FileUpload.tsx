@@ -3,9 +3,9 @@
 import { useState, useCallback } from 'react'
 import { useDropzone } from 'react-dropzone'
 import { Upload, X, FileIcon, Loader2 } from 'lucide-react'
-import { Button } from '@/components/ui/Button'
+import { Button } from '@/components/ui/button'
 import { getAuthHeaders } from '@/lib/utils/auth-fetch'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 interface FileUploadProps {
   folderPath?: string
@@ -91,22 +91,22 @@ export function FileUpload({ folderPath = '/', channelId, onUploadComplete }: Fi
       {/* Dropzone */}
       <div
         {...getRootProps()}
-        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors bg-white ${
+        className={`border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors bg-card ${
           isDragActive
-            ? 'border-brand-primary bg-brand-primary/10'
-            : 'border-neutral-border hover:border-brand-primary'
+            ? 'border-primary bg-primary/10'
+            : 'border-border hover:border-primary'
         }`}
       >
         <input {...getInputProps()} />
-        <Upload className="w-12 h-12 mx-auto mb-4 text-brand-primary" />
+        <Upload className="w-12 h-12 mx-auto mb-4 text-primary" />
         {isDragActive ? (
-          <p className="text-brand-primary font-medium">Drop files here...</p>
+          <p className="text-primary font-medium">Drop files here...</p>
         ) : (
           <>
-            <p className="text-text-primary font-medium mb-2">
+            <p className="text-foreground font-medium mb-2">
               Drag & drop files here, or click to select
             </p>
-            <p className="text-text-muted text-sm">
+            <p className="text-muted-foreground text-sm">
               Maximum file size: 50MB
             </p>
           </>
@@ -116,33 +116,35 @@ export function FileUpload({ folderPath = '/', channelId, onUploadComplete }: Fi
       {/* Selected Files */}
       {selectedFiles.length > 0 && (
         <div className="space-y-2">
-          <h4 className="font-medium text-text-primary">
+          <h4 className="font-medium text-foreground">
             Selected Files ({selectedFiles.length})
           </h4>
           <div className="space-y-2">
             {selectedFiles.map((file, index) => (
               <div
                 key={index}
-                className="flex items-center justify-between p-3 bg-neutral-cream rounded-lg"
+                className="flex items-center justify-between p-3 bg-secondary rounded-lg"
               >
                 <div className="flex items-center gap-3 flex-1 min-w-0">
-                  <FileIcon className="w-5 h-5 text-brand-navy flex-shrink-0" />
+                  <FileIcon className="w-5 h-5 text-foreground flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-sm font-medium text-text-primary truncate">
+                    <p className="text-sm font-medium text-foreground truncate">
                       {file.name}
                     </p>
-                    <p className="text-xs text-text-muted">
+                    <p className="text-xs text-muted-foreground">
                       {formatFileSize(file.size)}
                     </p>
                   </div>
                 </div>
-                <button
+                <Button
+                  variant="ghost"
+                  size="icon"
                   onClick={() => removeFile(index)}
-                  className="p-1 hover:bg-background-DEFAULT rounded transition-colors"
                   disabled={uploading}
+                  className="h-7 w-7"
                 >
-                  <X className="w-4 h-4 text-text-muted" />
-                </button>
+                  <X className="w-4 h-4 text-muted-foreground" />
+                </Button>
               </div>
             ))}
           </div>
@@ -157,7 +159,6 @@ export function FileUpload({ folderPath = '/', channelId, onUploadComplete }: Fi
               Clear All
             </Button>
             <Button
-              variant="primary"
               onClick={uploadFiles}
               disabled={uploading}
             >

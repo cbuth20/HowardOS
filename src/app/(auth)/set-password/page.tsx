@@ -3,9 +3,11 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Button } from '@/components/ui/Button'
-import { Input } from '@/components/ui/Input'
-import { HowardLogo } from '@/components/ui/HowardLogo'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
+import { HowardLogo } from '@/components/ui/howard-logo'
 import { Loader2, Eye, EyeOff } from 'lucide-react'
 
 export default function SetPasswordPage() {
@@ -121,160 +123,154 @@ export default function SetPasswordPage() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-background-subtle">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-brand-primary"></div>
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary"></div>
       </div>
     )
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-background-subtle">
+    <div className="min-h-screen flex items-center justify-center bg-background">
       <div className="w-full max-w-md">
-        <div className="bg-background-card rounded-lg shadow-xl border border-neutral-border p-8">
-          {/* Logo/Header */}
-          <div className="flex flex-col items-center mb-8">
+        <Card className="shadow-lg">
+          <CardHeader className="flex flex-col items-center">
             <HowardLogo variant="full" showText={false} className="mb-4" />
-            <h1 className="text-2xl font-bold text-brand-navy">Activate your account</h1>
-            <p className="text-text-muted mt-2 text-center">
+            <CardTitle className="text-2xl font-serif italic text-foreground">Activate your account</CardTitle>
+            <CardDescription className="mt-2 text-center">
               Set a password to complete your account setup
-            </p>
-          </div>
+            </CardDescription>
+          </CardHeader>
 
-          {/* Message */}
-          {message && (
-            <div
-              className={`mb-4 p-3 rounded-md text-sm ${
-                message.type === 'error'
-                  ? 'bg-state-error/10 text-state-error'
-                  : 'bg-state-success/10 text-state-success'
-              }`}
-            >
-              {message.text}
-            </div>
-          )}
-
-          {/* Setup Form */}
-          <form onSubmit={handleSubmit}>
-            <div className="space-y-4">
-              {/* Email (read-only) */}
-              <div>
-                <label htmlFor="email" className="block text-sm font-medium mb-2">
-                  Email
-                </label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  disabled
-                  className="bg-background-elevated"
-                />
-              </div>
-
-              {/* Password */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium mb-2">
-                  Set a password
-                </label>
-                <div className="relative">
-                  <Input
-                    id="password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Enter your password"
-                    required
-                    disabled={submitting}
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-                  >
-                    {showPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-                <p className="text-xs text-text-muted mt-1">
-                  Must be at least 8 characters
-                </p>
-              </div>
-
-              {/* Confirm Password */}
-              <div>
-                <label htmlFor="confirmPassword" className="block text-sm font-medium mb-2">
-                  Confirm password
-                </label>
-                <div className="relative">
-                  <Input
-                    id="confirmPassword"
-                    type={showConfirmPassword ? 'text' : 'password'}
-                    value={confirmPassword}
-                    onChange={(e) => setConfirmPassword(e.target.value)}
-                    placeholder="Confirm your password"
-                    required
-                    disabled={submitting}
-                    minLength={8}
-                  />
-                  <button
-                    type="button"
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-text-muted hover:text-text-primary"
-                  >
-                    {showConfirmPassword ? (
-                      <EyeOff className="w-4 h-4" />
-                    ) : (
-                      <Eye className="w-4 h-4" />
-                    )}
-                  </button>
-                </div>
-              </div>
-
-              {/* Submit Button */}
-              <Button
-                type="submit"
-                variant="secondary"
-                disabled={submitting}
-                className="w-full"
+          <CardContent>
+            {/* Message */}
+            {message && (
+              <div
+                className={`mb-4 p-3 rounded-md text-sm ${
+                  message.type === 'error'
+                    ? 'bg-destructive/10 text-destructive'
+                    : 'bg-primary/10 text-primary'
+                }`}
               >
-                {submitting ? (
-                  <>
-                    <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                    Activating account...
-                  </>
-                ) : (
-                  'Activate account'
-                )}
-              </Button>
+                {message.text}
+              </div>
+            )}
+
+            {/* Setup Form */}
+            <form onSubmit={handleSubmit}>
+              <div className="space-y-4">
+                {/* Email (read-only) */}
+                <div className="space-y-2">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={email}
+                    disabled
+                    className="bg-secondary"
+                  />
+                </div>
+
+                {/* Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="password">Set a password</Label>
+                  <div className="relative">
+                    <Input
+                      id="password"
+                      type={showPassword ? 'text' : 'password'}
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      placeholder="Enter your password"
+                      required
+                      disabled={submitting}
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    Must be at least 8 characters
+                  </p>
+                </div>
+
+                {/* Confirm Password */}
+                <div className="space-y-2">
+                  <Label htmlFor="confirmPassword">Confirm password</Label>
+                  <div className="relative">
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                      placeholder="Confirm your password"
+                      required
+                      disabled={submitting}
+                      minLength={8}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="w-4 h-4" />
+                      ) : (
+                        <Eye className="w-4 h-4" />
+                      )}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Submit Button */}
+                <Button
+                  type="submit"
+                  disabled={submitting}
+                  className="w-full"
+                >
+                  {submitting ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Activating account...
+                    </>
+                  ) : (
+                    'Activate account'
+                  )}
+                </Button>
+              </div>
+            </form>
+
+            {/* Footer */}
+            <div className="mt-6 text-center">
+              <p className="text-xs text-muted-foreground">
+                By activating your account, you agree to our{' '}
+                <a href="#" className="text-primary hover:underline">
+                  Terms of Service
+                </a>{' '}
+                and{' '}
+                <a href="#" className="text-primary hover:underline">
+                  Privacy Policy
+                </a>
+              </p>
             </div>
-          </form>
 
-          {/* Footer */}
-          <div className="mt-6 text-center">
-            <p className="text-xs text-text-muted">
-              By activating your account, you agree to our{' '}
-              <a href="#" className="text-brand-primary hover:underline">
-                Terms of Service
-              </a>{' '}
-              and{' '}
-              <a href="#" className="text-brand-primary hover:underline">
-                Privacy Policy
+            <div className="mt-4 text-center">
+              <a
+                href="/login"
+                className="text-sm text-muted-foreground hover:text-foreground"
+              >
+                Already have an account?
               </a>
-            </p>
-          </div>
-
-          <div className="mt-4 text-center">
-            <a
-              href="/login"
-              className="text-sm text-text-muted hover:text-text-primary"
-            >
-              Already have an account?
-            </a>
-          </div>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   )

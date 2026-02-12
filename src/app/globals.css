@@ -4,76 +4,68 @@
 
 @layer base {
   :root {
-    /* Howard Brand Colors */
-    --brand-primary: #758C7C;      /* Sage green */
-    --brand-navy: #465352;         /* Dark teal-gray */
-    --brand-sage: #758C7C;         /* Sage green */
-    --brand-slate: #8A9DAA;        /* Slate blue */
-    --brand-terracotta: #D3986F;   /* Terracotta/tan */
+    /* Howard Brand – shadcn HSL variable system */
+    --background: 40 33% 95%;          /* #F6F4F0 Parchment */
+    --foreground: 60 4% 7%;            /* #111110 Ink */
 
-    /* Neutral colors - Enhanced */
-    --neutral-black: #101010;
-    --neutral-white: #FFFFFF;
-    --neutral-cream: #FBF4EA;      /* Howard cream */
-    --neutral-border: #E0E0E0;
-    --neutral-border-dark: #C4C4C4;
+    --card: 0 0% 100%;                 /* #FFFFFF White - stands out on parchment */
+    --card-foreground: 60 4% 7%;       /* #111110 Ink */
 
-    /* Accent colors */
-    --accent-sage: #758C7C;        /* Sage green */
-    --accent-slate: #8A9DAA;       /* Slate blue */
-    --accent-terracotta: #D3986F;  /* Terracotta */
+    --popover: 0 0% 100%;              /* #FFFFFF White */
+    --popover-foreground: 60 4% 7%;    /* #111110 Ink */
 
-    /* Action colors (for buttons and CTAs) */
-    --action-primary: #5A8A6A;     /* Deep sage for primary actions */
-    --action-primary-hover: #4F7A5E; /* Darker sage for hover */
+    --primary: 155 36% 17%;            /* #1B3A2D Evergreen */
+    --primary-foreground: 40 33% 95%;  /* #F6F4F0 Parchment */
 
-    /* Semantic colors - Enhanced */
-    --bg-default: var(--neutral-white);
-    --bg-subtle: var(--neutral-cream);
-    --bg-overlay: rgba(16, 16, 16, 0.6);
+    --secondary: 40 20% 97%;           /* Lighter than Stone - subtle backgrounds */
+    --secondary-foreground: 60 4% 7%;  /* #111110 Ink */
 
-    --text-primary: var(--brand-navy);
-    --text-secondary: #5A6868;
-    --text-muted: var(--brand-slate);
-    --text-inverse: var(--neutral-white);
+    --muted: 37 20% 91%;               /* #EDEAE4 Stone */
+    --muted-foreground: 60 3% 41%;     /* #6B6B66 Slate */
 
-    --state-success: var(--brand-sage);
-    --state-success-light: #E8F0ED;
-    --state-warning: var(--brand-terracotta);
-    --state-warning-light: #F9F1E8;
-    --state-error: #C85A54;
-    --state-error-light: #F9E8E7;
-    --state-info: var(--brand-slate);
-    --state-info-light: #EEF1F4;
+    --accent: 155 36% 17%;             /* #1B3A2D Evergreen */
+    --accent-foreground: 40 33% 95%;   /* #F6F4F0 Parchment */
 
-    /* Border radius */
-    --radius: 0.5rem;
-    --radius-lg: 0.75rem;
-    --radius-xl: 1rem;
+    --destructive: 4 32% 51%;          /* muted red */
+    --destructive-foreground: 40 33% 95%;
 
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-    --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
-    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-    --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
-    --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+    --border: 37 8% 81%;               /* #D4D0C8 Ash */
+    --input: 37 8% 81%;                /* #D4D0C8 Ash */
+    --ring: 155 36% 17%;               /* #1B3A2D Evergreen */
+    --radius: 0.75rem;                 /* 12px per brand book */
+
+    /* Chart colors */
+    --chart-1: 155 36% 17%;
+    --chart-2: 155 29% 23%;
+    --chart-3: 37 20% 91%;
+    --chart-4: 60 3% 41%;
+    --chart-5: 37 8% 81%;
+
+    /* Sidebar (matches main theme) */
+    --sidebar-background: 60 4% 7%;          /* Ink */
+    --sidebar-foreground: 40 33% 95%;        /* Parchment */
+    --sidebar-primary: 155 36% 17%;          /* Evergreen */
+    --sidebar-primary-foreground: 40 33% 95%;
+    --sidebar-accent: 60 4% 10%;             /* Charcoal-ish */
+    --sidebar-accent-foreground: 40 33% 95%;
+    --sidebar-border: 60 3% 20%;
+    --sidebar-ring: 155 36% 17%;
   }
 
   * {
-    @apply border-neutral-border;
+    @apply border-border;
   }
 
   body {
-    @apply bg-background-subtle text-text-primary;
+    @apply bg-background text-foreground;
     font-feature-settings: "rlig" 1, "calt" 1;
-    font-weight: 300; /* Roboto Light */
+    font-weight: 400;
   }
 
   h1, h2, h3, h4, h5, h6 {
-    @apply font-serif font-semibold;
+    @apply font-sans font-semibold;
   }
 
-  /* Specific heading styles */
   h1 {
     @apply text-4xl;
   }

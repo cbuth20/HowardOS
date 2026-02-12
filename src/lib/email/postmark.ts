@@ -21,7 +21,7 @@ export interface InvitationEmailParams {
   to: string
   inviteLink: string
   fullName: string
-  role: 'admin' | 'client'
+  role: string
   inviterName: string
 }
 
@@ -183,17 +183,17 @@ export async function sendInvitationEmail({
                           Hi ${fullName},
                         </p>
                         <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
-                          ${inviterName} has invited you to join HowardOS as ${role === 'admin' ? 'an administrator' : 'a client'}.
+                          ${inviterName} has invited you to join HowardOS as ${{admin: 'an administrator', manager: 'a manager', user: 'a team member', client: 'a client', client_no_access: 'a contact'}[role] || 'a member'}.
                           Click the button below to accept your invitation and set up your account.
                         </p>
 
                         <!-- Role Badge -->
-                        <div style="margin: 0 0 24px 0; padding: 12px; background-color: ${role === 'admin' ? '#0A2540' : '#64748b'}15; border-radius: 8px; border-left: 4px solid ${role === 'admin' ? '#0A2540' : '#64748b'};">
+                        <div style="margin: 0 0 24px 0; padding: 12px; background-color: ${['admin', 'manager'].includes(role) ? '#0A2540' : '#64748b'}15; border-radius: 8px; border-left: 4px solid ${['admin', 'manager'].includes(role) ? '#0A2540' : '#64748b'};">
                           <p style="margin: 0; color: #475569; font-size: 14px;">
-                            <strong style="color: ${role === 'admin' ? '#0A2540' : '#64748b'};">Your Role:</strong> ${role === 'admin' ? 'Administrator' : 'Client'}
+                            <strong style="color: ${['admin', 'manager'].includes(role) ? '#0A2540' : '#64748b'};">Your Role:</strong> ${{admin: 'Administrator', manager: 'Manager', user: 'Team Member', client: 'Client', client_no_access: 'Contact'}[role] || role}
                           </p>
                           <p style="margin: 8px 0 0 0; color: #64748b; font-size: 13px;">
-                            ${role === 'admin'
+                            ${['admin', 'manager'].includes(role)
                               ? 'You have full access to manage users, files, tasks, and settings.'
                               : 'You can view and manage your files, tasks, and collaborate with your team.'}
                           </p>
@@ -351,6 +351,74 @@ export async function sendFileNotificationEmail({
     return { success: true, data: result }
   } catch (error) {
     console.error('Error sending file notification email:', error)
+    throw error
+  }
+}
+
+// =====================================================
+// Task Notification Emails
+// =====================================================
+
+export interface TaskNotificationEmailParams {
+  to: string
+  recipientName: string
+  actorName: string
+  taskTitle: string
+  taskUrl: string
+  message: string
+  type: 'assigned' | 'status_changed' | 'comment' | 'mention'
+}
+
+const taskNotificationSubjects: Record<string, string> = {
+  assigned: 'Task assigned to you',
+  status_changed: 'Task status updated',
+  comment: 'New comment on task',
+  mention: 'You were mentioned in a comment',
+}
+
+export async function sendTaskNotificationEmail({
+  to,
+  recipientName,
+  actorName,
+  taskTitle,
+  taskUrl,
+  message,
+  type,
+}: TaskNotificationEmailParams) {
+  try {
+    const fromEmail = process.env.POSTMARK_FROM_EMAIL || 'no-reply@howard-finance.com'
+    const subject = `${taskNotificationSubjects[type]} — ${taskTitle}`
+
+    const result = await client.sendEmail({
+      From: `HowardOS <${fromEmail}>`,
+      To: to,
+      Subject: subject,
+      HtmlBody: `
+        <div style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; max-width: 560px; margin: 0 auto; padding: 32px 24px;">
+          <div style="border-bottom: 2px solid #0A2540; padding-bottom: 16px; margin-bottom: 24px;">
+            <h2 style="margin: 0; color: #0A2540; font-size: 18px;">HowardOS</h2>
+          </div>
+          <p style="margin: 0 0 8px 0; color: #475569; font-size: 15px;">Hi ${recipientName},</p>
+          <p style="margin: 0 0 20px 0; color: #475569; font-size: 15px;">
+            <strong>${actorName}</strong> ${message}
+          </p>
+          <div style="background: #F8FAFC; border-left: 4px solid #0A2540; padding: 12px 16px; margin: 0 0 24px 0; border-radius: 0 8px 8px 0;">
+            <p style="margin: 0; font-weight: 600; color: #0F172A; font-size: 15px;">${taskTitle}</p>
+          </div>
+          <a href="${taskUrl}" style="display: inline-block; background: #0A2540; color: white; padding: 10px 24px; border-radius: 6px; text-decoration: none; font-size: 14px; font-weight: 500;">
+            View Task
+          </a>
+          <p style="margin: 24px 0 0 0; color: #94A3B8; font-size: 12px;">
+            You can manage your notification preferences in Settings.
+          </p>
+        </div>
+      `,
+      MessageStream: 'outbound',
+    })
+
+    return { success: true, data: result }
+  } catch (error) {
+    console.error('Error sending task notification email:', error)
     throw error
   }
 }

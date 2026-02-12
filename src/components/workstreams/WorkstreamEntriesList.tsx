@@ -1,7 +1,10 @@
 'use client'
 
 import React, { useState } from 'react'
-import { ChevronDown, ChevronRight, Edit2, Trash2, Clock, User, Package } from 'lucide-react'
+import { ChevronDown, ChevronRight, Edit2, Trash2, Clock, User, Package, FileText } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Badge } from '@/components/ui/badge'
 import {
   WorkstreamEntryWithDetails,
   WorkstreamVertical,
@@ -32,38 +35,27 @@ export function WorkstreamEntriesList({
   onStatusChange,
   emptyMessage = 'No entries yet',
 }: WorkstreamEntriesListProps) {
-  // Track which verticals are expanded (default all expanded)
-  const [expandedVerticals, setExpandedVerticals] = useState<Set<string>>(
-    new Set(verticals.map((v) => v.id))
-  )
-  // Track which entry rows are expanded for details
+  const [collapsedVerticals, setCollapsedVerticals] = useState<Set<string>>(new Set())
   const [expandedEntries, setExpandedEntries] = useState<Set<string>>(new Set())
 
-  const toggleVertical = (verticalId: string) => {
-    setExpandedVerticals((prev) => {
+  const toggleVertical = (id: string) => {
+    setCollapsedVerticals((prev) => {
       const next = new Set(prev)
-      if (next.has(verticalId)) {
-        next.delete(verticalId)
-      } else {
-        next.add(verticalId)
-      }
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
-  const toggleEntry = (entryId: string) => {
+  const toggleEntry = (id: string) => {
     setExpandedEntries((prev) => {
       const next = new Set(prev)
-      if (next.has(entryId)) {
-        next.delete(entryId)
-      } else {
-        next.add(entryId)
-      }
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
       return next
     })
   }
 
-  // Group entries by vertical
   const entriesByVertical = entries.reduce((acc, entry) => {
     const verticalId = entry.vertical_id || 'uncategorized'
     if (!acc[verticalId]) acc[verticalId] = []
@@ -71,260 +63,202 @@ export function WorkstreamEntriesList({
     return acc
   }, {} as Record<string, WorkstreamEntryWithDetails[]>)
 
-  // Get rollup for a vertical
-  const getRollup = (verticalId: string) => {
-    return verticalRollups.find((r) => r.vertical_id === verticalId)
-  }
+  const getRollup = (verticalId: string) =>
+    verticalRollups.find((r) => r.vertical_id === verticalId)
 
   if (entries.length === 0) {
     return (
-      <div className="text-center py-12 text-text-muted border border-dashed rounded-lg">
-        <p className="text-lg font-medium text-text-primary">{emptyMessage}</p>
+      <div className="text-center py-12 text-muted-foreground border border-dashed rounded-lg">
+        <p className="text-lg font-medium text-foreground">{emptyMessage}</p>
       </div>
     )
   }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-3">
       {verticals.map((vertical) => {
         const verticalEntries = entriesByVertical[vertical.id] || []
-        const isVerticalExpanded = expandedVerticals.has(vertical.id)
         const rollup = getRollup(vertical.id)
-
-        // Skip verticals with no entries
         if (verticalEntries.length === 0) return null
 
+        const isCollapsed = collapsedVerticals.has(vertical.id)
+
         return (
-          <div key={vertical.id} className="border border-gray-200 rounded-lg overflow-hidden shadow-sm bg-white">
+          <div key={vertical.id} className="border border-border rounded-lg overflow-hidden bg-card">
             {/* Vertical Header */}
             <button
               onClick={() => toggleVertical(vertical.id)}
-              className="w-full bg-gray-50 hover:bg-gray-100 transition-colors px-5 py-4 flex items-center justify-between"
+              className="w-full bg-secondary/60 hover:bg-secondary/80 transition-colors px-4 py-3 flex items-center justify-between"
             >
-              <div className="flex items-center gap-3">
-                {isVerticalExpanded ? (
-                  <ChevronDown className="h-4 w-4 text-gray-500" />
+              <div className="flex items-center gap-2.5">
+                {isCollapsed ? (
+                  <ChevronRight className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 ) : (
-                  <ChevronRight className="h-4 w-4 text-gray-500" />
+                  <ChevronDown className="h-4 w-4 text-muted-foreground flex-shrink-0" />
                 )}
-
                 <div
-                  className="h-6 w-1 rounded"
+                  className="h-5 w-1 rounded-full flex-shrink-0"
                   style={{ backgroundColor: vertical.color || '#3B82F6' }}
                 />
-
                 <div className="text-left">
-                  <h4 className="font-semibold text-gray-900">{vertical.name}</h4>
+                  <h4 className="font-semibold text-sm text-foreground">{vertical.name}</h4>
                   {vertical.description && (
-                    <p className="text-xs text-gray-500">{vertical.description}</p>
+                    <p className="text-xs text-muted-foreground">{vertical.description}</p>
                   )}
                 </div>
               </div>
-
-              {/* Rollup Badge */}
-              <div className="flex items-center gap-3">
-                {rollup && <VerticalStatusBadge rollup={rollup} showCounts={true} />}
-              </div>
+              {rollup && <VerticalStatusBadge rollup={rollup} showCounts={true} />}
             </button>
 
-            {/* Entries Table */}
-            {isVerticalExpanded && (
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead className="bg-gray-50/50 border-t border-gray-200">
-                    <tr>
-                      <th className="w-10 px-3"></th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Status
-                      </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Name
-                      </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Timing
-                      </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Point Person
-                      </th>
-                      <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider">
-                        Software
-                      </th>
-                      {isAdmin && (
-                        <th className="text-right px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wider w-28">
-                          Actions
-                        </th>
-                      )}
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-100">
-                    {verticalEntries.map((entry) => {
-                      const isEntryExpanded = expandedEntries.has(entry.id)
+            {/* Entries */}
+            {!isCollapsed && (
+              <div className="divide-y divide-border">
+                {verticalEntries.map((entry) => {
+                  const isExpanded = expandedEntries.has(entry.id)
 
-                      return (
-                        <React.Fragment key={entry.id}>
-                          {/* Main Row */}
-                          <tr
-                            className="hover:bg-gray-50/80 transition-colors cursor-pointer"
-                            onClick={() => toggleEntry(entry.id)}
-                          >
-                            <td className="px-3 py-4">
-                              {isEntryExpanded ? (
-                                <ChevronDown className="h-4 w-4 text-gray-500" />
-                              ) : (
-                                <ChevronRight className="h-4 w-4 text-gray-400" />
-                              )}
-                            </td>
-                            <td className="px-4 py-4" onClick={(e) => e.stopPropagation()}>
-                              {isAdmin && onStatusChange ? (
-                                <select
-                                  value={entry.status}
-                                  onChange={(e) =>
-                                    onStatusChange(entry, e.target.value as WorkstreamStatus)
-                                  }
-                                  className="text-xs rounded-md border border-gray-300 font-medium cursor-pointer focus:ring-2 focus:ring-brand-primary focus:border-brand-primary px-2.5 py-1.5 bg-white hover:border-gray-400 transition-colors"
-                                >
-                                  <option value="green">🟢 Green</option>
-                                  <option value="yellow">🟡 Yellow</option>
-                                  <option value="red">🔴 Red</option>
-                                </select>
-                              ) : (
+                  return (
+                    <div key={entry.id}>
+                      {/* Entry Row */}
+                      <div
+                        className="flex items-center gap-3 px-4 py-2.5 hover:bg-secondary/30 cursor-pointer transition-colors"
+                        onClick={() => toggleEntry(entry.id)}
+                      >
+                        {/* Status dot */}
+                        <div className="flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                          {isAdmin && onStatusChange ? (
+                            <Select
+                              value={entry.status}
+                              onValueChange={(value) => onStatusChange(entry, value as WorkstreamStatus)}
+                            >
+                              <SelectTrigger className="h-auto text-xs px-2 py-1 w-auto border-0 bg-transparent shadow-none">
                                 <WorkstreamStatusBadge status={entry.status} size="sm" showLabel={false} />
-                              )}
-                            </td>
-                            <td className="px-4 py-4">
-                              <div className="font-medium text-gray-900 text-sm">{entry.name}</div>
-                            </td>
-                            <td className="px-4 py-4">
-                              {entry.timing ? (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-gray-100 text-gray-800">
-                                  {entry.timing}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-gray-400">-</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-4">
-                              {entry.point_person ? (
-                                <div className="text-sm text-gray-900">
-                                  {entry.point_person.full_name}
-                                </div>
-                              ) : (
-                                <span className="text-sm text-gray-400">Unassigned</span>
-                              )}
-                            </td>
-                            <td className="px-4 py-4">
-                              {entry.associated_software ? (
-                                <span className="inline-flex items-center px-2.5 py-1 rounded-md text-xs font-medium bg-blue-50 text-blue-700 border border-blue-100">
-                                  {entry.associated_software}
-                                </span>
-                              ) : (
-                                <span className="text-sm text-gray-400">-</span>
-                              )}
-                            </td>
-                            {isAdmin && (
-                              <td className="px-4 py-4 text-right" onClick={(e) => e.stopPropagation()}>
-                                <div className="flex items-center justify-end gap-1.5">
-                                  {onEditEntry && (
-                                    <button
-                                      onClick={() => onEditEntry(entry)}
-                                      className="p-2 rounded-md hover:bg-gray-100 transition-colors"
-                                      title="Edit entry"
-                                    >
-                                      <Edit2 className="h-4 w-4 text-gray-600" />
-                                    </button>
-                                  )}
-                                  {onDeleteEntry && (
-                                    <button
-                                      onClick={() => onDeleteEntry(entry)}
-                                      className="p-2 rounded-md hover:bg-red-50 transition-colors"
-                                      title="Delete entry"
-                                    >
-                                      <Trash2 className="h-4 w-4 text-red-600" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            )}
-                          </tr>
-
-                          {/* Expanded Details Row */}
-                          {isEntryExpanded && (
-                            <tr className="bg-gray-50/50 border-t border-gray-200">
-                              <td className="px-3"></td>
-                              <td colSpan={isAdmin ? 6 : 5} className="px-4 py-5">
-                                <div className="space-y-4 text-sm">
-                                  {/* Description */}
-                                  {entry.description && (
-                                    <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
-                                        Description
-                                      </h5>
-                                      <p className="text-gray-600 leading-relaxed">{entry.description}</p>
-                                    </div>
-                                  )}
-
-                                  {/* Notes */}
-                                  {entry.notes && (
-                                    <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
-                                        Notes
-                                      </h5>
-                                      <p className="text-gray-600 bg-white rounded-lg p-3 border border-gray-200 leading-relaxed">
-                                        {entry.notes}
-                                      </p>
-                                    </div>
-                                  )}
-
-                                  {/* SOP */}
-                                  {entry.custom_sop && (
-                                    <div>
-                                      <h5 className="text-xs font-semibold text-gray-700 uppercase tracking-wide mb-2">
-                                        Standard Operating Procedure
-                                      </h5>
-                                      <div className="text-gray-600 bg-white rounded-lg p-3 border border-gray-200 max-h-48 overflow-y-auto">
-                                        {typeof entry.custom_sop === 'string' ? (
-                                          <p className="whitespace-pre-wrap leading-relaxed">{entry.custom_sop}</p>
-                                        ) : (
-                                          <pre className="text-xs font-mono">
-                                            {JSON.stringify(entry.custom_sop, null, 2)}
-                                          </pre>
-                                        )}
-                                      </div>
-                                    </div>
-                                  )}
-
-                                  {/* Metadata */}
-                                  <div className="flex flex-wrap gap-4 text-xs text-gray-500 pt-3 border-t border-gray-200">
-                                    {entry.template && (
-                                      <div>
-                                        Created from template:{' '}
-                                        <span className="font-medium text-gray-700">
-                                          {entry.template.name}
-                                        </span>
-                                      </div>
-                                    )}
-                                    <div>
-                                      Created:{' '}
-                                      <span className="font-medium text-gray-700">
-                                        {new Date(entry.created_at).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                    <div>
-                                      Updated:{' '}
-                                      <span className="font-medium text-gray-700">
-                                        {new Date(entry.updated_at).toLocaleDateString()}
-                                      </span>
-                                    </div>
-                                  </div>
-                                </div>
-                              </td>
-                            </tr>
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="green">Active</SelectItem>
+                                <SelectItem value="yellow">Resolving</SelectItem>
+                                <SelectItem value="red">Blocked</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          ) : (
+                            <WorkstreamStatusBadge status={entry.status} size="sm" showLabel={false} />
                           )}
-                        </React.Fragment>
-                      )
-                    })}
-                  </tbody>
-                </table>
+                        </div>
+
+                        {/* Name */}
+                        <div className="flex-1 min-w-0">
+                          <span className="text-sm font-medium text-foreground">{entry.name}</span>
+                        </div>
+
+                        {/* Inline metadata pills */}
+                        <div className="hidden sm:flex items-center gap-1.5 flex-shrink-0">
+                          {entry.timing && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-foreground/70">
+                              {entry.timing}
+                            </span>
+                          )}
+                          {entry.point_person && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-secondary text-foreground/70 max-w-[120px] truncate">
+                              {entry.point_person.full_name}
+                            </span>
+                          )}
+                          {entry.associated_software && (
+                            <span className="text-[11px] px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-100">
+                              {entry.associated_software}
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Actions */}
+                        {isAdmin && (
+                          <div className="flex items-center gap-0.5 flex-shrink-0" onClick={(e) => e.stopPropagation()}>
+                            {onEditEntry && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onEditEntry(entry)}>
+                                <Edit2 className="h-3.5 w-3.5 text-foreground/60" />
+                              </Button>
+                            )}
+                            {onDeleteEntry && (
+                              <Button variant="ghost" size="icon" className="h-7 w-7 hover:bg-red-50" onClick={() => onDeleteEntry(entry)}>
+                                <Trash2 className="h-3.5 w-3.5 text-red-500" />
+                              </Button>
+                            )}
+                          </div>
+                        )}
+
+                        {/* Expand chevron */}
+                        {isExpanded ? (
+                          <ChevronDown className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        ) : (
+                          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground flex-shrink-0" />
+                        )}
+                      </div>
+
+                      {/* Expanded Details */}
+                      {isExpanded && (
+                        <div className="px-4 pb-3 pt-1 ml-9 border-primary/15 ml-[2.1rem]">
+                          {/* Mobile metadata (hidden on desktop) */}
+                          <div className="flex flex-wrap gap-1.5 mb-3 sm:hidden">
+                            {entry.timing && (
+                              <Badge variant="secondary" className="gap-1 text-xs">
+                                <Clock className="h-3 w-3" />{entry.timing}
+                              </Badge>
+                            )}
+                            {entry.point_person ? (
+                              <Badge variant="outline" className="gap-1 text-xs">
+                                <User className="h-3 w-3" />{entry.point_person.full_name}
+                              </Badge>
+                            ) : (
+                              <Badge variant="outline" className="gap-1 text-xs text-muted-foreground">
+                                <User className="h-3 w-3" />Unassigned
+                              </Badge>
+                            )}
+                            {entry.associated_software && (
+                              <Badge variant="outline" className="gap-1 text-xs bg-blue-50 text-blue-700 border-blue-200">
+                                <Package className="h-3 w-3" />{entry.associated_software}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="space-y-3 text-sm">
+                            {entry.description && (
+                              <div>
+                                <h6 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Description</h6>
+                                <p className="text-foreground/80 leading-relaxed">{entry.description}</p>
+                              </div>
+                            )}
+                            {entry.notes && (
+                              <div>
+                                <h6 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">Notes</h6>
+                                <p className="text-foreground/80 bg-secondary/30 rounded p-2.5 leading-relaxed">{entry.notes}</p>
+                              </div>
+                            )}
+                            {entry.custom_sop && (
+                              <div>
+                                <h6 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-1">SOP</h6>
+                                <div className="text-foreground/80 bg-secondary/30 rounded p-2.5 max-h-40 overflow-y-auto">
+                                  {typeof entry.custom_sop === 'string' ? (
+                                    <p className="whitespace-pre-wrap leading-relaxed">{entry.custom_sop}</p>
+                                  ) : (
+                                    <pre className="text-xs font-mono">{JSON.stringify(entry.custom_sop, null, 2)}</pre>
+                                  )}
+                                </div>
+                              </div>
+                            )}
+                            {!entry.description && !entry.notes && !entry.custom_sop && (
+                              <p className="text-xs text-muted-foreground italic">No additional details</p>
+                            )}
+                            <div className="flex flex-wrap gap-3 text-[11px] text-muted-foreground pt-2">
+                              {entry.template && (
+                                <span>From: <span className="font-medium text-foreground/70">{entry.template.name}</span></span>
+                              )}
+                              <span>Created {new Date(entry.created_at).toLocaleDateString()}</span>
+                              <span>Updated {new Date(entry.updated_at).toLocaleDateString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
               </div>
             )}
           </div>

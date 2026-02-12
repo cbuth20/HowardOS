@@ -1,12 +1,14 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError } from '../client'
 import { CreateTaskInput, UpdateTaskInput } from '@/types/schemas'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 interface TaskFilters {
   view?: string
   assignee?: string
   status?: string
+  org_id?: string
+  long_outstanding?: boolean
 }
 
 // Query keys for better invalidation control

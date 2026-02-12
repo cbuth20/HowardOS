@@ -1,12 +1,12 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { Modal, ModalFooter } from '@/components/ui/Modal'
-import { Button } from '@/components/ui/Button'
-import { Avatar } from '@/components/ui/Avatar'
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
+import { HowardAvatar } from '@/components/ui/howard-avatar'
 import { Share2, Check } from 'lucide-react'
 import { authFetch } from '@/lib/utils/auth-fetch'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 interface Client {
   id: string
@@ -134,133 +134,136 @@ export function ShareFileModal({
   }
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title="Share File" size="lg">
-      <div className="space-y-4">
-        {/* File Info */}
-        <div className="p-4 bg-background-elevated rounded-lg border border-neutral-border">
-          <p className="text-sm text-text-muted mb-1">Sharing</p>
-          <p className="font-medium text-text-primary">{fileName}</p>
-        </div>
+    <Dialog open={isOpen} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="sm:max-w-lg">
+        <DialogHeader><DialogTitle>Share File</DialogTitle></DialogHeader>
+        <div className="space-y-4">
+          {/* File Info */}
+          <div className="p-4 bg-secondary rounded-lg border border-border">
+            <p className="text-sm text-muted-foreground mb-1">Sharing</p>
+            <p className="font-medium text-foreground">{fileName}</p>
+          </div>
 
-        {/* Selected Count */}
-        <div className="flex items-center justify-between p-3 bg-state-success-light border border-brand-primary/20 rounded-lg">
-          <span className="text-sm font-medium text-brand-navy">
-            {selectedUserIds.size} client(s) selected
-          </span>
-          {selectedUserIds.size > 0 && (
-            <button
-              onClick={() => setSelectedUserIds(new Set())}
-              className="text-sm text-brand-navy hover:underline"
-            >
-              Clear all
-            </button>
-          )}
-        </div>
+          {/* Selected Count */}
+          <div className="flex items-center justify-between p-3 bg-primary/10 border border-primary/20 rounded-lg">
+            <span className="text-sm font-medium text-foreground">
+              {selectedUserIds.size} client(s) selected
+            </span>
+            {selectedUserIds.size > 0 && (
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setSelectedUserIds(new Set())}
+              >
+                Clear all
+              </Button>
+            )}
+          </div>
 
-        {/* Clients List */}
-        <div className="max-h-96 overflow-y-auto space-y-4">
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-brand-primary mx-auto"></div>
-              <p className="text-text-muted text-sm mt-2">Loading clients...</p>
-            </div>
-          ) : Object.keys(clientsByOrg).length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-text-muted">No client users found</p>
-              <p className="text-sm text-text-muted mt-2">
-                Create test clients first
-              </p>
-            </div>
-          ) : (
-            Object.entries(clientsByOrg).map(([orgName, orgClients]) => {
-              const allSelected = orgClients.every(c => selectedUserIds.has(c.id))
-              const someSelected = orgClients.some(c => selectedUserIds.has(c.id))
+          {/* Clients List */}
+          <div className="max-h-96 overflow-y-auto space-y-4">
+            {loading ? (
+              <div className="text-center py-8">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto"></div>
+                <p className="text-muted-foreground text-sm mt-2">Loading clients...</p>
+              </div>
+            ) : Object.keys(clientsByOrg).length === 0 ? (
+              <div className="text-center py-8">
+                <p className="text-muted-foreground">No client users found</p>
+                <p className="text-sm text-muted-foreground mt-2">
+                  Create test clients first
+                </p>
+              </div>
+            ) : (
+              Object.entries(clientsByOrg).map(([orgName, orgClients]) => {
+                const allSelected = orgClients.every(c => selectedUserIds.has(c.id))
+                const someSelected = orgClients.some(c => selectedUserIds.has(c.id))
 
-              return (
-                <div key={orgName} className="border border-neutral-border rounded-lg overflow-hidden shadow-sm">
-                  {/* Organization Header */}
-                  <button
-                    onClick={() => toggleOrg(orgName)}
-                    className="w-full p-3 bg-background-elevated hover:bg-background-muted transition-colors flex items-center justify-between"
-                  >
-                    <div className="flex items-center gap-2">
-                      <div
-                        className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
-                          allSelected
-                            ? 'bg-brand-primary border-brand-primary'
-                            : someSelected
-                            ? 'bg-brand-primary/50 border-brand-primary'
-                            : 'border-neutral-border bg-white'
-                        }`}
-                      >
-                        {(allSelected || someSelected) && (
-                          <Check className="w-3 h-3 text-white" />
-                        )}
-                      </div>
-                      <span className="font-semibold text-text-primary">{orgName}</span>
-                    </div>
-                    <span className="text-sm text-text-muted">
-                      {orgClients.length} user{orgClients.length !== 1 && 's'}
-                    </span>
-                  </button>
-
-                  {/* Organization Users */}
-                  <div className="divide-y divide-neutral-border bg-white">
-                    {orgClients.map(client => {
-                      const isSelected = selectedUserIds.has(client.id)
-                      return (
-                        <button
-                          key={client.id}
-                          onClick={() => toggleUser(client.id)}
-                          className="w-full p-3 hover:bg-background-hover transition-colors flex items-center gap-3"
+                return (
+                  <div key={orgName} className="border border-border rounded-lg overflow-hidden shadow-sm">
+                    {/* Organization Header */}
+                    <button
+                      onClick={() => toggleOrg(orgName)}
+                      className="w-full p-3 bg-secondary hover:bg-muted transition-colors flex items-center justify-between"
+                    >
+                      <div className="flex items-center gap-2">
+                        <div
+                          className={`w-5 h-5 rounded border-2 flex items-center justify-center transition-colors ${
+                            allSelected
+                              ? 'bg-primary border-primary'
+                              : someSelected
+                              ? 'bg-primary/50 border-primary'
+                              : 'border-border bg-card'
+                          }`}
                         >
-                          <div
-                            className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
-                              isSelected
-                                ? 'bg-brand-primary border-brand-primary'
-                                : 'border-neutral-border bg-white'
-                            }`}
+                          {(allSelected || someSelected) && (
+                            <Check className="w-3 h-3 text-white" />
+                          )}
+                        </div>
+                        <span className="font-semibold text-foreground">{orgName}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">
+                        {orgClients.length} user{orgClients.length !== 1 && 's'}
+                      </span>
+                    </button>
+
+                    {/* Organization Users */}
+                    <div className="divide-y divide-border bg-card">
+                      {orgClients.map(client => {
+                        const isSelected = selectedUserIds.has(client.id)
+                        return (
+                          <button
+                            key={client.id}
+                            onClick={() => toggleUser(client.id)}
+                            className="w-full p-3 hover:bg-secondary transition-colors flex items-center gap-3"
                           >
-                            {isSelected && <Check className="w-3 h-3 text-white" />}
-                          </div>
-                          <Avatar
-                            name={client.full_name || client.email}
-                            email={client.email}
-                            role="client"
-                            size="sm"
-                          />
-                          <div className="flex-1 text-left min-w-0">
-                            <p className="text-sm font-medium text-text-primary truncate">
-                              {client.full_name || client.email}
-                            </p>
-                            <p className="text-xs text-text-muted truncate">{client.email}</p>
-                          </div>
-                        </button>
-                      )
-                    })}
+                            <div
+                              className={`w-5 h-5 rounded border-2 flex items-center justify-center flex-shrink-0 transition-colors ${
+                                isSelected
+                                  ? 'bg-primary border-primary'
+                                  : 'border-border bg-card'
+                              }`}
+                            >
+                              {isSelected && <Check className="w-3 h-3 text-white" />}
+                            </div>
+                            <HowardAvatar
+                              name={client.full_name || client.email}
+                              email={client.email}
+                              role="client"
+                              size="sm"
+                            />
+                            <div className="flex-1 text-left min-w-0">
+                              <p className="text-sm font-medium text-foreground truncate">
+                                {client.full_name || client.email}
+                              </p>
+                              <p className="text-xs text-muted-foreground truncate">{client.email}</p>
+                            </div>
+                          </button>
+                        )
+                      })}
+                    </div>
                   </div>
-                </div>
-              )
-            })
-          )}
+                )
+              })
+            )}
+          </div>
+
         </div>
 
-      </div>
-
-      {/* Actions */}
-      <ModalFooter>
-        <Button variant="secondary" onClick={onClose} disabled={sharing}>
-          Cancel
-        </Button>
-        <Button
-          variant="primary"
-          onClick={handleShare}
-          disabled={sharing || selectedUserIds.size === 0}
-        >
-          <Share2 className="w-4 h-4 mr-2" />
-          {sharing ? 'Sharing...' : `Share with ${selectedUserIds.size} client(s)`}
-        </Button>
-      </ModalFooter>
-    </Modal>
+        {/* Actions */}
+        <DialogFooter>
+          <Button variant="outline" onClick={onClose} disabled={sharing}>
+            Cancel
+          </Button>
+          <Button
+            onClick={handleShare}
+            disabled={sharing || selectedUserIds.size === 0}
+          >
+            <Share2 className="w-4 h-4 mr-2" />
+            {sharing ? 'Sharing...' : `Share with ${selectedUserIds.size} client(s)`}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

@@ -66,6 +66,34 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
       }
 
       try {
+        // For client users uploading to channels, verify they belong to the channel's client org
+        if (channelId && profile.role === 'client') {
+          const { data: channel, error: channelErr } = await (supabaseAdmin as any)
+            .from('file_channels')
+            .select('client_org_id')
+            .eq('id', channelId)
+            .single()
+
+          if (channelErr || !channel) {
+            resolve({
+              statusCode: 404,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ success: false, error: 'Channel not found' }),
+            })
+            return
+          }
+
+          // Check that the client's org matches the channel's client_org_id
+          if (channel.client_org_id !== profile.org_id) {
+            resolve({
+              statusCode: 403,
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ success: false, error: 'You can only upload to your organization\'s channel' }),
+            })
+            return
+          }
+        }
+
         // Generate storage path
         const fileId = crypto.randomUUID()
         const fileExtension = fileName.split('.').pop()
@@ -147,11 +175,11 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
               .single()
 
             if (channel?.client_org_id) {
-              // Get all active admins
+              // Get all active team members (admin/manager)
               const { data: admins } = await (supabaseAdmin as any)
                 .from('profiles')
                 .select('id, email, full_name')
-                .eq('role', 'admin')
+                .in('role', ['admin', 'manager'])
                 .eq('is_active', true)
 
               // Get all active users in the client org

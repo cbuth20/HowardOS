@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { apiClient, ApiError } from '../client'
 import { InviteUserInput, UpdateProfileInput, ChangePasswordInput } from '@/types/schemas'
-import toast from 'react-hot-toast'
+import { toast } from 'sonner'
 
 // Query keys for better invalidation control
 export const userKeys = {

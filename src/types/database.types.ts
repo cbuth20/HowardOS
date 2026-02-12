@@ -48,9 +48,10 @@ export interface Database {
           email: string
           full_name: string | null
           avatar_url: string | null
-          role: 'admin' | 'client'
+          role: 'admin' | 'manager' | 'user' | 'client' | 'client_no_access'
           is_active: boolean
           metadata: Json
+          allowed_org_ids: string[]
           created_at: string
           updated_at: string
         }
@@ -60,9 +61,10 @@ export interface Database {
           email: string
           full_name?: string | null
           avatar_url?: string | null
-          role: 'admin' | 'client'
+          role: 'admin' | 'manager' | 'user' | 'client' | 'client_no_access'
           is_active?: boolean
           metadata?: Json
+          allowed_org_ids?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -72,9 +74,10 @@ export interface Database {
           email?: string
           full_name?: string | null
           avatar_url?: string | null
-          role?: 'admin' | 'client'
+          role?: 'admin' | 'manager' | 'user' | 'client' | 'client_no_access'
           is_active?: boolean
           metadata?: Json
+          allowed_org_ids?: string[]
           created_at?: string
           updated_at?: string
         }
@@ -134,7 +137,7 @@ export interface Database {
           id: string
           file_id: string
           user_id: string | null
-          role: 'admin' | 'client' | null
+          role: string | null
           permission: 'view' | 'edit' | 'delete'
           created_at: string
         }
@@ -142,7 +145,7 @@ export interface Database {
           id?: string
           file_id: string
           user_id?: string | null
-          role?: 'admin' | 'client' | null
+          role?: string | null
           permission: 'view' | 'edit' | 'delete'
           created_at?: string
         }
@@ -150,8 +153,31 @@ export interface Database {
           id?: string
           file_id?: string
           user_id?: string | null
-          role?: 'admin' | 'client' | null
+          role?: string | null
           permission?: 'view' | 'edit' | 'delete'
+          created_at?: string
+        }
+      }
+      user_organizations: {
+        Row: {
+          id: string
+          user_id: string
+          org_id: string
+          is_primary: boolean
+          created_at: string
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          org_id: string
+          is_primary?: boolean
+          created_at?: string
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          org_id?: string
+          is_primary?: boolean
           created_at?: string
         }
       }
@@ -167,6 +193,11 @@ export interface Database {
           created_by: string
           due_date: string | null
           completed_at: string | null
+          is_internal: boolean
+          is_recurring: boolean
+          recurrence_rule: Json | null
+          parent_task_id: string | null
+          next_occurrence_at: string | null
           metadata: Json
           created_at: string
           updated_at: string
@@ -177,6 +208,11 @@ export interface Database {
           title: string
           description?: string | null
           status?: 'pending' | 'in_progress' | 'completed' | 'cancelled'
+          is_internal?: boolean
+          is_recurring?: boolean
+          recurrence_rule?: Json | null
+          parent_task_id?: string | null
+          next_occurrence_at?: string | null
           priority?: 'low' | 'medium' | 'high' | 'urgent'
           assigned_to?: string | null
           created_by: string
@@ -197,6 +233,11 @@ export interface Database {
           created_by?: string
           due_date?: string | null
           completed_at?: string | null
+          is_internal?: boolean
+          is_recurring?: boolean
+          recurrence_rule?: Json | null
+          parent_task_id?: string | null
+          next_occurrence_at?: string | null
           metadata?: Json
           created_at?: string
           updated_at?: string
@@ -307,6 +348,22 @@ export interface Database {
       user_role: {
         Args: Record<string, never>
         Returns: string
+      }
+      get_user_org_ids: {
+        Args: Record<string, never>
+        Returns: string[]
+      }
+      is_team_member: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      is_admin_or_manager: {
+        Args: Record<string, never>
+        Returns: boolean
+      }
+      can_access_org: {
+        Args: { target_org_id: string }
+        Returns: boolean
       }
     }
     Enums: {
