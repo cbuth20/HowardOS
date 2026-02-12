@@ -27,9 +27,10 @@
 
 # Next.js SPA fallback
 [[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
+  from = "http://*/*"
+  to = "https://:splat"
+  status = 301
+  force = true
 
 # Headers for security
 [[headers]]
@@ -39,3 +40,13 @@
     X-XSS-Protection = "1; mode=block"
     X-Content-Type-Options = "nosniff"
     Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/_next/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=28800, immutable"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=28800, immutable"
