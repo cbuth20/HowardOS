@@ -33,7 +33,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
   }
 
   // Build update object with only allowed fields
-  const allowedFields = ['full_name', 'role', 'org_id', 'is_active', 'avatar_url', 'allowed_org_ids']
+  const allowedFields = ['full_name', 'role', 'org_id', 'is_active', 'avatar_url', 'allowed_org_ids', 'is_onboarded']
   const updates: Record<string, any> = {}
   for (const field of allowedFields) {
     if (body[field] !== undefined) {

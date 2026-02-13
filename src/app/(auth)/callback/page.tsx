@@ -5,13 +5,11 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 
 /**
- * Auth callback page — handles both flows:
- * - Implicit flow: #access_token from generateLink magic links (invite emails)
- * - PKCE flow: ?code= from normal login/magic link
+ * Auth callback page — handles session establishment for:
+ * - PKCE flow: ?code= from login
+ * - Implicit flow: #access_token hash fragments
  *
- * The Supabase client automatically picks up #access_token hash fragments
- * and establishes a session. We then check is_active to route new users
- * to /set-password before they reach the dashboard.
+ * Redirects to /dashboard on success (onboarding check happens there).
  */
 export default function AuthCallbackPage() {
   const router = useRouter()
@@ -35,7 +33,6 @@ export default function AuthCallbackPage() {
 
         // For implicit flow (#access_token), the Supabase client auto-detects
         // the hash fragment and establishes the session via onAuthStateChange.
-        // Wait briefly for it to complete.
         const { data: { session } } = await supabase.auth.getSession()
 
         if (!session) {
@@ -44,7 +41,7 @@ export default function AuthCallbackPage() {
             async (event, newSession) => {
               if (event === 'SIGNED_IN' && newSession) {
                 subscription.unsubscribe()
-                await redirectBasedOnProfile(newSession.user.id)
+                router.replace('/dashboard')
               }
             }
           )
@@ -58,25 +55,11 @@ export default function AuthCallbackPage() {
           return
         }
 
-        // Session exists — route based on profile
-        await redirectBasedOnProfile(session.user.id)
+        // Session exists — go to dashboard
+        router.replace('/dashboard')
       } catch (error) {
         console.error('Auth callback error:', error)
         router.replace('/login?error=Authentication+failed')
-      }
-    }
-
-    const redirectBasedOnProfile = async (userId: string) => {
-      const { data: profile } = await (supabase as any)
-        .from('profiles')
-        .select('is_active')
-        .eq('id', userId)
-        .single() as { data: { is_active: boolean } | null }
-
-      if (profile && !profile.is_active) {
-        router.replace('/set-password')
-      } else {
-        router.replace('/dashboard')
       }
     }
 

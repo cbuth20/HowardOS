@@ -19,7 +19,8 @@ export interface MagicLinkEmailParams {
 
 export interface InvitationEmailParams {
   to: string
-  inviteLink: string
+  tempPassword: string
+  loginUrl: string
   fullName: string
   role: string
   inviterName: string
@@ -129,7 +130,8 @@ export async function sendMagicLinkEmail({ to, magicLink, fullName }: MagicLinkE
  */
 export async function sendInvitationEmail({
   to,
-  inviteLink,
+  tempPassword,
+  loginUrl,
   fullName,
   role,
   inviterName,
@@ -177,7 +179,7 @@ export async function sendInvitationEmail({
                         </p>
                         <p style="margin: 0 0 24px 0; color: #475569; font-size: 16px; line-height: 1.5;">
                           ${inviterName} has invited you to join HowardOS as ${{admin: 'an administrator', manager: 'a manager', user: 'a team member', client: 'a client', client_no_access: 'a contact'}[role] || 'a member'}.
-                          Click the button below to accept your invitation and set up your account.
+                          Use the credentials below to sign in and complete your account setup.
                         </p>
 
                         <!-- Role Badge -->
@@ -192,13 +194,29 @@ export async function sendInvitationEmail({
                           </p>
                         </div>
 
+                        <!-- Credentials Box -->
+                        <div style="margin: 0 0 24px 0; padding: 20px; background-color: #f0f4f8; border-radius: 8px; border: 1px solid #e2e8f0;">
+                          <p style="margin: 0 0 12px 0; color: #0A2540; font-size: 14px; font-weight: 600;">Your Login Credentials</p>
+                          <table width="100%" cellpadding="0" cellspacing="0">
+                            <tr>
+                              <td style="padding: 4px 0; color: #64748b; font-size: 13px; width: 80px;">Email:</td>
+                              <td style="padding: 4px 0; color: #0A2540; font-size: 14px; font-weight: 500;">${to}</td>
+                            </tr>
+                            <tr>
+                              <td style="padding: 4px 0; color: #64748b; font-size: 13px; width: 80px;">Password:</td>
+                              <td style="padding: 4px 0; color: #0A2540; font-size: 14px; font-family: 'Courier New', Courier, monospace; font-weight: 600; letter-spacing: 0.5px;">${tempPassword}</td>
+                            </tr>
+                          </table>
+                          <p style="margin: 12px 0 0 0; color: #94a3b8; font-size: 12px;">You'll be prompted to set a new password after signing in.</p>
+                        </div>
+
                         <!-- CTA Button -->
                         <table width="100%" cellpadding="0" cellspacing="0">
                           <tr>
                             <td align="center" style="padding: 20px 0;">
-                              <a href="${inviteLink}"
+                              <a href="${loginUrl}"
                                  style="display: inline-block; padding: 16px 32px; background-color: #0A2540; color: #ffffff; text-decoration: none; border-radius: 8px; font-weight: 600; font-size: 16px;">
-                                Accept Invitation
+                                Sign In
                               </a>
                             </td>
                           </tr>

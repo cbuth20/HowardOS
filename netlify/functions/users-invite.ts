@@ -1,9 +1,14 @@
 import { HandlerEvent } from '@netlify/functions'
+import { randomBytes } from 'crypto'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import { successResponse } from './lib/responses'
 import { InviteUserSchema } from '../../src/types/schemas'
 import { createAdminClient } from '../../src/lib/supabase/admin'
 import { sendInvitationEmail } from '../../src/lib/email/postmark'
+
+function generateTempPassword(): string {
+  return randomBytes(9).toString('base64url').slice(0, 12)
+}
 
 export const handler = withMiddleware(async (event: HandlerEvent, { profile, supabase }: AuthContext) => {
   console.log('=== USERS INVITE HANDLER START ===')
@@ -146,12 +151,24 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     })
   }
 
+  // Generate a temporary password for the invite
+  const tempPassword = generateTempPassword()
   let userId: string
 
   if (existingProfile) {
-    // Re-invite: user exists but hasn't activated — just update profile and resend
+    // Re-invite: user exists but hasn't activated — update password and profile
     console.log('Re-inviting inactive user:', existingProfile.id)
     userId = existingProfile.id
+
+    // Reset their password via admin API
+    const { error: passwordError } = await adminClient.auth.admin.updateUserById(userId, {
+      password: tempPassword,
+    })
+
+    if (passwordError) {
+      console.error('Password reset error:', passwordError)
+      throw { statusCode: 500, message: 'Failed to reset user password' }
+    }
 
     const { error: updateError } = await (adminClient as any)
       .from('profiles')
@@ -159,7 +176,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
         full_name,
         role,
         org_id,
-        is_active: false,
+        is_active: true,
+        is_onboarded: false,
         ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
       })
       .eq('id', userId)
@@ -169,10 +187,11 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
       throw { statusCode: 500, message: 'Failed to update user profile' }
     }
   } else {
-    // New user: create auth user + profile
-    console.log('Creating new auth user and profile')
+    // New user: create auth user with temp password
+    console.log('Creating new auth user with temp password')
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
+      password: tempPassword,
       email_confirm: true,
       user_metadata: { full_name, role, org_id },
     })
@@ -180,20 +199,32 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     if (authError) {
       // Handle orphaned auth user (exists in auth but no profile row)
       if (authError.message?.includes('already been registered')) {
-        console.log('Orphaned auth user found, recovering via generateLink')
+        console.log('Orphaned auth user found, recovering via listUsers')
 
-        // generateLink returns the user object, giving us the ID
-        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
-          type: 'magiclink',
-          email,
-        })
+        // List users by email to get the ID
+        const { data: listData, error: listError } = await adminClient.auth.admin.listUsers()
 
-        if (linkError || !linkData?.user) {
-          console.error('Failed to recover orphaned user:', linkError)
+        if (listError) {
+          console.error('Failed to list users:', listError)
           throw { statusCode: 500, message: 'User exists in auth but recovery failed. Please contact support.' }
         }
 
-        userId = linkData.user.id
+        const orphanedUser = listData.users.find(u => u.email === email)
+        if (!orphanedUser) {
+          throw { statusCode: 500, message: 'User exists in auth but could not be found. Please contact support.' }
+        }
+
+        userId = orphanedUser.id
+
+        // Update password for the orphaned user
+        const { error: passwordError } = await adminClient.auth.admin.updateUserById(userId, {
+          password: tempPassword,
+        })
+
+        if (passwordError) {
+          console.error('Failed to update orphaned user password:', passwordError)
+          throw { statusCode: 500, message: 'Failed to set password for existing user.' }
+        }
 
         // Upsert profile for the orphaned auth user
         const { error: upsertError } = await (adminClient as any)
@@ -204,7 +235,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
             full_name,
             role,
             org_id,
-            is_active: false,
+            is_active: true,
+            is_onboarded: false,
             ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
           })
 
@@ -227,7 +259,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
           full_name,
           role,
           org_id,
-          is_active: false,
+          is_active: true,
+          is_onboarded: false,
           ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
         })
         .eq('id', userId)
@@ -262,30 +295,15 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     }
   }
 
-  // Generate magic link and send ONLY our custom email via Postmark
-  console.log('Generating magic link for:', email)
-  const { data: magicLinkData, error: magicLinkError } = await adminClient.auth.admin.generateLink({
-    type: 'magiclink',
-    email,
-    options: {
-      redirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
-    },
-  })
+  // Send invitation email with temp password
+  const loginUrl = `${process.env.NEXT_PUBLIC_APP_URL}/login`
+  console.log('Sending invitation email with temp password to:', email)
 
-  if (magicLinkError) {
-    console.error('Magic link generation error:', magicLinkError)
-    throw {
-      statusCode: 500,
-      message: `Failed to generate magic link: ${magicLinkError.message}`,
-    }
-  }
-
-  console.log('Magic link generated, sending email via Postmark')
-  // Send invitation email via Postmark (this is the ONLY email sent)
   try {
     await sendInvitationEmail({
       to: email,
-      inviteLink: magicLinkData.properties.action_link,
+      tempPassword,
+      loginUrl,
       fullName: full_name,
       role,
       inviterName,

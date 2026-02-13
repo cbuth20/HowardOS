@@ -10,6 +10,10 @@ const corsHeaders = {
   'Access-Control-Allow-Methods': 'GET, OPTIONS',
 }
 
+/**
+ * Proxy endpoint for private avatar images
+ * Authenticates user and streams avatar from private storage
+ */
 export const handler: Handler = async (event): Promise<HandlerResponse> => {
   if (event.httpMethod === 'OPTIONS') {
     return {
@@ -79,12 +83,14 @@ export const handler: Handler = async (event): Promise<HandlerResponse> => {
       }
     }
 
-    const supabase = createClient(supabaseUrl, supabaseKey, {
+    // First verify user is authenticated
+    const supabaseAuth = createClient(supabaseUrl, supabaseKey, {
       global: { headers: { Authorization: `Bearer ${token}` } }
     })
 
-    const { data: { user }, error: authError } = await supabase.auth.getUser(token)
+    const { data: { user }, error: authError } = await supabaseAuth.auth.getUser(token)
     if (authError || !user) {
+      console.error('Auth failed:', authError?.message || 'No user')
       return {
         statusCode: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -92,148 +98,63 @@ export const handler: Handler = async (event): Promise<HandlerResponse> => {
       }
     }
 
-    // Use service role to bypass RLS for permission checks
-    const supabaseService = createClient(supabaseUrl, supabaseKey)
-
-    const { data: profile } = await supabaseService
-      .from('profiles')
-      .select('org_id, role')
-      .eq('id', user.id)
-      .single()
-
-    if (!profile) {
-      return {
-        statusCode: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Profile not found' }),
-      }
-    }
-
-    // Get user's org memberships for multi-org support
-    const { data: userOrgs } = await supabaseService
-      .from('user_organizations')
-      .select('org_id')
-      .eq('user_id', user.id)
-
-    const userOrgIds = userOrgs?.map(uo => uo.org_id) || []
-
     const params = event.queryStringParameters || {}
-    const fileId = params.id
+    const path = params.path
 
-    if (!fileId) {
+    if (!path) {
       return {
         statusCode: 400,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'File ID required' }),
+        body: JSON.stringify({ error: 'Missing path parameter' }),
       }
     }
 
-    // Get file record using service role
-    const { data: file, error: fileError } = await supabaseService
-      .from('files')
-      .select('*, channel:file_channels(id, client_org_id)')
-      .eq('id', fileId)
-      .single()
+    // Avatars are accessible to all authenticated users
+    // Use service role WITHOUT user JWT to bypass RLS
+    const supabaseService = createClient(supabaseUrl, supabaseKey)
 
-    if (fileError || !file) {
-      return {
-        statusCode: 404,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'File not found' }),
-      }
-    }
-
-    // Check permissions: admin/manager can access all, others need org membership
-    const isTeamRole = ['admin', 'manager', 'user'].includes(profile.role)
-    const hasDirectOrgAccess = userOrgIds.includes(file.org_id) || profile.org_id === file.org_id
-
-    // Check channel-based access for client users
-    let hasChannelAccess = false
-    if (file.channel_id && file.channel) {
-      const channelClientOrgId = (file.channel as any)?.client_org_id
-      hasChannelAccess = userOrgIds.includes(channelClientOrgId) || profile.org_id === channelClientOrgId
-    }
-
-    const hasAccess = isTeamRole || hasDirectOrgAccess || hasChannelAccess
-
-    console.log('Permission check:', {
-      userId: user.id,
-      userRole: profile.role,
-      userPrimaryOrg: profile.org_id,
-      userOrgIds,
-      fileOrgId: file.org_id,
-      fileChannelId: file.channel_id,
-      channelClientOrg: file.channel ? (file.channel as any).client_org_id : null,
-      isTeamRole,
-      hasDirectOrgAccess,
-      hasChannelAccess,
-      finalDecision: hasAccess ? 'ALLOW' : 'DENY',
-    })
-
-    if (!hasAccess) {
-      console.error('Access denied:', {
-        role: profile.role,
-        userOrgs: userOrgIds,
-        fileOrg: file.org_id,
-        channelOrg: file.channel ? (file.channel as any).client_org_id : null,
-      })
-      return {
-        statusCode: 403,
-        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          error: 'Permission denied',
-          debug: {
-            role: profile.role,
-            hasDirectOrgAccess,
-            hasChannelAccess,
-            fileOrgId: file.org_id,
-            userOrgIds: userOrgIds.length,
-          }
-        }),
-      }
-    }
-
-    // Download from storage using service role (bypasses RLS)
+    // Download from storage using pure service role (bypasses RLS)
     const { data: fileData, error: downloadError } = await supabaseService.storage
-      .from('files')
-      .download(file.storage_path)
+      .from('avatars')
+      .download(path)
 
     if (downloadError || !fileData) {
       return {
-        statusCode: 500,
+        statusCode: 404,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ error: 'Failed to download file' }),
+        body: JSON.stringify({ error: 'Avatar not found' }),
       }
     }
 
     // Convert blob to buffer
     const buffer = Buffer.from(await fileData.arrayBuffer())
 
-    // Log activity using service role
-    await supabaseService.from('activity_log').insert({
-      org_id: file.org_id,
-      user_id: user.id,
-      action: 'file_downloaded',
-      entity_type: 'file',
-      entity_id: fileId,
-      metadata: {
-        file_name: file.name,
-      },
-    })
+    // Determine content type from file extension
+    const ext = path.split('.').pop()?.toLowerCase()
+    const contentTypeMap: Record<string, string> = {
+      jpg: 'image/jpeg',
+      jpeg: 'image/jpeg',
+      png: 'image/png',
+      gif: 'image/gif',
+      webp: 'image/webp',
+      svg: 'image/svg+xml',
+    }
+    const contentType = contentTypeMap[ext || ''] || 'image/jpeg'
 
-    // Return file with appropriate headers
+    // Return image with caching headers
     return {
       statusCode: 200,
       headers: {
         ...corsHeaders,
-        'Content-Type': file.mime_type || 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${encodeURIComponent(file.name)}"`,
+        'Content-Type': contentType,
+        'Cache-Control': 'public, max-age=3600', // Cache for 1 hour
         'Content-Length': buffer.length.toString(),
       },
       body: buffer.toString('base64'),
       isBase64Encoded: true,
     }
   } catch (error: any) {
+    console.error('Error serving avatar:', error)
     return {
       statusCode: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

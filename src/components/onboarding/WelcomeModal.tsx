@@ -7,8 +7,9 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { HowardAvatar } from '@/components/ui/howard-avatar'
 import { HowardLogo } from '@/components/ui/howard-logo'
-import { User, Upload, X, Sparkles, Building2 } from 'lucide-react'
+import { User, Upload, X, Sparkles, Building2, Lock, Eye, EyeOff } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
+import { authFetch } from '@/lib/utils/auth-fetch'
 import { toast } from 'sonner'
 
 interface WelcomeModalProps {
@@ -30,6 +31,13 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  // Password step state
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordError, setPasswordError] = useState('')
 
   const supabase = createClient() as any
 
@@ -80,15 +88,40 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
 
       if (uploadError) throw uploadError
 
-      const { data } = supabase.storage
-        .from('avatars')
-        .getPublicUrl(filePath)
-
-      return data.publicUrl
+      // Return the proxy URL instead of public URL
+      // Format: /api/storage-avatar?path={filePath}
+      return `/api/storage-avatar?path=${encodeURIComponent(filePath)}`
     } catch (error: any) {
       console.error('Error uploading avatar:', error)
       toast.error('Failed to upload avatar')
       return null
+    }
+  }
+
+  const handlePasswordSubmit = async () => {
+    setPasswordError('')
+
+    if (newPassword.length < 8) {
+      setPasswordError('Password must be at least 8 characters')
+      return
+    }
+
+    if (newPassword !== confirmPassword) {
+      setPasswordError('Passwords do not match')
+      return
+    }
+
+    setLoading(true)
+    try {
+      const { error } = await supabase.auth.updateUser({ password: newPassword })
+      if (error) throw error
+      toast.success('Password updated successfully')
+      setStep(3)
+    } catch (error: any) {
+      console.error('Error updating password:', error)
+      setPasswordError(error.message || 'Failed to update password')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -102,12 +135,8 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
         avatarUrl = await uploadAvatar()
       }
 
-      // Update profile
-      const updateData: {
-        full_name: string
-        is_onboarded: boolean
-        avatar_url?: string
-      } = {
+      // Update profile via API (bypasses RLS)
+      const updateData: Record<string, any> = {
         full_name: fullName,
         is_onboarded: true,
       }
@@ -116,19 +145,22 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
         updateData.avatar_url = avatarUrl
       }
 
-      // @ts-ignore - Database types not properly inferred
-      const { error } = await supabase
-        .from('profiles')
-        .update(updateData)
-        .eq('id', user.id)
+      const response = await authFetch(`/api/users-update-profile?id=${user.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({ error: 'Failed to save profile' }))
+        throw new Error(err.error || 'Failed to save profile')
+      }
 
       toast.success('Welcome to HowardOS!')
       onComplete()
     } catch (error: any) {
       console.error('Error completing onboarding:', error)
-      toast.error('Failed to save profile')
+      toast.error(error.message || 'Failed to save profile')
     } finally {
       setLoading(false)
     }
@@ -138,7 +170,7 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
     <Dialog open={isOpen} onOpenChange={() => {}}>
       <DialogContent className="sm:max-w-lg [&>button]:hidden">
         <div className="text-center">
-          {/* Welcome Step */}
+          {/* Step 1: Welcome */}
           {step === 1 && (
             <div className="py-8">
               <div className="flex justify-center mb-6">
@@ -195,8 +227,101 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
             </div>
           )}
 
-          {/* Profile Setup Step */}
+          {/* Step 2: Set Password */}
           {step === 2 && (
+            <div className="py-6">
+              <Lock className="w-10 h-10 mx-auto text-primary mb-4" />
+              <h2 className="text-2xl font-bold font-serif text-foreground mb-2">
+                Secure Your Account
+              </h2>
+              <p className="text-muted-foreground mb-8">
+                Replace your temporary password with a secure one you'll remember
+              </p>
+
+              <div className="space-y-4 max-w-md mx-auto text-left">
+                {/* New Password */}
+                <div>
+                  <Label htmlFor="newPassword" className="mb-2">
+                    New Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="newPassword"
+                      type={showPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value)
+                        setPasswordError('')
+                      }}
+                      placeholder="At least 8 characters"
+                      className="pl-10 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Confirm Password */}
+                <div>
+                  <Label htmlFor="confirmPassword" className="mb-2">
+                    Confirm Password
+                  </Label>
+                  <div className="relative">
+                    <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                    <Input
+                      id="confirmPassword"
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        setPasswordError('')
+                      }}
+                      placeholder="Re-enter your password"
+                      className="pl-10 pr-10"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute right-3 top-1/2 transform -translate-y-1/2 text-muted-foreground hover:text-foreground"
+                    >
+                      {showConfirmPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                    </button>
+                  </div>
+                </div>
+
+                {/* Error Message */}
+                {passwordError && (
+                  <p className="text-sm text-destructive">{passwordError}</p>
+                )}
+              </div>
+
+              <div className="flex items-center justify-center gap-3 mt-8 pt-6 border-t border-border">
+                <Button
+                  variant="ghost"
+                  onClick={() => setStep(1)}
+                  disabled={loading}
+                >
+                  Back
+                </Button>
+                <Button
+                  onClick={handlePasswordSubmit}
+                  disabled={loading || !newPassword || !confirmPassword}
+                  className="min-w-[150px]"
+                >
+                  {loading ? 'Updating...' : 'Set Password'}
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {/* Step 3: Profile Setup */}
+          {step === 3 && (
             <div className="py-6">
               <h2 className="text-2xl font-bold font-serif text-foreground mb-2">
                 Personalize Your Profile
@@ -302,7 +427,7 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
               <div className="flex items-center justify-center gap-3 mt-8 pt-6 border-t border-border">
                 <Button
                   variant="ghost"
-                  onClick={() => setStep(1)}
+                  onClick={() => setStep(2)}
                   disabled={loading}
                 >
                   Back

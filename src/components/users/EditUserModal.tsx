@@ -188,8 +188,8 @@ export function EditUserModal({ isOpen, onClose, user, onComplete, organizations
         .from('avatars')
         .upload(filePath, avatarFile, { upsert: true, contentType: avatarFile.type })
       if (uploadError) throw uploadError
-      const { data } = supabase.storage.from('avatars').getPublicUrl(filePath)
-      return data.publicUrl
+      // Return the proxy URL instead of public URL
+      return `/api/storage-avatar?path=${encodeURIComponent(filePath)}`
     } catch (error: any) {
       console.error('Error uploading avatar:', error)
       toast.error('Failed to upload avatar')

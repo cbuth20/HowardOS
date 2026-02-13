@@ -209,11 +209,8 @@ export function OrganizationDetailModal({
 
       if (uploadError) throw uploadError
 
-      const { data } = (supabase as any).storage
-        .from('logos')
-        .getPublicUrl(filePath)
-
-      const logoUrl = data.publicUrl
+      // Use proxy URL instead of public URL
+      const logoUrl = `/api/storage-logo?path=${encodeURIComponent(filePath)}`
 
       const { error: updateError } = await (supabase as any)
         .from('organizations')
