@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { Mail, User, Shield, Users, UserX, Briefcase } from 'lucide-react'
+import { Mail, User, Shield, Users, UserX, Briefcase, Lock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { authFetch } from '@/lib/utils/auth-fetch'
 import { toast } from 'sonner'
@@ -31,6 +31,7 @@ interface InviteUserModalProps {
 export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizations, allowedRoles }: InviteUserModalProps) {
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
+  const [tempPassword, setTempPassword] = useState('')
   const [role, setRole] = useState('client')
   const [loading, setLoading] = useState(false)
   const [selectedOrgId, setSelectedOrgId] = useState(orgId || '')
@@ -85,6 +86,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizati
           fullName,
           role,
           orgId: resolvedOrgId,
+          tempPassword: tempPassword || undefined,
         }),
       })
 
@@ -108,6 +110,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizati
   const resetForm = () => {
     setEmail('')
     setFullName('')
+    setTempPassword('')
     setRole('client')
     setSelectedOrgId(orgId || '')
   }
@@ -165,6 +168,30 @@ export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizati
               />
             </div>
           </div>
+
+          {/* Temporary Password */}
+          {role !== 'client_no_access' && (
+            <div>
+              <Label htmlFor="tempPassword" className="mb-2">
+                Temporary Password
+              </Label>
+              <div className="relative">
+                <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                <Input
+                  id="tempPassword"
+                  type="text"
+                  value={tempPassword}
+                  onChange={(e) => setTempPassword(e.target.value)}
+                  placeholder="Example: Welcome123!"
+                  disabled={loading}
+                  className="pl-10"
+                />
+              </div>
+              <p className="text-xs text-muted-foreground mt-1.5">
+                Leave blank to auto-generate. Must have: 8+ chars, uppercase, special character (!@#$...)
+              </p>
+            </div>
+          )}
 
           {/* Role Selection */}
           <div>

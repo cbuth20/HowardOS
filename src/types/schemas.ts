@@ -71,6 +71,11 @@ export const InviteUserSchema = z.object({
   org_id: z.string().uuid('Invalid organization ID'),
   allowed_org_ids: z.array(z.string().uuid()).optional(),
   org_ids: z.array(z.string().uuid()).optional(),
+  temp_password: z.string()
+    .min(8, 'Password must be at least 8 characters')
+    .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
+    .regex(/[!@#$%^&*(),.?":{}|<>]/, 'Password must contain at least one special character')
+    .optional(),
 })
 
 export const UpdateProfileSchema = z.object({

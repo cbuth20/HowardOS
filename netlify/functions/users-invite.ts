@@ -44,6 +44,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     org_id: body.orgId || body.org_id,
     allowed_org_ids: body.allowed_org_ids || body.allowedOrgIds,
     org_ids: body.org_ids || body.orgIds,
+    temp_password: body.tempPassword || body.temp_password,
   })
 
   if (!validation.success) {
@@ -55,8 +56,21 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     }
   }
 
-  const { email, full_name, role, org_id, allowed_org_ids, org_ids } = validation.data
+  const { email, full_name, role, org_id, allowed_org_ids, org_ids, temp_password } = validation.data
   console.log('Validated data:', { email, full_name, role, org_id })
+
+  // Validate password requirements if provided
+  if (temp_password) {
+    if (temp_password.length < 8) {
+      throw { statusCode: 400, message: 'Password must be at least 8 characters' }
+    }
+    if (!/[A-Z]/.test(temp_password)) {
+      throw { statusCode: 400, message: 'Password must contain at least one uppercase letter' }
+    }
+    if (!/[!@#$%^&*(),.?":{}|<>]/.test(temp_password)) {
+      throw { statusCode: 400, message: 'Password must contain at least one special character (!@#$%^&*...)' }
+    }
+  }
 
   // Only admins can create admin/manager roles
   if (['admin', 'manager'].includes(role) && profile.role !== 'admin') {
@@ -172,8 +186,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     })
   }
 
-  // Generate a temporary password for the invite
-  const tempPassword = generateTempPassword()
+  // Use admin-provided password or generate one
+  const tempPassword = temp_password || generateTempPassword()
   let userId: string
 
   if (existingProfile) {
