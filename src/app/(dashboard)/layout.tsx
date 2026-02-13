@@ -1,12 +1,13 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import { DashboardLayoutClient } from '@/components/layout/DashboardLayoutClient'
-// import { OnboardingCheck } from '@/components/onboarding/OnboardingCheck'
+import { OnboardingCheck } from '@/components/onboarding/OnboardingCheck'
 
 interface ProfileData {
   role: string
   full_name: string | null
   avatar_url: string | null
+  is_onboarded: boolean
   organizations: {
     name: string
   } | null
@@ -39,7 +40,7 @@ export default async function DashboardLayout({
   // Get user profile
   const { data: profile } = await supabase
     .from('profiles')
-    .select('role, full_name, avatar_url, organizations(name)')
+    .select('role, full_name, avatar_url, is_onboarded, organizations(name)')
     .eq('id', user.id)
     .single() as { data: ProfileData | null }
 
@@ -63,6 +64,18 @@ export default async function DashboardLayout({
         isPrimary: uo.is_primary,
       }))}
     >
+      {profile && !profile.is_onboarded && (
+        <OnboardingCheck
+          user={{
+            id: user.id,
+            email: user.email || '',
+            full_name: profile.full_name || '',
+            role: profile.role,
+            is_onboarded: profile.is_onboarded,
+          }}
+          orgName={profile.organizations?.name || ''}
+        />
+      )}
       {children}
     </DashboardLayoutClient>
   )

@@ -59,35 +59,11 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     throw { statusCode: 409, message: 'User with this email already exists and is active' }
   }
 
-  // Check if auth user exists by trying to get user by email
-  const { data: { users: authUsers }, error: getUserError } = await adminClient.auth.admin.listUsers({
-    page: 1,
-    perPage: 1000,
-  })
-  const existingAuthUser = authUsers?.find(u => u.email === email)
-
   console.log('Checking for existing user:', {
     email,
     existingProfile: !!existingProfile,
     existingProfileId: existingProfile?.id,
-    existingAuthUser: !!existingAuthUser,
-    existingAuthUserId: existingAuthUser?.id,
   })
-
-  // Handle orphaned profile (profile exists but no auth user)
-  if (existingProfile && !existingAuthUser) {
-    console.log('Found orphaned profile, cleaning it up:', existingProfile.id)
-    const { error: deleteError } = await adminClient
-      .from('profiles')
-      .delete()
-      .eq('id', existingProfile.id)
-
-    if (deleteError) {
-      console.error('Failed to delete orphaned profile:', deleteError)
-    } else {
-      console.log('Orphaned profile deleted successfully')
-    }
-  }
 
   // Get inviter's name for the email
   const { data: inviterProfile } = await supabase
@@ -98,43 +74,54 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
 
   const inviterName = inviterProfile?.full_name || 'Your administrator'
 
-  // For client_no_access role: create profile only, no auth user needed
+  // For client_no_access role: create contact (no login access)
   if (role === 'client_no_access') {
-    console.log('Creating client_no_access profile (no auth user)')
+    console.log('Creating client_no_access contact')
 
-    // Generate a placeholder UUID for the profile
-    const placeholderId = crypto.randomUUID()
+    // Try to create auth user; if already exists, use existing profile id
+    let userId: string
 
-    // Create a no-login auth user (disabled by default)
-    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-      email,
-      email_confirm: false,
-      user_metadata: { full_name, role, org_id },
-      ban_duration: '876000h', // Effectively permanently banned from login
-    })
+    if (existingProfile) {
+      userId = existingProfile.id
+      await (adminClient as any)
+        .from('profiles')
+        .update({
+          full_name,
+          role: 'client_no_access',
+          org_id,
+          is_active: true,
+        })
+        .eq('id', userId)
+    } else {
+      const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+        email,
+        email_confirm: false,
+        user_metadata: { full_name, role, org_id },
+        ban_duration: '876000h',
+      })
 
-    if (authError) {
-      console.error('Failed to create auth user for client_no_access:', authError)
-      throw { statusCode: 500, message: `Failed to create user: ${authError.message}` }
+      if (authError) {
+        console.error('Failed to create auth user for client_no_access:', authError)
+        throw { statusCode: 500, message: `Failed to create user: ${authError.message}` }
+      }
+
+      userId = authData.user.id
+
+      await (adminClient as any)
+        .from('profiles')
+        .update({
+          full_name,
+          role: 'client_no_access',
+          org_id,
+          is_active: true,
+        })
+        .eq('id', userId)
     }
 
-    const userId = authData.user.id
-
-    // Update the auto-created profile
-    await (adminClient as any)
-      .from('profiles')
-      .update({
-        full_name,
-        role: 'client_no_access',
-        org_id,
-        is_active: true, // Active for tagging purposes, just can't login
-      })
-      .eq('id', userId)
-
-    // Create user_organizations entry
+    // Upsert user_organizations entry
     await (adminClient as any)
       .from('user_organizations')
-      .insert({ user_id: userId, org_id, is_primary: true })
+      .upsert({ user_id: userId, org_id, is_primary: true }, { onConflict: 'user_id,org_id' })
 
     // Add additional org memberships
     if (org_ids && org_ids.length > 0) {
@@ -142,11 +129,14 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
       if (additionalOrgs.length > 0) {
         await (adminClient as any)
           .from('user_organizations')
-          .insert(additionalOrgs.map(oid => ({
-            user_id: userId,
-            org_id: oid,
-            is_primary: false,
-          })))
+          .upsert(
+            additionalOrgs.map(oid => ({
+              user_id: userId,
+              org_id: oid,
+              is_primary: false,
+            })),
+            { onConflict: 'user_id,org_id' }
+          )
       }
     }
 
@@ -158,16 +148,80 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
 
   let userId: string
 
-  // If auth user exists (and profile might exist or not)
-  if (existingAuthUser && existingProfile) {
-    console.log('Auth user exists, updating/creating profile')
-    userId = existingAuthUser.id
+  if (existingProfile) {
+    // Re-invite: user exists but hasn't activated — just update profile and resend
+    console.log('Re-inviting inactive user:', existingProfile.id)
+    userId = existingProfile.id
 
-    // Update or create profile (use admin client to bypass RLS)
-    if (existingProfile) {
-      // Update existing profile
-      console.log('Updating existing profile')
-      const { error: updateError } = await (adminClient as any)
+    const { error: updateError } = await (adminClient as any)
+      .from('profiles')
+      .update({
+        full_name,
+        role,
+        org_id,
+        is_active: false,
+        ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
+      })
+      .eq('id', userId)
+
+    if (updateError) {
+      console.error('Profile update error:', updateError)
+      throw { statusCode: 500, message: 'Failed to update user profile' }
+    }
+  } else {
+    // New user: create auth user + profile
+    console.log('Creating new auth user and profile')
+    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
+      email,
+      email_confirm: true,
+      user_metadata: { full_name, role, org_id },
+    })
+
+    if (authError) {
+      // Handle orphaned auth user (exists in auth but no profile row)
+      if (authError.message?.includes('already been registered')) {
+        console.log('Orphaned auth user found, recovering via generateLink')
+
+        // generateLink returns the user object, giving us the ID
+        const { data: linkData, error: linkError } = await adminClient.auth.admin.generateLink({
+          type: 'magiclink',
+          email,
+        })
+
+        if (linkError || !linkData?.user) {
+          console.error('Failed to recover orphaned user:', linkError)
+          throw { statusCode: 500, message: 'User exists in auth but recovery failed. Please contact support.' }
+        }
+
+        userId = linkData.user.id
+
+        // Upsert profile for the orphaned auth user
+        const { error: upsertError } = await (adminClient as any)
+          .from('profiles')
+          .upsert({
+            id: userId,
+            email,
+            full_name,
+            role,
+            org_id,
+            is_active: false,
+            ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
+          })
+
+        if (upsertError) {
+          console.error('Profile upsert error:', upsertError)
+          throw { statusCode: 500, message: 'Failed to create user profile' }
+        }
+      } else {
+        console.error('Supabase user creation error:', authError)
+        throw { statusCode: 500, message: `Failed to create user: ${authError.message}` }
+      }
+    } else {
+      console.log('Auth user created:', authData.user.id)
+      userId = authData.user.id
+
+      // Update the auto-created profile with correct data
+      const { error: profileError } = await (adminClient as any)
         .from('profiles')
         .update({
           full_name,
@@ -178,92 +232,12 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
         })
         .eq('id', userId)
 
-      if (updateError) {
-        console.error('Profile update error:', updateError)
-        throw {
-          statusCode: 500,
-          message: 'Failed to update user profile',
-        }
-      }
-    } else {
-      // Create profile for existing auth user
-      console.log('Creating profile for existing auth user')
-      const { error: profileError } = await (adminClient as any)
-        .from('profiles')
-        .insert({
-          id: userId,
-          email,
-          full_name,
-          role,
-          org_id,
-          is_active: false,
-          ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
-        })
-
       if (profileError) {
-        console.error('Profile creation error:', profileError)
-        throw {
-          statusCode: 500,
-          message: 'Failed to create user profile',
-        }
+        console.error('Profile update error:', profileError)
+        await adminClient.auth.admin.deleteUser(userId)
+        throw { statusCode: 500, message: 'Failed to update user profile' }
       }
     }
-  } else {
-    console.log('Creating new auth user and profile')
-    // Create new auth user (not using inviteUserByEmail which triggers Supabase email)
-    const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
-      email,
-      email_confirm: false, // User needs to confirm via our magic link
-      user_metadata: {
-        full_name,
-        role,
-        org_id,
-      },
-    })
-
-    if (authError) {
-      console.error('Supabase user creation error:', authError)
-      throw {
-        statusCode: 500,
-        message: `Failed to create user: ${authError.message}`,
-      }
-    }
-
-    console.log('Auth user created:', authData.user.id)
-    userId = authData.user.id
-
-    // The auto-create trigger already created a basic profile
-    // Now we need to UPDATE it with the correct org_id, role, and other fields
-    console.log('Updating auto-created profile with data:', { userId, email, full_name, role, org_id })
-    const { data: updatedProfile, error: profileError } = await (adminClient as any)
-      .from('profiles')
-      .update({
-        full_name,
-        role,
-        org_id,
-        is_active: false, // Will be activated when they accept the invite
-        ...(role === 'user' && allowed_org_ids ? { allowed_org_ids } : {}),
-      })
-      .eq('id', userId)
-      .select()
-      .single()
-
-    if (profileError) {
-      console.error('Profile update error (FULL DETAILS):', JSON.stringify(profileError, null, 2))
-      console.error('Error code:', profileError.code)
-      console.error('Error message:', profileError.message)
-      console.error('Error details:', profileError.details)
-      console.error('Error hint:', profileError.hint)
-      // Try to clean up the auth user if profile update fails
-      console.log('Cleaning up auth user:', userId)
-      await adminClient.auth.admin.deleteUser(userId)
-      throw {
-        statusCode: 500,
-        message: 'Failed to update user profile',
-        details: profileError,
-      }
-    }
-    console.log('Profile updated successfully:', updatedProfile)
   }
 
   // Create user_organizations entry for the primary org

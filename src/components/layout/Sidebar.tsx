@@ -12,6 +12,7 @@ import {
   UserCog,
   ChevronDown,
   ChevronUp,
+  ChevronRight,
   Loader2,
   User,
   Building2,
@@ -163,7 +164,15 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
   }
 
 
-  const navItems = [
+  interface NavItem {
+    label: string
+    href: string
+    icon: typeof LayoutDashboard
+    roles: string[]
+    children?: NavItem[]
+  }
+
+  const navItems: NavItem[] = [
     {
       label: 'Dashboard',
       href: '/dashboard',
@@ -190,15 +199,41 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
     },
     {
       label: 'Clients',
-      href: '/clients',
+      href: '/clients/organizations',
       icon: Users,
-      roles: ['admin', 'manager'],
+      roles: ['admin', 'manager', 'client', 'client_no_access'],
+      children: [
+        {
+          label: 'Organizations',
+          href: '/clients/organizations',
+          icon: Building2,
+          roles: ['admin', 'manager', 'client', 'client_no_access'],
+        },
+        {
+          label: 'Users',
+          href: '/clients/users',
+          icon: Users,
+          roles: ['admin', 'manager', 'client', 'client_no_access'],
+        },
+      ],
     },
   ]
 
   const filteredNavItems = navItems.filter(item =>
     item.roles.includes(userRole)
   )
+
+  // Auto-expand Clients sub-nav when on a /clients/* path
+  const [expandedNav, setExpandedNav] = useState<string | null>(
+    pathname?.startsWith('/clients') ? 'Clients' : null
+  )
+
+  // Keep expanded state in sync with pathname
+  useEffect(() => {
+    if (pathname?.startsWith('/clients')) {
+      setExpandedNav('Clients')
+    }
+  }, [pathname])
 
   // Close sidebar when clicking outside on mobile
   useEffect(() => {
@@ -334,21 +369,70 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
         <ul className="space-y-1">
           {filteredNavItems.map((item) => {
             const Icon = item.icon
-            const isActive = pathname === item.href || pathname?.startsWith(item.href + '/')
+            const hasChildren = item.children && item.children.length > 0
+            const isExpanded = expandedNav === item.label
+            const isParentActive = pathname?.startsWith('/clients')
+            const isActive = hasChildren
+              ? isParentActive
+              : pathname === item.href || pathname?.startsWith(item.href + '/')
+
+            const filteredChildren = item.children?.filter(child =>
+              child.roles.includes(userRole)
+            )
 
             return (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={`relative flex items-center gap-3 px-4 py-3 rounded-md transition-all ${
-                    isActive
-                      ? 'bg-primary/15 text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-primary before:rounded-r'
-                      : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
-                  }`}
-                >
-                  <Icon className="w-5 h-5" />
-                  <span>{item.label}</span>
-                </Link>
+              <li key={item.label}>
+                {hasChildren ? (
+                  <>
+                    <button
+                      onClick={() => setExpandedNav(isExpanded ? null : item.label)}
+                      className={`relative w-full flex items-center gap-3 px-4 py-3 rounded-md transition-all ${
+                        isActive
+                          ? 'bg-primary/15 text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-primary before:rounded-r'
+                          : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                      }`}
+                    >
+                      <Icon className="w-5 h-5" />
+                      <span className="flex-1 text-left">{item.label}</span>
+                      <ChevronRight className={`w-4 h-4 transition-transform ${isExpanded ? 'rotate-90' : ''}`} />
+                    </button>
+                    {isExpanded && filteredChildren && (
+                      <ul className="ml-4 mt-1 space-y-1">
+                        {filteredChildren.map((child) => {
+                          const ChildIcon = child.icon
+                          const isChildActive = pathname === child.href
+                          return (
+                            <li key={child.href}>
+                              <Link
+                                href={child.href}
+                                className={`relative flex items-center gap-3 px-4 py-2.5 rounded-md transition-all text-sm ${
+                                  isChildActive
+                                    ? 'bg-primary/15 text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-primary before:rounded-r'
+                                    : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                                }`}
+                              >
+                                <ChildIcon className="w-4 h-4" />
+                                <span>{child.label}</span>
+                              </Link>
+                            </li>
+                          )
+                        })}
+                      </ul>
+                    )}
+                  </>
+                ) : (
+                  <Link
+                    href={item.href}
+                    className={`relative flex items-center gap-3 px-4 py-3 rounded-md transition-all ${
+                      isActive
+                        ? 'bg-primary/15 text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-primary before:rounded-r'
+                        : 'text-muted-foreground hover:bg-secondary hover:text-foreground'
+                    }`}
+                  >
+                    <Icon className="w-5 h-5" />
+                    <span>{item.label}</span>
+                  </Link>
+                )}
               </li>
             )
           })}

@@ -205,3 +205,27 @@ export const ROLE_LABELS: Record<UserRole, string> = {
 export const TEAM_ROLES: UserRole[] = ['admin', 'manager', 'user']
 export const CLIENT_ROLES: UserRole[] = ['client', 'client_no_access']
 export const ALL_ROLES: UserRole[] = ['admin', 'manager', 'user', 'client', 'client_no_access']
+
+// =====================================================
+// Client management permissions
+// =====================================================
+
+/** admin, manager, client can invite; client_no_access cannot */
+export function canInviteUsers(profile: Profile | null): boolean {
+  if (!profile) return false
+  return ['admin', 'manager', 'client'].includes(profile.role)
+}
+
+/** Returns ALL_ROLES for admin/manager, CLIENT_ROLES for client */
+export function getAllowedInviteRoles(profile: Profile | null): UserRole[] {
+  if (!profile) return []
+  if (isAdminOrManager(profile)) return ALL_ROLES
+  if (isClient(profile)) return CLIENT_ROLES
+  return []
+}
+
+/** All roles except bare 'user' role can view client management */
+export function canViewClientManagement(profile: Profile | null): boolean {
+  if (!profile) return false
+  return ['admin', 'manager', 'client', 'client_no_access'].includes(profile.role)
+}

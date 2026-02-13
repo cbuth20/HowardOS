@@ -25,9 +25,10 @@ interface InviteUserModalProps {
   onComplete: () => void
   orgId?: string
   organizations?: Array<{ id: string; name: string }>
+  allowedRoles?: string[]
 }
 
-export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizations }: InviteUserModalProps) {
+export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizations, allowedRoles }: InviteUserModalProps) {
   const [email, setEmail] = useState('')
   const [fullName, setFullName] = useState('')
   const [role, setRole] = useState('client')
@@ -35,6 +36,9 @@ export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizati
   const [selectedOrgId, setSelectedOrgId] = useState(orgId || '')
 
   const supabase = createClient()
+  const filteredRoleOptions = allowedRoles
+    ? ROLE_OPTIONS.filter(r => allowedRoles.includes(r.value))
+    : ROLE_OPTIONS
   const isTeamRole = ['admin', 'manager', 'user'].includes(role)
   const isClientRole = ['client', 'client_no_access'].includes(role)
 
@@ -113,7 +117,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizati
     onClose()
   }
 
-  const selectedRoleOption = ROLE_OPTIONS.find(r => r.value === role)
+  const selectedRoleOption = filteredRoleOptions.find(r => r.value === role)
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
@@ -173,7 +177,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizati
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                {ROLE_OPTIONS.map((option) => {
+                {filteredRoleOptions.map((option) => {
                   const Icon = option.icon
                   return (
                     <SelectItem key={option.value} value={option.value}>

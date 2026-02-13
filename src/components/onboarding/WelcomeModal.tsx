@@ -7,7 +7,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { HowardAvatar } from '@/components/ui/howard-avatar'
 import { HowardLogo } from '@/components/ui/howard-logo'
-import { User, Upload, X, Sparkles } from 'lucide-react'
+import { User, Upload, X, Sparkles, Building2 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
@@ -279,6 +279,24 @@ export function WelcomeModal({ isOpen, onComplete, user, orgName }: WelcomeModal
                     className="bg-muted"
                   />
                 </div>
+
+                {/* Organization (read-only) */}
+                {orgName && (
+                  <div>
+                    <Label className="mb-2">
+                      Organization
+                    </Label>
+                    <div className="relative">
+                      <Building2 className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+                      <Input
+                        type="text"
+                        value={orgName}
+                        disabled
+                        className="bg-muted pl-10"
+                      />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center justify-center gap-3 mt-8 pt-6 border-t border-border">

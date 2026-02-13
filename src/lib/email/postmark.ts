@@ -93,13 +93,6 @@ export async function sendMagicLinkEmail({ to, magicLink, fullName }: MagicLinkE
                             </td>
                           </tr>
                         </table>
-
-                        <p style="margin: 24px 0 0 0; color: #64748b; font-size: 14px; line-height: 1.5;">
-                          Or copy and paste this link into your browser:
-                        </p>
-                        <p style="margin: 8px 0 0 0; padding: 12px; background-color: #f8f9fb; border-radius: 6px; word-break: break-all; font-size: 12px; color: #475569;">
-                          ${magicLink}
-                        </p>
                       </td>
                     </tr>
 
@@ -210,13 +203,6 @@ export async function sendInvitationEmail({
                             </td>
                           </tr>
                         </table>
-
-                        <p style="margin: 24px 0 0 0; color: #64748b; font-size: 14px; line-height: 1.5;">
-                          Or copy and paste this link into your browser:
-                        </p>
-                        <p style="margin: 8px 0 0 0; padding: 12px; background-color: #f8f9fb; border-radius: 6px; word-break: break-all; font-size: 12px; color: #475569;">
-                          ${inviteLink}
-                        </p>
                       </td>
                     </tr>
 

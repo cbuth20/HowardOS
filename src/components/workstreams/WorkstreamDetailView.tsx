@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Plus, FileText, ArrowLeft } from 'lucide-react'
+import { Plus, ArrowLeft } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { WorkstreamWithEntriesAndRollup, WorkstreamEntryWithDetails, WorkstreamStatus } from '@/types/entities'
@@ -16,7 +16,7 @@ import {
 import { WorkstreamEntriesList } from './WorkstreamEntriesList'
 import { WorkstreamStatusRollup } from './WorkstreamStatusRollup'
 import { WorkstreamEntryModal } from './WorkstreamEntryModal'
-import { BulkAddEntriesModal } from './BulkAddEntriesModal'
+import { AddEntriesModal } from './AddEntriesModal'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { toast } from 'sonner'
 
@@ -28,8 +28,8 @@ interface WorkstreamDetailViewProps {
 
 export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: WorkstreamDetailViewProps) {
   const router = useRouter()
-  const [showEntryModal, setShowEntryModal] = useState(false)
-  const [showBulkAddModal, setShowBulkAddModal] = useState(false)
+  const [showAddEntriesModal, setShowAddEntriesModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [editingEntry, setEditingEntry] = useState<WorkstreamEntryWithDetails | null>(null)
   const [confirmDeleteEntry, setConfirmDeleteEntry] = useState<WorkstreamEntryWithDetails | null>(null)
 
@@ -58,18 +58,18 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
   const totalEntries = entries.length
   const overallStatus = workstream.overall_status || 'green'
 
-  // Handle create entry
-  const handleCreateEntry = async (data: any) => {
+  // Handle create custom entry (from unified modal)
+  const handleCreateCustomEntry = async (data: any) => {
     try {
       await createEntryMutation.mutateAsync(data)
       toast.success('Entry created successfully')
-      setShowEntryModal(false)
+      setShowAddEntriesModal(false)
     } catch (error: any) {
       toast.error(error.message || 'Failed to create entry')
     }
   }
 
-  // Handle update entry
+  // Handle update entry (from edit modal)
   const handleUpdateEntry = async (data: any) => {
     if (!editingEntry) return
 
@@ -79,7 +79,7 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
         data,
       })
       toast.success('Entry updated successfully')
-      setShowEntryModal(false)
+      setShowEditModal(false)
       setEditingEntry(null)
     } catch (error: any) {
       toast.error(error.message || 'Failed to update entry')
@@ -89,7 +89,7 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
   // Handle edit click
   const handleEditEntry = (entry: WorkstreamEntryWithDetails) => {
     setEditingEntry(entry)
-    setShowEntryModal(true)
+    setShowEditModal(true)
   }
 
   // Handle delete entry
@@ -118,15 +118,15 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
         template_ids: templateIds,
       })
       toast.success(`Added ${templateIds.length} entries successfully`)
-      setShowBulkAddModal(false)
+      setShowAddEntriesModal(false)
     } catch (error: any) {
       toast.error(error.message || 'Failed to add entries')
     }
   }
 
   // Handle modal close
-  const handleCloseEntryModal = () => {
-    setShowEntryModal(false)
+  const handleCloseEditModal = () => {
+    setShowEditModal(false)
     setEditingEntry(null)
   }
 
@@ -159,27 +159,13 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
 
           {/* Admin Actions */}
           {isAdmin && (
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowBulkAddModal(true)}
-              >
-                <FileText className="h-3.5 w-3.5 mr-1.5" />
-                Add Templates
-              </Button>
-
-              <Button
-                size="sm"
-                onClick={() => {
-                  setEditingEntry(null)
-                  setShowEntryModal(true)
-                }}
-              >
-                <Plus className="h-3.5 w-3.5 mr-1.5" />
-                Create Entry
-              </Button>
-            </div>
+            <Button
+              size="sm"
+              onClick={() => setShowAddEntriesModal(true)}
+            >
+              <Plus className="h-3.5 w-3.5 mr-1.5" />
+              Add Entries
+            </Button>
           )}
         </div>
 
@@ -204,7 +190,7 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
           onStatusChange={handleStatusChange}
           emptyMessage={
             isAdmin
-              ? 'No entries yet. Click "Create Entry" or "Add from Templates" to get started.'
+              ? 'No entries yet. Click "Add Entries" to get started.'
               : 'No entries have been added to your workstream yet.'
           }
         />
@@ -213,23 +199,27 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
       {/* Modals */}
       {isAdmin && (
         <>
+          {/* Unified Add Entries Modal (templates + custom) */}
+          <AddEntriesModal
+            isOpen={showAddEntriesModal}
+            onClose={() => setShowAddEntriesModal(false)}
+            onBulkAdd={handleBulkAdd}
+            onCreateCustom={handleCreateCustomEntry}
+            workstreamId={workstream.id}
+            users={users}
+            isSubmitting={bulkCreateMutation.isPending || createEntryMutation.isPending}
+          />
+
+          {/* Edit Entry Modal */}
           <WorkstreamEntryModal
-            isOpen={showEntryModal}
-            onClose={handleCloseEntryModal}
-            onSubmit={editingEntry ? handleUpdateEntry : handleCreateEntry}
+            isOpen={showEditModal}
+            onClose={handleCloseEditModal}
+            onSubmit={handleUpdateEntry}
             entry={editingEntry}
             workstreamId={workstream.id}
             verticals={verticals}
             users={users}
-            isSubmitting={createEntryMutation.isPending || updateEntryMutation.isPending}
-          />
-
-          <BulkAddEntriesModal
-            isOpen={showBulkAddModal}
-            onClose={() => setShowBulkAddModal(false)}
-            onSubmit={handleBulkAdd}
-            workstreamId={workstream.id}
-            isSubmitting={bulkCreateMutation.isPending}
+            isSubmitting={updateEntryMutation.isPending}
           />
         </>
       )}
