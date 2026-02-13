@@ -7,7 +7,28 @@ import { createAdminClient } from '../../src/lib/supabase/admin'
 import { sendInvitationEmail } from '../../src/lib/email/postmark'
 
 function generateTempPassword(): string {
-  return randomBytes(9).toString('base64url').slice(0, 12)
+  // Generate a 16-char password to avoid leaked password database conflicts
+  // Longer passwords are extremely unlikely to be in HaveIBeenPwned database
+  const uppercase = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+  const lowercase = 'abcdefghijklmnopqrstuvwxyz'
+  const numbers = '0123456789'
+  const allChars = uppercase + lowercase + numbers
+
+  const bytes = randomBytes(16)
+  let password = ''
+
+  // Generate random password
+  for (let i = 0; i < 16; i++) {
+    password += allChars[bytes[i] % allChars.length]
+  }
+
+  // Ensure at least one of each type by replacing first 3 chars if needed
+  const chars = password.split('')
+  if (!/[A-Z]/.test(password)) chars[0] = uppercase[bytes[0] % uppercase.length]
+  if (!/[a-z]/.test(password)) chars[1] = lowercase[bytes[1] % lowercase.length]
+  if (!/[0-9]/.test(password)) chars[2] = numbers[bytes[2] % numbers.length]
+
+  return chars.join('')
 }
 
 export const handler = withMiddleware(async (event: HandlerEvent, { profile, supabase }: AuthContext) => {
@@ -161,6 +182,8 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
     userId = existingProfile.id
 
     // Reset their password via admin API
+    console.log('Resetting password for existing user:', userId)
+    console.log('Generated password:', tempPassword) // Debug log
     const { error: passwordError } = await adminClient.auth.admin.updateUserById(userId, {
       password: tempPassword,
     })
@@ -169,6 +192,7 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
       console.error('Password reset error:', passwordError)
       throw { statusCode: 500, message: 'Failed to reset user password' }
     }
+    console.log('Password reset successful for user:', userId)
 
     const { error: updateError } = await (adminClient as any)
       .from('profiles')
@@ -189,12 +213,14 @@ export const handler = withMiddleware(async (event: HandlerEvent, { profile, sup
   } else {
     // New user: create auth user with temp password
     console.log('Creating new auth user with temp password')
+    console.log('Generated password:', tempPassword) // Debug log
     const { data: authData, error: authError } = await adminClient.auth.admin.createUser({
       email,
       password: tempPassword,
       email_confirm: true,
       user_metadata: { full_name, role, org_id },
     })
+    console.log('Auth user creation result:', { success: !!authData, userId: authData?.user?.id, error: authError })
 
     if (authError) {
       // Handle orphaned auth user (exists in auth but no profile row)
