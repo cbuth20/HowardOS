@@ -163,13 +163,19 @@ export function OrganizationDetailModal({
 
     setSavingUrl(true)
     try {
-      const { error } = await (supabase as any)
-        .from('profiles')
-        .update({ dashboard_iframe_url: dashboardUrl.trim() || null })
-        .eq('org_id', organization.id)
-        .eq('role', 'client')
+      const response = await authFetch('/api/organizations-update-dashboard-url', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orgId: organization.id,
+          dashboardUrl: dashboardUrl.trim() || null,
+        }),
+      })
 
-      if (error) throw error
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.message || 'Failed to update dashboard URL')
+      }
 
       toast.success('Dashboard URL updated for all clients in this organization')
     } catch (error: any) {

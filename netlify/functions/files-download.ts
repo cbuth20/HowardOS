@@ -50,21 +50,37 @@ export const handler: Handler = async (event): Promise<HandlerResponse> => {
         const match = cookies.match(pattern)
         if (match) {
           try {
-            // Try parsing as JSON first
-            const cookieValue = decodeURIComponent(match[1])
+            let cookieValue = decodeURIComponent(match[1])
+            console.log('Cookie value sample:', cookieValue.substring(0, 50))
+
+            // Supabase SSR encodes cookies as base64
+            if (cookieValue.startsWith('base64-')) {
+              cookieValue = Buffer.from(cookieValue.substring(7), 'base64').toString('utf-8')
+              console.log('Decoded base64 cookie:', cookieValue.substring(0, 50))
+            }
+
+            // Try parsing as JSON (Supabase SSR format)
             const parsed = JSON.parse(cookieValue)
-            token = parsed.access_token || parsed[0]
-            if (token) {
-              console.log('Token extracted from cookie (JSON format)')
+
+            // Handle different formats:
+            // - Array: ["access_token", "refresh_token"]
+            // - Object: { access_token: "...", ... }
+            if (Array.isArray(parsed)) {
+              token = parsed[0] // First element is access token
+            } else if (parsed.access_token) {
+              token = parsed.access_token
+            }
+
+            // Validate token format (JWT has 3 parts separated by dots)
+            if (token && token.split('.').length === 3) {
+              console.log('Token extracted from cookie (valid JWT)')
               break
+            } else {
+              console.log('Invalid token format, not a JWT:', token?.substring(0, 20))
+              token = undefined
             }
           } catch (e) {
-            // If not JSON, use raw value
-            token = decodeURIComponent(match[1])
-            if (token && token.length > 20) { // Basic sanity check
-              console.log('Token extracted from cookie (raw format)')
-              break
-            }
+            console.error('Cookie parsing error:', e)
           }
         }
       }
