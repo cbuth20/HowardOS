@@ -392,6 +392,49 @@ class ApiClient {
       method: 'DELETE',
     })
   }
+
+  // QuickBooks Connections
+  async getQuickbooksConnections(orgId?: string) {
+    const params = new URLSearchParams()
+    if (orgId) params.set('org_id', orgId)
+    return this.request<{ connections: any[] }>(`/api/quickbooks-connections?${params}`)
+  }
+
+  async deleteQuickbooksConnection(id: string) {
+    return this.request<{ message: string }>(`/api/quickbooks-connections?id=${id}`, {
+      method: 'DELETE',
+    })
+  }
+
+  async initiateQuickbooksAuth(orgId: string) {
+    return this.request<{ authUrl: string }>('/api/quickbooks-auth', {
+      method: 'POST',
+      body: JSON.stringify({ org_id: orgId }),
+    })
+  }
+
+  // Transactions
+  async getTransactionAccounts(orgId: string) {
+    return this.request<{ org_id: string; accounts: any[] }>(`/api/transactions?org_id=${orgId}`)
+  }
+
+  async pullTransactions(data: {
+    org_id: string
+    start_date: string
+    end_date: string
+    report_type?: 'general_ledger' | 'profit_and_loss'
+  }) {
+    return this.request<{
+      org_id: string
+      report_type: string
+      date_range: { start_date: string; end_date: string }
+      accounts: any[]
+      report: any
+    }>('/api/transactions', {
+      method: 'POST',
+      body: JSON.stringify(data),
+    })
+  }
 }
 
 export const apiClient = new ApiClient()

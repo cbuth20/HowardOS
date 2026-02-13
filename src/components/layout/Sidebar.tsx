@@ -17,7 +17,9 @@ import {
   User,
   Building2,
   X,
-  ClipboardList
+  ClipboardList,
+  Wrench,
+  ArrowLeftRight
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
@@ -198,6 +200,20 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       roles: ['admin', 'manager', 'user', 'client'],
     },
     {
+      label: 'Tools',
+      href: '/tools/transactions',
+      icon: Wrench,
+      roles: ['admin'],
+      children: [
+        {
+          label: 'Transactions',
+          href: '/tools/transactions',
+          icon: ArrowLeftRight,
+          roles: ['admin'],
+        },
+      ],
+    },
+    {
       label: 'Clients',
       href: '/clients/organizations',
       icon: Users,
@@ -223,15 +239,19 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
     item.roles.includes(userRole)
   )
 
-  // Auto-expand Clients sub-nav when on a /clients/* path
+  // Auto-expand sub-nav when on matching paths
   const [expandedNav, setExpandedNav] = useState<string | null>(
-    pathname?.startsWith('/clients') ? 'Clients' : null
+    pathname?.startsWith('/clients') ? 'Clients'
+    : pathname?.startsWith('/tools') ? 'Tools'
+    : null
   )
 
   // Keep expanded state in sync with pathname
   useEffect(() => {
     if (pathname?.startsWith('/clients')) {
       setExpandedNav('Clients')
+    } else if (pathname?.startsWith('/tools')) {
+      setExpandedNav('Tools')
     }
   }, [pathname])
 
@@ -371,7 +391,8 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
             const Icon = item.icon
             const hasChildren = item.children && item.children.length > 0
             const isExpanded = expandedNav === item.label
-            const isParentActive = pathname?.startsWith('/clients')
+            const parentBasePath = item.children ? item.href.split('/').slice(0, 2).join('/') : null
+            const isParentActive = parentBasePath ? pathname?.startsWith(parentBasePath) : false
             const isActive = hasChildren
               ? isParentActive
               : pathname === item.href || pathname?.startsWith(item.href + '/')
