@@ -1,15 +1,13 @@
 'use client'
 
 import { useState, useMemo } from 'react'
-import { Search, Loader2, UserPlus, ArrowRight } from 'lucide-react'
+import { Search, Loader2, Plus } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { HowardAvatar } from '@/components/ui/howard-avatar'
 import { HowardBadge } from '@/components/ui/howard-badge'
-import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { createClient } from '@/lib/supabase/client'
-import { authFetch } from '@/lib/utils/auth-fetch'
 import { toast } from 'sonner'
 
 interface ExistingUser {
@@ -49,7 +47,6 @@ export function AddExistingUserModal({
   const [loading, setLoading] = useState(false)
   const [hasSearched, setHasSearched] = useState(false)
   const [addingUserId, setAddingUserId] = useState<string | null>(null)
-  const [confirmMoveUser, setConfirmMoveUser] = useState<ExistingUser | null>(null)
 
   const supabase = createClient()
 
@@ -82,18 +79,40 @@ export function AddExistingUserModal({
     }
   }
 
-  const handleAddUser = (user: ExistingUser) => {
-    setConfirmMoveUser(user)
+  const handleAddUser = async (user: ExistingUser) => {
+    setAddingUserId(user.id)
+    try {
+      const { error } = await (supabase as any)
+        .from('user_organizations')
+        .insert({ user_id: user.id, org_id: targetOrgId, is_primary: false })
+
+      if (error) {
+        if (error.code === '23505') {
+          toast.error('User is already a member of this organization')
+        } else {
+          throw error
+        }
+      } else {
+        toast.success(`${user.full_name || user.email} added to ${targetOrgName}`)
+        setUsers((prev) => prev.filter((u) => u.id !== user.id))
+        onComplete()
+      }
+    } catch (error: any) {
+      console.error('Error adding user:', error)
+      toast.error(error.message || 'Failed to add user')
+    } finally {
+      setAddingUserId(null)
+    }
   }
 
   // Filter out users already in this org
   const filteredUsers = useMemo(() => {
-    return users.filter((u) => !currentOrgUserIds.includes(u.id) && u.org_id !== targetOrgId)
-  }, [users, currentOrgUserIds, targetOrgId])
+    return users.filter((u) => !currentOrgUserIds.includes(u.id))
+  }, [users, currentOrgUserIds])
 
   const alreadyInOrgUsers = useMemo(() => {
-    return users.filter((u) => currentOrgUserIds.includes(u.id) || u.org_id === targetOrgId)
-  }, [users, currentOrgUserIds, targetOrgId])
+    return users.filter((u) => currentOrgUserIds.includes(u.id))
+  }, [users, currentOrgUserIds])
 
   const handleClose = () => {
     setSearchQuery('')
@@ -111,7 +130,7 @@ export function AddExistingUserModal({
         <div className="space-y-4">
           <p className="text-sm text-muted-foreground">
             Search for an existing user to add to <span className="font-medium text-foreground">{targetOrgName}</span>.
-            This will move them from their current organization.
+            Users can belong to multiple organizations.
           </p>
 
           {/* Search */}
@@ -194,7 +213,7 @@ export function AddExistingUserModal({
                         <Loader2 className="w-4 h-4 animate-spin" />
                       ) : (
                         <>
-                          <ArrowRight className="w-4 h-4 mr-1" />
+                          <Plus className="w-4 h-4 mr-1" />
                           Add
                         </>
                       )}
@@ -246,49 +265,6 @@ export function AddExistingUserModal({
         </DialogFooter>
       </DialogContent>
 
-      {/* Move User Confirmation */}
-      <ConfirmDialog
-        open={!!confirmMoveUser}
-        onOpenChange={(open) => { if (!open) setConfirmMoveUser(null) }}
-        title="Move User"
-        description={
-          confirmMoveUser
-            ? `Move ${confirmMoveUser.full_name || confirmMoveUser.email} from "${confirmMoveUser.organizations?.name || 'Unknown'}" to "${targetOrgName}"?`
-            : ''
-        }
-        confirmLabel="Move"
-        variant="default"
-        onConfirm={async () => {
-          if (!confirmMoveUser) return
-          const user = confirmMoveUser
-          setConfirmMoveUser(null)
-
-          setAddingUserId(user.id)
-          try {
-            // Use API to bypass RLS (admin updating another user's profile)
-            const response = await authFetch(`/api/users-update-profile?id=${user.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ org_id: targetOrgId }),
-            })
-
-            if (!response.ok) {
-              const data = await response.json()
-              throw new Error(data.error || 'Failed to update user')
-            }
-
-            toast.success(`${user.full_name || user.email} added to ${targetOrgName}`)
-            // Remove from search results
-            setUsers((prev) => prev.filter((u) => u.id !== user.id))
-            onComplete()
-          } catch (error: any) {
-            console.error('Error adding user:', error)
-            toast.error(error.message || 'Failed to add user')
-          } finally {
-            setAddingUserId(null)
-          }
-        }}
-      />
     </Dialog>
   )
 }

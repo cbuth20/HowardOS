@@ -1,6 +1,5 @@
 import { createClient } from '@/lib/supabase/server'
-import { Input } from '@/components/ui/input'
-import Script from 'next/script'
+import Link from 'next/link'
 
 interface ProfileData {
   full_name: string | null
@@ -17,6 +16,7 @@ interface FileData {
   name: string
   created_at: string
   mime_type: string
+  channel_id: string | null
 }
 
 interface TaskData {
@@ -52,7 +52,7 @@ export default async function DashboardPage() {
 
   const { data: recentFiles } = await supabase
     .from('files')
-    .select('id, name, created_at, mime_type')
+    .select('id, name, created_at, mime_type, channel_id')
     .order('created_at', { ascending: false })
     .limit(5) as { data: FileData[] | null }
 
@@ -78,19 +78,6 @@ export default async function DashboardPage() {
             </div>
           </div>
 
-          {/* Search and Actions */}
-          <div className="flex items-center gap-3">
-            <div className="relative">
-              <Input
-                type="search"
-                placeholder="Search..."
-                className="pl-9 w-64"
-              />
-              <svg className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-              </svg>
-            </div>
-          </div>
         </div>
       </div>
 
@@ -169,18 +156,23 @@ export default async function DashboardPage() {
               {recentFiles && recentFiles.length > 0 ? (
                 <ul className="space-y-3">
                   {recentFiles.map((file) => (
-                    <li key={file.id} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-3">
-                        <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
-                          <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
-                          </svg>
+                    <li key={file.id}>
+                      <Link
+                        href={file.channel_id ? `/files?channel=${file.channel_id}` : '/files'}
+                        className="flex items-center justify-between py-2 px-2 -mx-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className="w-8 h-8 bg-primary/10 rounded flex items-center justify-center">
+                            <svg className="w-4 h-4 text-primary" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M7 21h10a2 2 0 002-2V9.414a1 1 0 00-.293-.707l-5.414-5.414A1 1 0 0012.586 3H7a2 2 0 00-2 2v14a2 2 0 002 2z" />
+                            </svg>
+                          </div>
+                          <span className="text-sm font-medium text-foreground">{file.name}</span>
                         </div>
-                        <span className="text-sm font-medium text-foreground">{file.name}</span>
-                      </div>
-                      <span className="text-xs text-muted-foreground">
-                        {new Date(file.created_at).toLocaleDateString()}
-                      </span>
+                        <span className="text-xs text-muted-foreground">
+                          {new Date(file.created_at).toLocaleDateString()}
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>
@@ -199,23 +191,28 @@ export default async function DashboardPage() {
               {recentTasks && recentTasks.length > 0 ? (
                 <ul className="space-y-3">
                   {recentTasks.map((task) => (
-                    <li key={task.id} className="flex items-center justify-between py-2">
-                      <div className="flex items-center gap-3">
-                        <div className={`w-2 h-2 rounded-full ${
-                          task.priority === 'urgent' ? 'bg-destructive' :
-                          task.priority === 'high' ? 'bg-amber-500' :
-                          task.priority === 'medium' ? 'bg-muted-foreground' :
-                          'bg-muted'
-                        }`} />
-                        <span className="text-sm font-medium text-foreground">{task.title}</span>
-                      </div>
-                      <span className={`text-xs px-2 py-1 rounded ${
-                        task.status === 'completed' ? 'bg-primary/10 text-primary' :
-                        task.status === 'in_progress' ? 'bg-muted text-muted-foreground' :
-                        'bg-muted text-muted-foreground'
-                      }`}>
-                        {task.status.replace('_', ' ')}
-                      </span>
+                    <li key={task.id}>
+                      <Link
+                        href={`/tasks?task=${task.id}`}
+                        className="flex items-center justify-between py-2 px-2 -mx-2 rounded-md hover:bg-secondary transition-colors"
+                      >
+                        <div className="flex items-center gap-3">
+                          <div className={`w-2 h-2 rounded-full ${
+                            task.priority === 'urgent' ? 'bg-destructive' :
+                            task.priority === 'high' ? 'bg-amber-500' :
+                            task.priority === 'medium' ? 'bg-muted-foreground' :
+                            'bg-muted'
+                          }`} />
+                          <span className="text-sm font-medium text-foreground">{task.title}</span>
+                        </div>
+                        <span className={`text-xs px-2 py-1 rounded ${
+                          task.status === 'completed' ? 'bg-primary/10 text-primary' :
+                          task.status === 'in_progress' ? 'bg-muted text-muted-foreground' :
+                          'bg-muted text-muted-foreground'
+                        }`}>
+                          {task.status.replace('_', ' ')}
+                        </span>
+                      </Link>
                     </li>
                   ))}
                 </ul>

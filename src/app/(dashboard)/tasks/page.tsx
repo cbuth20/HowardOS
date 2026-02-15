@@ -1,6 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { CheckSquare, Plus } from 'lucide-react'
 import { TaskView, TaskStatus, TaskFormData } from '@/types/tasks'
@@ -52,6 +53,8 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<any | null>(null)
   const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState<string | null>(null)
 
+  const searchParams = useSearchParams()
+  const taskParamHandled = useRef(false)
   const supabase = createClient()
 
   // Use TanStack Query hooks
@@ -87,6 +90,26 @@ export default function TasksPage() {
 
     return () => clearInterval(interval)
   }, [profile, refetch])
+
+  // Open task from URL param (e.g., /tasks?task=<id>)
+  useEffect(() => {
+    const taskId = searchParams.get('task')
+    if (taskId && tasks.length > 0 && !taskParamHandled.current) {
+      const task = tasks.find((t: any) => t.id === taskId)
+      if (task) {
+        setSelectedTask(task)
+        setIsModalOpen(true)
+        taskParamHandled.current = true
+      } else if (!isLoading) {
+        // Task not in current view - switch to all-tasks and try again
+        if (activeTab !== 'all-tasks') {
+          setActiveTab('all-tasks')
+        } else {
+          taskParamHandled.current = true
+        }
+      }
+    }
+  }, [searchParams, tasks, isLoading, activeTab])
 
   const loadProfile = async () => {
     try {

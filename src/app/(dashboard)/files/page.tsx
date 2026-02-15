@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'next/navigation'
 import { FolderOpen, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChannelList } from '@/components/files/ChannelList'
@@ -16,8 +17,10 @@ interface UserProfile {
 
 export default function FilesPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const searchParams = useSearchParams()
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
+  const [initialChannelSet, setInitialChannelSet] = useState(false)
 
   const supabase = createClient()
   const { data: channels = [], isLoading: channelsLoading } = useFileChannels()
@@ -26,12 +29,15 @@ export default function FilesPage() {
     fetchProfile()
   }, [])
 
-  // Auto-select first channel when channels load
+  // Auto-select channel from URL param or first channel when channels load
   useEffect(() => {
-    if (channels.length > 0 && !selectedChannelId) {
-      setSelectedChannelId(channels[0].id)
+    if (channels.length > 0 && !initialChannelSet) {
+      const channelParam = searchParams.get('channel')
+      const matchedChannel = channelParam && channels.find((c) => c.id === channelParam)
+      setSelectedChannelId(matchedChannel ? matchedChannel.id : channels[0].id)
+      setInitialChannelSet(true)
     }
-  }, [channels, selectedChannelId])
+  }, [channels, initialChannelSet, searchParams])
 
   const fetchProfile = async () => {
     const { data: { user } } = await supabase.auth.getUser()

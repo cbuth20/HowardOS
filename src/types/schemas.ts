@@ -18,7 +18,7 @@ export const CreateTaskSchema = z.object({
   status: TaskStatusSchema,
   priority: TaskPrioritySchema,
   assigned_to: z.string().uuid().optional().nullable(),
-  due_date: z.string().datetime().optional().nullable(),
+  due_date: z.string().optional().nullable(),
   target_org_id: z.string().uuid().optional(),
   is_internal: z.boolean().optional(),
   is_recurring: z.boolean().optional(),

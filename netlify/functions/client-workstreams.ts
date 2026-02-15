@@ -205,6 +205,7 @@ export const handler: Handler = withMiddleware(async (event, context: AuthContex
 
           return {
             ...ws,
+            vertical_rollups: verticalRollups || [],
             overall_status: overallStatus,
             total_entries: totalEntries,
           }
