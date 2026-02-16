@@ -10,6 +10,11 @@ import { HowardBadge } from '@/components/ui/howard-badge'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 
+interface UserOrg {
+  org_id: string
+  name: string
+}
+
 interface ExistingUser {
   id: string
   email: string
@@ -18,11 +23,7 @@ interface ExistingUser {
   is_active: boolean
   avatar_url: string | null
   org_id: string
-  organizations?: {
-    id: string
-    name: string
-    slug: string
-  }
+  user_orgs: UserOrg[]
 }
 
 interface AddExistingUserModalProps {
@@ -60,17 +61,41 @@ export function AddExistingUserModal({
 
       const { data, error } = await (supabase as any)
         .from('profiles')
-        .select(`
-          id, email, full_name, role, is_active, avatar_url, org_id,
-          organizations(id, name, slug)
-        `)
+        .select(`id, email, full_name, role, is_active, avatar_url, org_id`)
         .or(`email.ilike.%${query}%,full_name.ilike.%${query}%`)
         .eq('is_active', true)
         .order('full_name')
         .limit(20)
 
       if (error) throw error
-      setUsers(data || [])
+
+      // Fetch user_organizations for these users
+      const userIds = (data || []).map((u: any) => u.id)
+      let userOrgsMap: Record<string, UserOrg[]> = {}
+
+      if (userIds.length > 0) {
+        const { data: uoData } = await (supabase as any)
+          .from('user_organizations')
+          .select('user_id, org_id, organization:organizations(id, name)')
+          .in('user_id', userIds)
+
+        if (uoData) {
+          for (const uo of uoData) {
+            if (!userOrgsMap[uo.user_id]) userOrgsMap[uo.user_id] = []
+            userOrgsMap[uo.user_id].push({
+              org_id: uo.org_id,
+              name: uo.organization?.name || 'Unknown',
+            })
+          }
+        }
+      }
+
+      const usersWithOrgs = (data || []).map((u: any) => ({
+        ...u,
+        user_orgs: userOrgsMap[u.id] || [],
+      }))
+
+      setUsers(usersWithOrgs)
     } catch (error) {
       console.error('Search error:', error)
       toast.error('Failed to search users')
@@ -191,15 +216,18 @@ export function AddExistingUserModal({
                           {user.full_name || user.email}
                         </p>
                         <p className="text-xs text-muted-foreground truncate">{user.email}</p>
-                        <div className="flex items-center gap-2 mt-0.5">
+                        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
                           <HowardBadge variant={`role-${user.role}` as any}>
                             {user.role}
                           </HowardBadge>
-                          {user.organizations && (
-                            <span className="text-xs text-muted-foreground">
-                              {user.organizations.name}
+                          {user.user_orgs.map(uo => (
+                            <span
+                              key={uo.org_id}
+                              className="inline-flex items-center px-1.5 py-0.5 rounded-full bg-primary/10 text-primary text-[10px] font-medium"
+                            >
+                              {uo.name}
                             </span>
-                          )}
+                          ))}
                         </div>
                       </div>
                     </div>

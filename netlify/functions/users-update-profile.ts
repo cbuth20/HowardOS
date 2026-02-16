@@ -32,6 +32,9 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
     throw { statusCode: 403, message: 'Only admins can assign admin or manager roles' }
   }
 
+  // Handle org_ids array separately
+  const orgIds: string[] | undefined = body.org_ids
+
   // Build update object with only allowed fields
   const allowedFields = ['full_name', 'role', 'org_id', 'is_active', 'avatar_url', 'allowed_org_ids', 'is_onboarded']
   const updates: Record<string, any> = {}
@@ -41,25 +44,80 @@ export const handler = withMiddleware(async (event: HandlerEvent, { user, profil
     }
   }
 
-  if (Object.keys(updates).length === 0) {
+  if (Object.keys(updates).length === 0 && !orgIds) {
     throw { statusCode: 400, message: 'No valid fields to update' }
   }
 
-  // Use supabaseAdmin to bypass RLS
-  const { data: updatedProfile, error } = await (supabaseAdmin as any)
-    .from('profiles')
-    .update(updates)
-    .eq('id', targetUserId)
-    .select('*')
-    .single()
+  let updatedProfile = null
 
-  if (error) {
-    throw { statusCode: 500, message: 'Failed to update profile', details: error.message }
+  // If org_ids provided, sync user_organizations
+  if (orgIds !== undefined) {
+    // Fetch existing user_organizations to find the current primary
+    const { data: existingOrgs } = await (supabaseAdmin as any)
+      .from('user_organizations')
+      .select('org_id, is_primary')
+      .eq('user_id', targetUserId)
+
+    const currentPrimaryOrgId = existingOrgs?.find((o: any) => o.is_primary)?.org_id
+
+    // Delete all existing user_organizations for this user
+    await (supabaseAdmin as any)
+      .from('user_organizations')
+      .delete()
+      .eq('user_id', targetUserId)
+
+    if (orgIds.length > 0) {
+      // Determine which org should be primary
+      const primaryOrgId = orgIds.includes(currentPrimaryOrgId) ? currentPrimaryOrgId : orgIds[0]
+
+      // Insert new rows
+      const rows = orgIds.map(orgId => ({
+        user_id: targetUserId,
+        org_id: orgId,
+        is_primary: orgId === primaryOrgId,
+      }))
+
+      const { error: insertError } = await (supabaseAdmin as any)
+        .from('user_organizations')
+        .insert(rows)
+
+      if (insertError) {
+        throw { statusCode: 500, message: 'Failed to update user organizations', details: insertError.message }
+      }
+
+      // Update profiles.org_id to primary for backward compat
+      updates.org_id = primaryOrgId
+    } else {
+      // No orgs — clear profiles.org_id
+      updates.org_id = null
+    }
   }
 
-  // If org_id changed, update user_organizations too
-  if (updates.org_id) {
-    // Upsert the new org as primary
+  // Apply profile updates if any
+  if (Object.keys(updates).length > 0) {
+    const { data, error } = await (supabaseAdmin as any)
+      .from('profiles')
+      .update(updates)
+      .eq('id', targetUserId)
+      .select('*')
+      .single()
+
+    if (error) {
+      throw { statusCode: 500, message: 'Failed to update profile', details: error.message }
+    }
+    updatedProfile = data
+  } else {
+    // Just fetch the profile if we only updated orgs
+    const { data } = await (supabaseAdmin as any)
+      .from('profiles')
+      .select('*')
+      .eq('id', targetUserId)
+      .single()
+    updatedProfile = data
+  }
+
+  // If org_id changed (without org_ids), update user_organizations too (backward compat)
+  if (!orgIds && updates.org_id) {
     await (supabaseAdmin as any)
       .from('user_organizations')
       .upsert(

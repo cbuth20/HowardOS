@@ -3,12 +3,13 @@
 import { useState, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from '@/components/ui/table'
 import { FilterChip, FilterChipGroup } from '@/components/ui/howard-filter-chip'
 import { HowardAvatar } from '@/components/ui/howard-avatar'
 import { HowardBadge } from '@/components/ui/howard-badge'
 import { Separator } from '@/components/ui/separator'
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover'
+import { Checkbox } from '@/components/ui/checkbox'
 import {
   Users,
   Loader2,
@@ -20,12 +21,20 @@ import {
   ArrowUp,
   ArrowDown,
   Power,
+  X,
+  ChevronDown,
 } from 'lucide-react'
 
 interface Organization {
   id: string
   name: string
   slug: string
+}
+
+interface UserOrg {
+  org_id: string
+  name: string
+  is_primary: boolean
 }
 
 interface OrgUser {
@@ -43,6 +52,7 @@ interface OrgUser {
     name: string
     slug: string
   }
+  user_orgs: UserOrg[]
 }
 
 type SortField = 'name' | 'role' | 'organization' | 'status' | 'joined'
@@ -57,7 +67,7 @@ interface UsersDataTableProps {
   onEditUser: (user: OrgUser) => void
   onDeactivateUser: (user: OrgUser) => void
   onSendMagicLink: (userId: string, userEmail: string) => void
-  onReassignUser: (userId: string, newOrgId: string) => void
+  onUpdateUserOrgs: (userId: string, orgIds: string[]) => void
   deletingUserId: string | null
 }
 
@@ -70,7 +80,7 @@ export function UsersDataTable({
   onEditUser,
   onDeactivateUser,
   onSendMagicLink,
-  onReassignUser,
+  onUpdateUserOrgs,
   deletingUserId,
 }: UsersDataTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
@@ -122,7 +132,7 @@ export function UsersDataTable({
           comparison = a.role.localeCompare(b.role)
           break
         case 'organization':
-          comparison = (a.organizations?.name || '').localeCompare(b.organizations?.name || '')
+          comparison = (a.user_orgs?.[0]?.name || '').localeCompare(b.user_orgs?.[0]?.name || '')
           break
         case 'status':
           comparison = (a.is_active === b.is_active) ? 0 : a.is_active ? -1 : 1
@@ -319,20 +329,62 @@ export function UsersDataTable({
                   {/* Organization — admin/manager only */}
                   {isAdminManager && (
                     <TableCell className="px-4 py-2">
-                      <Select
-                        value={user.org_id || '__none__'}
-                        onValueChange={(value) => onReassignUser(user.id, value === '__none__' ? '' : value)}
-                      >
-                        <SelectTrigger className="text-sm max-w-[180px]"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="__none__">No Organization</SelectItem>
-                          {organizations.map(org => (
-                            <SelectItem key={org.id} value={org.id}>
-                              {org.name}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button className="flex items-center gap-1 flex-wrap max-w-[240px] min-h-[32px] px-2 py-1 rounded-md border border-border hover:bg-secondary transition-colors text-left">
+                            {user.user_orgs.length > 0 ? (
+                              <>
+                                {user.user_orgs.map(uo => (
+                                  <span
+                                    key={uo.org_id}
+                                    className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-primary/10 text-primary text-xs font-medium"
+                                  >
+                                    {uo.name}
+                                    <X
+                                      className="w-3 h-3 cursor-pointer hover:text-destructive"
+                                      onClick={(e) => {
+                                        e.stopPropagation()
+                                        const newOrgIds = user.user_orgs
+                                          .filter(o => o.org_id !== uo.org_id)
+                                          .map(o => o.org_id)
+                                        onUpdateUserOrgs(user.id, newOrgIds)
+                                      }}
+                                    />
+                                  </span>
+                                ))}
+                              </>
+                            ) : (
+                              <span className="text-xs text-muted-foreground">No orgs</span>
+                            )}
+                            <ChevronDown className="w-3 h-3 text-muted-foreground ml-auto shrink-0" />
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-56 p-2" align="start">
+                          <div className="space-y-1 max-h-60 overflow-y-auto">
+                            {organizations.map(org => {
+                              const isChecked = user.user_orgs.some(uo => uo.org_id === org.id)
+                              return (
+                                <label
+                                  key={org.id}
+                                  className="flex items-center gap-2 px-2 py-1.5 rounded hover:bg-secondary cursor-pointer text-sm"
+                                >
+                                  <Checkbox
+                                    checked={isChecked}
+                                    onCheckedChange={() => {
+                                      const currentOrgIds = user.user_orgs.map(uo => uo.org_id)
+                                      const newOrgIds = isChecked
+                                        ? currentOrgIds.filter(id => id !== org.id)
+                                        : [...currentOrgIds, org.id]
+                                      onUpdateUserOrgs(user.id, newOrgIds)
+                                    }}
+                                  />
+                                  {org.name}
+                                </label>
+                              )
+                            })}
+                          </div>
+                        </PopoverContent>
+                      </Popover>
                     </TableCell>
                   )}
 

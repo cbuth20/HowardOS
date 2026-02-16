@@ -26,6 +26,12 @@ interface Organization {
   slug: string
 }
 
+interface UserOrg {
+  org_id: string
+  name: string
+  is_primary: boolean
+}
+
 interface OrgUser {
   id: string
   email: string
@@ -41,6 +47,7 @@ interface OrgUser {
     name: string
     slug: string
   }
+  user_orgs: UserOrg[]
 }
 
 export default function ClientUsersPage() {
@@ -122,7 +129,32 @@ export default function ClientUsersPage() {
       const { data, error } = await query
 
       if (error) throw error
-      setAllUsers(data || [])
+
+      // Fetch all user_organizations with org names
+      const { data: userOrgsData } = await (supabase as any)
+        .from('user_organizations')
+        .select('user_id, org_id, is_primary, organization:organizations(id, name)')
+
+      // Build lookup: userId -> UserOrg[]
+      const userOrgsMap: Record<string, UserOrg[]> = {}
+      if (userOrgsData) {
+        for (const uo of userOrgsData) {
+          if (!userOrgsMap[uo.user_id]) userOrgsMap[uo.user_id] = []
+          userOrgsMap[uo.user_id].push({
+            org_id: uo.org_id,
+            name: uo.organization?.name || 'Unknown',
+            is_primary: uo.is_primary,
+          })
+        }
+      }
+
+      // Merge user_orgs into each user
+      const usersWithOrgs = (data || []).map((user: any) => ({
+        ...user,
+        user_orgs: userOrgsMap[user.id] || [],
+      }))
+
+      setAllUsers(usersWithOrgs)
     } catch (error) {
       console.error('Error loading all users:', error)
       toast.error('Failed to load users')
@@ -206,24 +238,24 @@ export default function ClientUsersPage() {
     }
   }
 
-  const handleReassignUser = async (userId: string, newOrgId: string) => {
+  const handleUpdateUserOrgs = async (userId: string, orgIds: string[]) => {
     try {
       const profileResponse = await authFetch(`/api/users-update-profile?id=${userId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ org_id: newOrgId }),
+        body: JSON.stringify({ org_ids: orgIds }),
       })
 
       if (!profileResponse.ok) {
         const data = await profileResponse.json()
-        throw new Error(data.error || 'Failed to reassign user')
+        throw new Error(data.error || 'Failed to update user organizations')
       }
 
-      toast.success('User reassigned successfully')
+      toast.success('User organizations updated')
       loadAllUsers()
     } catch (error: any) {
-      console.error('Error reassigning user:', error)
-      toast.error(error.message || 'Failed to reassign user')
+      console.error('Error updating user organizations:', error)
+      toast.error(error.message || 'Failed to update user organizations')
     }
   }
 
@@ -281,7 +313,7 @@ export default function ClientUsersPage() {
             onEditUser={handleEditUser}
             onDeactivateUser={handleDeactivateUser}
             onSendMagicLink={handleSendMagicLink}
-            onReassignUser={handleReassignUser}
+            onUpdateUserOrgs={handleUpdateUserOrgs}
             deletingUserId={deletingUserId}
           />
         </div>
