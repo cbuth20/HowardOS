@@ -227,7 +227,7 @@ export function InviteUserModal({ isOpen, onClose, onComplete, orgId, organizati
 
   return (
     <Dialog open={isOpen} onOpenChange={(open) => { if (!open) handleClose() }}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="sm:max-w-lg max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Invite New User</DialogTitle>
         </DialogHeader>

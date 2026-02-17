@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { UsersDataTable } from '@/components/clients/UsersDataTable'
 import { InviteUserModal } from '@/components/users/InviteUserModal'
@@ -15,6 +15,14 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select'
 import { getAllowedInviteRoles } from '@/lib/auth/permissions'
 import { authFetch } from '@/lib/utils/auth-fetch'
 import { Users, Loader2 } from 'lucide-react'
@@ -57,6 +65,7 @@ export default function ClientUsersPage() {
   const [currentProfile, setCurrentProfile] = useState<any>(null)
   const [userRole, setUserRole] = useState<string>('')
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
+  const [orgFilter, setOrgFilter] = useState<string>('all')
 
   // Modal states
   const [showInviteModal, setShowInviteModal] = useState(false)
@@ -121,11 +130,7 @@ export default function ClientUsersPage() {
         .select(`*, organizations(id, name, slug)`)
         .order('created_at', { ascending: false })
 
-      // Client/client_no_access: only their org's users
-      if (!isAdminManager && currentProfile?.org_id) {
-        query = query.eq('org_id', currentProfile.org_id)
-      }
-
+      // RLS handles client visibility (only shared org users)
       const { data, error } = await query
 
       if (error) throw error
@@ -271,8 +276,20 @@ export default function ClientUsersPage() {
   }
 
   const isAdminManager = ['admin', 'manager'].includes(userRole)
+  const isClientView = ['client', 'client_no_access'].includes(userRole)
   const profileObj = currentProfile ? { role: userRole } as any : null
   const allowedRoles = getAllowedInviteRoles(profileObj)
+
+  const howardUsers = useMemo(
+    () => allUsers.filter(u => ['admin', 'manager', 'user'].includes(u.role)),
+    [allUsers]
+  )
+
+  const clientUsers = useMemo(() => {
+    const clients = allUsers.filter(u => ['client', 'client_no_access'].includes(u.role))
+    if (orgFilter === 'all') return clients
+    return clients.filter(u => u.user_orgs.some(uo => uo.org_id === orgFilter))
+  }, [allUsers, orgFilter])
 
   if (loading && !currentProfile) {
     return (
@@ -304,18 +321,104 @@ export default function ClientUsersPage() {
 
         {/* Main Content */}
         <div className="flex-1 overflow-y-auto p-8">
-          <UsersDataTable
-            users={allUsers}
-            organizations={organizations}
-            loading={loading}
-            userRole={userRole}
-            onInviteUser={handleInviteUser}
-            onEditUser={handleEditUser}
-            onDeactivateUser={handleDeactivateUser}
-            onSendMagicLink={handleSendMagicLink}
-            onUpdateUserOrgs={handleUpdateUserOrgs}
-            deletingUserId={deletingUserId}
-          />
+          <Tabs defaultValue={isClientView ? 'my-team' : 'howard'} className="max-w-6xl">
+            <TabsList>
+              {isClientView ? (
+                <>
+                  <TabsTrigger value="my-team">My Team ({clientUsers.length})</TabsTrigger>
+                  <TabsTrigger value="howard-team">Howard Team ({howardUsers.length})</TabsTrigger>
+                </>
+              ) : (
+                <>
+                  <TabsTrigger value="howard">Howard Users ({howardUsers.length})</TabsTrigger>
+                  <TabsTrigger value="clients">Client Users ({clientUsers.length})</TabsTrigger>
+                </>
+              )}
+            </TabsList>
+
+            {isClientView ? (
+              <>
+                <TabsContent value="my-team">
+                  <UsersDataTable
+                    users={clientUsers}
+                    organizations={organizations}
+                    loading={loading}
+                    userRole={userRole}
+                    onInviteUser={handleInviteUser}
+                    onEditUser={handleEditUser}
+                    onDeactivateUser={handleDeactivateUser}
+                    onSendMagicLink={handleSendMagicLink}
+                    onUpdateUserOrgs={handleUpdateUserOrgs}
+                    deletingUserId={deletingUserId}
+                    availableRoleFilters={['client', 'client_no_access']}
+                  />
+                </TabsContent>
+                <TabsContent value="howard-team">
+                  <UsersDataTable
+                    users={howardUsers}
+                    organizations={organizations}
+                    loading={loading}
+                    userRole={userRole}
+                    onInviteUser={handleInviteUser}
+                    onEditUser={handleEditUser}
+                    onDeactivateUser={handleDeactivateUser}
+                    onSendMagicLink={handleSendMagicLink}
+                    onUpdateUserOrgs={handleUpdateUserOrgs}
+                    deletingUserId={deletingUserId}
+                    availableRoleFilters={['admin', 'manager', 'user']}
+                    hideInvite
+                  />
+                </TabsContent>
+              </>
+            ) : (
+              <>
+                <TabsContent value="howard">
+                  <UsersDataTable
+                    users={howardUsers}
+                    organizations={organizations}
+                    loading={loading}
+                    userRole={userRole}
+                    onInviteUser={handleInviteUser}
+                    onEditUser={handleEditUser}
+                    onDeactivateUser={handleDeactivateUser}
+                    onSendMagicLink={handleSendMagicLink}
+                    onUpdateUserOrgs={handleUpdateUserOrgs}
+                    deletingUserId={deletingUserId}
+                    availableRoleFilters={['admin', 'manager', 'user']}
+                  />
+                </TabsContent>
+                <TabsContent value="clients">
+                  {/* Org filter for admin/manager Client Users tab */}
+                  <div className="mb-4">
+                    <Select value={orgFilter} onValueChange={setOrgFilter}>
+                      <SelectTrigger className="w-[240px]">
+                        <SelectValue placeholder="Filter by organization" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">All Organizations</SelectItem>
+                        {organizations.map(org => (
+                          <SelectItem key={org.id} value={org.id}>{org.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  <UsersDataTable
+                    users={clientUsers}
+                    organizations={organizations}
+                    loading={loading}
+                    userRole={userRole}
+                    onInviteUser={handleInviteUser}
+                    onEditUser={handleEditUser}
+                    onDeactivateUser={handleDeactivateUser}
+                    onSendMagicLink={handleSendMagicLink}
+                    onUpdateUserOrgs={handleUpdateUserOrgs}
+                    deletingUserId={deletingUserId}
+                    availableRoleFilters={['client', 'client_no_access']}
+                  />
+                </TabsContent>
+              </>
+            )}
+          </Tabs>
         </div>
       </div>
 
