@@ -105,7 +105,7 @@ export default async function DashboardPage() {
             </div>
             <div>
               <p className="text-lg font-bold text-foreground leading-tight">{tasksCount || 0}</p>
-              <p className="text-xs text-muted-foreground">Pending Tasks</p>
+              <p className="text-xs text-muted-foreground">My Pending Tasks</p>
             </div>
           </div>
         </div>

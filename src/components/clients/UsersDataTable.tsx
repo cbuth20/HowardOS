@@ -69,6 +69,8 @@ interface UsersDataTableProps {
   onSendMagicLink: (userId: string, userEmail: string) => void
   onUpdateUserOrgs: (userId: string, orgIds: string[]) => void
   deletingUserId: string | null
+  availableRoleFilters?: string[]
+  hideInvite?: boolean
 }
 
 export function UsersDataTable({
@@ -82,6 +84,8 @@ export function UsersDataTable({
   onSendMagicLink,
   onUpdateUserOrgs,
   deletingUserId,
+  availableRoleFilters,
+  hideInvite,
 }: UsersDataTableProps) {
   const [searchTerm, setSearchTerm] = useState('')
   const [roleFilter, setRoleFilter] = useState<string>('all')
@@ -147,20 +151,35 @@ export function UsersDataTable({
     return filtered
   }, [users, searchTerm, roleFilter, statusFilter, sortField, sortDirection])
 
-  // Role filter chips differ by role
-  const roleFilterChips = isAdminManager ? (
+  const roleLabels: Record<string, string> = {
+    admin: 'Admins',
+    manager: 'Managers',
+    user: 'Users',
+    client: 'Clients',
+    client_no_access: 'Contacts',
+  }
+
+  // Role filter chips: use availableRoleFilters if provided, else default by role
+  const roleFilterOptions = availableRoleFilters
+    ? availableRoleFilters
+    : isAdminManager
+      ? ['admin', 'manager', 'user', 'client']
+      : isClientRole
+        ? ['client', 'client_no_access']
+        : []
+
+  const roleFilterChips = roleFilterOptions.length > 0 ? (
     <>
       <FilterChip label="All" isActive={roleFilter === 'all'} onClick={() => setRoleFilter('all')} size="sm" />
-      <FilterChip label="Admins" isActive={roleFilter === 'admin'} onClick={() => setRoleFilter('admin')} size="sm" />
-      <FilterChip label="Managers" isActive={roleFilter === 'manager'} onClick={() => setRoleFilter('manager')} size="sm" />
-      <FilterChip label="Users" isActive={roleFilter === 'user'} onClick={() => setRoleFilter('user')} size="sm" />
-      <FilterChip label="Clients" isActive={roleFilter === 'client'} onClick={() => setRoleFilter('client')} size="sm" />
-    </>
-  ) : isClientRole ? (
-    <>
-      <FilterChip label="All" isActive={roleFilter === 'all'} onClick={() => setRoleFilter('all')} size="sm" />
-      <FilterChip label="Clients" isActive={roleFilter === 'client'} onClick={() => setRoleFilter('client')} size="sm" />
-      <FilterChip label="Contacts" isActive={roleFilter === 'client_no_access'} onClick={() => setRoleFilter('client_no_access')} size="sm" />
+      {roleFilterOptions.map(role => (
+        <FilterChip
+          key={role}
+          label={roleLabels[role] || role}
+          isActive={roleFilter === role}
+          onClick={() => setRoleFilter(role)}
+          size="sm"
+        />
+      ))}
     </>
   ) : null
 
@@ -169,14 +188,6 @@ export function UsersDataTable({
       {/* Stats */}
       <div className="flex items-center gap-4 text-sm text-muted-foreground">
         <span><span className="font-semibold text-foreground">{users.length}</span> users</span>
-        {isAdminManager && (
-          <>
-            <span className="text-border">|</span>
-            <span><span className="font-semibold text-foreground">{users.filter(u => ['admin', 'manager', 'user'].includes(u.role)).length}</span> team</span>
-          </>
-        )}
-        <span className="text-border">|</span>
-        <span><span className="font-semibold text-foreground">{users.filter(u => ['client', 'client_no_access'].includes(u.role)).length}</span> clients</span>
         <span className="text-border">|</span>
         <span><span className="font-semibold text-primary">{users.filter(u => u.is_active).length}</span> active</span>
       </div>
@@ -211,7 +222,7 @@ export function UsersDataTable({
             <Separator orientation="vertical" className="h-8" />
           </>
         )}
-        {canInvite && (
+        {canInvite && !hideInvite && (
           <Button
             size="sm"
             onClick={onInviteUser}
