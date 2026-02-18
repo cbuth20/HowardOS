@@ -2,7 +2,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { authFetch } from '@/lib/utils/auth-fetch'
 import { toast } from 'sonner'
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || '/.netlify/functions'
+const API_URL = import.meta.env.VITE_API_URL || '/.netlify/functions'
 
 export interface TaskComment {
   id: string

@@ -1,8 +1,6 @@
-'use client'
-
 import { useState } from 'react'
 import { Plus, ArrowLeft } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { WorkstreamWithEntriesAndRollup, WorkstreamEntryWithDetails, WorkstreamStatus } from '@/types/entities'
 import { useWorkstreamVerticals } from '@/lib/api/hooks/useWorkstreams'
@@ -27,7 +25,7 @@ interface WorkstreamDetailViewProps {
 }
 
 export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: WorkstreamDetailViewProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [showAddEntriesModal, setShowAddEntriesModal] = useState(false)
   const [showEditModal, setShowEditModal] = useState(false)
   const [editingEntry, setEditingEntry] = useState<WorkstreamEntryWithDetails | null>(null)
@@ -38,7 +36,7 @@ export function WorkstreamDetailView({ workstream, isAdmin = false, onBack }: Wo
     if (onBack) {
       onBack()
     } else {
-      router.back()
+      navigate(-1)
     }
   }
 

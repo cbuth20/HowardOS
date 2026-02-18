@@ -1,7 +1,7 @@
 'use client'
 
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
+import { useProfile } from '@/lib/api/hooks/useProfile'
 import {
   useWorkstreamVerticals,
   useAllClientWorkstreams,
@@ -17,36 +17,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Card, CardContent } from '@/components/ui/card'
 import { ClipboardList, AlertCircle, CheckCircle2 } from 'lucide-react'
 
-interface Profile {
-  id: string
-  org_id: string
-  role: string
-  full_name: string | null
-  email: string
-}
-
 export default function WorkstreamsPage() {
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
-  // Fetch user profile
-  useEffect(() => {
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      setProfile(data as Profile | null)
-      setLoading(false)
-    }
-    loadProfile()
-  }, [])
+  const { profile, isLoading: loading } = useProfile()
 
   const isAdmin = ['admin', 'manager'].includes(profile?.role || '')
 

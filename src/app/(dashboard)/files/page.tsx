@@ -1,33 +1,21 @@
-'use client'
-
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'react-router'
 import { FolderOpen, Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { ChannelList } from '@/components/files/ChannelList'
 import { ChannelContentView } from '@/components/files/ChannelContentView'
 import { CreateChannelModal } from '@/components/files/CreateChannelModal'
 import { useFileChannels } from '@/lib/api/hooks'
-import { createClient } from '@/lib/supabase/client'
-
-interface UserProfile {
-  role: string
-  org_id: string
-}
+import { useProfile } from '@/lib/api/hooks/useProfile'
 
 export default function FilesPage() {
-  const [profile, setProfile] = useState<UserProfile | null>(null)
-  const searchParams = useSearchParams()
+  const { profile } = useProfile()
+  const [searchParams] = useSearchParams()
   const [selectedChannelId, setSelectedChannelId] = useState<string | null>(null)
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [initialChannelSet, setInitialChannelSet] = useState(false)
 
-  const supabase = createClient()
   const { data: channels = [], isLoading: channelsLoading } = useFileChannels()
-
-  useEffect(() => {
-    fetchProfile()
-  }, [])
 
   // Auto-select channel from URL param or first channel when channels load
   useEffect(() => {
@@ -38,18 +26,6 @@ export default function FilesPage() {
       setInitialChannelSet(true)
     }
   }, [channels, initialChannelSet, searchParams])
-
-  const fetchProfile = async () => {
-    const { data: { user } } = await supabase.auth.getUser()
-    if (user) {
-      const { data } = await (supabase as any)
-        .from('profiles')
-        .select('role, org_id')
-        .eq('id', user.id)
-        .single()
-      setProfile(data)
-    }
-  }
 
   const isTeam = ['admin', 'manager', 'user'].includes(profile?.role || '')
   const isAdmin = isTeam // team members get admin-like file access

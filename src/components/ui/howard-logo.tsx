@@ -1,4 +1,3 @@
-import Image from 'next/image'
 import { cn } from '@/lib/utils'
 
 interface HowardLogoProps {
@@ -10,7 +9,7 @@ interface HowardLogoProps {
 function HowardLogo({ className, variant = 'full', showText = true }: HowardLogoProps) {
   if (variant === 'icon') {
     return (
-      <Image
+      <img
         src="/icons/h-mark.svg"
         alt="Howard"
         width={40}
@@ -22,7 +21,7 @@ function HowardLogo({ className, variant = 'full', showText = true }: HowardLogo
 
   return (
     <div className={cn('flex items-center gap-3', className)}>
-      <Image
+      <img
         src="/icons/h-mark.svg"
         alt="Howard"
         width={40}

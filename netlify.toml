@@ -1,23 +1,23 @@
 [build]
   command = "npm run build"
-  publish = ".next"
+  publish = "dist"
 
 [dev]
-  command = "npm run dev:next"
+  command = "npm run dev:vite"
   port = 8888
   targetPort = 3000
   autoLaunch = false
-
-[[plugins]]
-  package = "@netlify/plugin-nextjs"
 
 [functions]
   directory = "netlify/functions"
   node_bundler = "esbuild"
 
-# Environment variables for local development
-# Add your actual values in the Netlify UI for production
-# or use .env.local for local development
+# HTTPS redirect
+[[redirects]]
+  from = "http://*/*"
+  to = "https://:splat"
+  status = 301
+  force = true
 
 # Redirect API requests to Netlify Functions
 [[redirects]]
@@ -25,12 +25,7 @@
   to = "/.netlify/functions/:splat"
   status = 200
 
-# Next.js SPA fallback
-[[redirects]]
-  from = "http://*/*"
-  to = "https://:splat"
-  status = 301
-  force = true
+# SPA fallback lives in public/_redirects (avoids interfering with Vite dev server)
 
 # Headers for security
 [[headers]]
@@ -42,7 +37,7 @@
     Referrer-Policy = "strict-origin-when-cross-origin"
 
 [[headers]]
-  for = "/_next/static/*"
+  for = "/assets/*"
   [headers.values]
     Cache-Control = "public, max-age=28800, immutable"
 

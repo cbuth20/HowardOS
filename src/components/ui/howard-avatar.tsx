@@ -1,5 +1,3 @@
-'use client'
-
 import * as React from 'react'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { cn } from '@/lib/utils'
@@ -40,7 +38,6 @@ const roleColors: Record<string, string> = {
 
 function HowardAvatar({ name, email, size = 'md', role, src, className }: HowardAvatarProps) {
   const colorClass = role ? roleColors[role] : roleColors.default
-
   return (
     <Avatar className={cn(sizeClasses[size], 'flex-shrink-0', className)} title={email || name}>
       {src && <AvatarImage src={src} alt={name} />}

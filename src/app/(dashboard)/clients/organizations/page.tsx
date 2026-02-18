@@ -1,7 +1,9 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useProfile } from '@/lib/api/hooks/useProfile'
 import { createClient } from '@/lib/supabase/client'
+
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
@@ -29,11 +31,10 @@ interface Organization {
 }
 
 export default function OrganizationsPage() {
+  const { profile } = useProfile()
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
-  const [currentProfile, setCurrentProfile] = useState<any>(null)
-  const [userRole, setUserRole] = useState<string>('')
   const [defaultOpenOrg, setDefaultOpenOrg] = useState<string | undefined>(undefined)
 
   // Per-org settings state keyed by org id
@@ -44,37 +45,18 @@ export default function OrganizationsPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    loadProfile()
-  }, [])
+  const currentProfile = profile ? { id: profile.id, org_id: profile.org_id, role: profile.role } : null
+  const userRole = profile?.role || ''
 
   useEffect(() => {
     if (currentProfile) {
       loadOrganizations()
     }
-  }, [currentProfile])
-
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await (supabase as any)
-        .from('profiles')
-        .select('id, org_id, role')
-        .eq('id', user.id)
-        .single()
-
-      setCurrentProfile(data)
-      setUserRole(data?.role || '')
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    }
-  }
+  }, [profile])
 
   const loadOrganizations = async () => {
     try {
-      const isAdminManager = ['admin', 'manager'].includes(currentProfile?.role)
+      const isAdminManager = ['admin', 'manager'].includes(currentProfile?.role || '')
 
       let query = (supabase as any).from('organizations').select('*').order('name')
 
@@ -144,7 +126,7 @@ export default function OrganizationsPage() {
       .eq('org_id', orgId)
       .eq('role', 'client')
       .limit(1)
-      .single()
+      .maybeSingle()
 
     setDashboardUrls(prev => ({ ...prev, [orgId]: data?.dashboard_iframe_url || '' }))
     setLoadedOrgSettings(prev => new Set(prev).add(orgId))

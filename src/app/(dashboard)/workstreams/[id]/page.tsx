@@ -1,43 +1,12 @@
-'use client'
-
-import { useState, useEffect } from 'react'
-import { useParams } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
+import { useParams } from 'react-router'
+import { useProfile } from '@/lib/api/hooks/useProfile'
 import { useClientWorkstream } from '@/lib/api/hooks/useWorkstreams'
 import { WorkstreamDetailView } from '@/components/workstreams/WorkstreamDetailView'
-
-interface Profile {
-  id: string
-  org_id: string
-  role: string
-  full_name: string | null
-  email: string
-}
 
 export default function WorkstreamDetailPage() {
   const params = useParams()
   const workstreamId = params.id as string
-  const [profile, setProfile] = useState<Profile | null>(null)
-  const [loading, setLoading] = useState(true)
-  const supabase = createClient()
-
-  // Fetch user profile
-  useEffect(() => {
-    async function loadProfile() {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await supabase
-        .from('profiles')
-        .select('*')
-        .eq('id', user.id)
-        .single()
-
-      setProfile(data as Profile | null)
-      setLoading(false)
-    }
-    loadProfile()
-  }, [])
+  const { profile, isLoading: loading } = useProfile()
 
   const isAdmin = ['admin', 'manager'].includes(profile?.role || '')
 

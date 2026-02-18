@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo } from 'react'
+import { useProfile } from '@/lib/api/hooks/useProfile'
 import { createClient } from '@/lib/supabase/client'
 import { UsersDataTable } from '@/components/clients/UsersDataTable'
 import { InviteUserModal } from '@/components/users/InviteUserModal'
@@ -59,11 +60,10 @@ interface OrgUser {
 }
 
 export default function ClientUsersPage() {
+  const { profile } = useProfile()
   const [allUsers, setAllUsers] = useState<OrgUser[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
-  const [currentProfile, setCurrentProfile] = useState<any>(null)
-  const [userRole, setUserRole] = useState<string>('')
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null)
   const [orgFilter, setOrgFilter] = useState<string>('all')
 
@@ -91,39 +91,20 @@ export default function ClientUsersPage() {
 
   const supabase = createClient()
 
-  useEffect(() => {
-    loadProfile()
-  }, [])
+  const currentProfile = profile ? { id: profile.id, org_id: profile.org_id, role: profile.role } : null
+  const userRole = profile?.role || ''
 
   useEffect(() => {
     if (currentProfile) {
       loadAllUsers()
       loadOrganizations()
     }
-  }, [currentProfile])
-
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await (supabase as any)
-        .from('profiles')
-        .select('id, org_id, role')
-        .eq('id', user.id)
-        .single()
-
-      setCurrentProfile(data)
-      setUserRole(data?.role || '')
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    }
-  }
+  }, [profile])
 
   const loadAllUsers = async () => {
     setLoading(true)
     try {
-      const isAdminManager = ['admin', 'manager'].includes(currentProfile?.role)
+      const isAdminManager = ['admin', 'manager'].includes(currentProfile?.role || '')
 
       let query = (supabase as any)
         .from('profiles')

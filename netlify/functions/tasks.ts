@@ -176,9 +176,11 @@ async function handleCreateTask(event: HandlerEvent, user: any, profile: any, us
       due_date: due_date || null,
       completed_at: status === 'completed' ? new Date().toISOString() : null,
       is_internal: is_internal || false,
-      is_recurring: is_recurring || false,
-      recurrence_rule: recurrence_rule || null,
-      next_occurrence_at: is_recurring && recurrence_rule ? calculateNextOccurrence(recurrence_rule).toISOString() : null,
+      ...(is_recurring ? {
+        is_recurring: true,
+        recurrence_rule: recurrence_rule || null,
+        next_occurrence_at: recurrence_rule ? calculateNextOccurrence(recurrence_rule).toISOString() : null,
+      } : {}),
     })
     .select(TASK_SELECT_QUERY)
     .single()

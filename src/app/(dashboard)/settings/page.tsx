@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useProfile } from '@/lib/api/hooks/useProfile'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -12,15 +12,8 @@ import { Switch } from '@/components/ui/switch'
 import { User, Lock, Bell, Loader2 } from 'lucide-react'
 import { useUpdateUserProfile, useChangePassword, useNotificationPreferences, useUpdateNotificationPreferences } from '@/lib/api/hooks'
 
-interface ProfileData {
-  full_name: string | null
-  email: string
-  avatar_url: string | null
-}
-
 export default function SettingsPage() {
-  const [profile, setProfile] = useState<ProfileData | null>(null)
-  const [loading, setLoading] = useState(true)
+  const { profile, isLoading: loading, refreshProfile } = useProfile()
 
   // Profile update state
   const [fullName, setFullName] = useState('')
@@ -30,39 +23,18 @@ export default function SettingsPage() {
   const [newPassword, setNewPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
 
-  const supabase = createClient()
-
   // Use TanStack Query hooks
   const updateProfile = useUpdateUserProfile()
   const changePassword = useChangePassword()
   const { data: notifPrefs, isLoading: notifLoading } = useNotificationPreferences()
   const updateNotifPrefs = useUpdateNotificationPreferences()
 
+  // Sync fullName when profile loads/changes
   useEffect(() => {
-    loadProfile()
-  }, [])
-
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await (supabase as any)
-        .from('profiles')
-        .select('full_name, email, avatar_url')
-        .eq('id', user.id)
-        .single()
-
-      if (data) {
-        setProfile(data)
-        setFullName(data.full_name || '')
-      }
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    } finally {
-      setLoading(false)
+    if (profile) {
+      setFullName(profile.full_name || '')
     }
-  }
+  }, [profile])
 
   const handleProfileUpdate = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -71,7 +43,7 @@ export default function SettingsPage() {
       await updateProfile.mutateAsync({
         full_name: fullName.trim() || undefined,
       })
-      loadProfile()
+      refreshProfile()
     } catch (error) {
       // Error already handled by mutation hook
     }

@@ -1,8 +1,7 @@
-'use client'
-
 import { useState, useEffect, useRef } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'react-router'
 import { createClient } from '@/lib/supabase/client'
+import { useProfile } from '@/lib/api/hooks/useProfile'
 import { CheckSquare, Plus } from 'lucide-react'
 import { TaskView, TaskStatus, TaskFormData } from '@/types/tasks'
 import { TaskBoard } from '@/components/tasks/TaskBoard'
@@ -13,14 +12,6 @@ import { LoadingSpinner } from '@/components/ui/howard-loading'
 import { canEditTask } from '@/lib/auth/permissions'
 import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { useTasks, useUpdateTask, useCreateTask, useDeleteTask } from '@/lib/api/hooks'
-
-interface Profile {
-  id: string
-  org_id: string
-  role: string
-  full_name: string | null
-  email: string
-}
 
 interface User {
   id: string
@@ -38,7 +29,7 @@ interface Organization {
 }
 
 export default function TasksPage() {
-  const [profile, setProfile] = useState<Profile | null>(null)
+  const { profile } = useProfile()
   const [users, setUsers] = useState<User[]>([])
   const [organizations, setOrganizations] = useState<Organization[]>([])
 
@@ -53,7 +44,7 @@ export default function TasksPage() {
   const [selectedTask, setSelectedTask] = useState<any | null>(null)
   const [confirmDeleteTaskId, setConfirmDeleteTaskId] = useState<string | null>(null)
 
-  const searchParams = useSearchParams()
+  const [searchParams] = useSearchParams()
   const taskParamHandled = useRef(false)
   const supabase = createClient()
 
@@ -68,10 +59,6 @@ export default function TasksPage() {
   const updateTask = useUpdateTask()
   const createTask = useCreateTask()
   const deleteTask = useDeleteTask()
-
-  useEffect(() => {
-    loadProfile()
-  }, [])
 
   useEffect(() => {
     if (profile) {
@@ -110,23 +97,6 @@ export default function TasksPage() {
       }
     }
   }, [searchParams, tasks, isLoading, activeTab])
-
-  const loadProfile = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
-
-      const { data } = await (supabase as any)
-        .from('profiles')
-        .select('id, org_id, role, full_name, email')
-        .eq('id', user.id)
-        .single()
-
-      setProfile(data)
-    } catch (error) {
-      console.error('Error loading profile:', error)
-    }
-  }
 
   const loadUsers = async () => {
     try {

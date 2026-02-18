@@ -1,7 +1,5 @@
-'use client'
-
 import { useEffect } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { createClient } from '@/lib/supabase/client'
 
 /**
@@ -12,7 +10,7 @@ import { createClient } from '@/lib/supabase/client'
  * Redirects to /dashboard on success (onboarding check happens there).
  */
 export default function AuthCallbackPage() {
-  const router = useRouter()
+  const navigate = useNavigate()
   const supabase = createClient()
 
   useEffect(() => {
@@ -26,7 +24,7 @@ export default function AuthCallbackPage() {
           const { error } = await supabase.auth.exchangeCodeForSession(code)
           if (error) {
             console.error('Code exchange error:', error)
-            router.replace(`/login?error=${encodeURIComponent(error.message)}`)
+            navigate(`/login?error=${encodeURIComponent(error.message)}`, { replace: true })
             return
           }
         }
@@ -41,7 +39,7 @@ export default function AuthCallbackPage() {
             async (event, newSession) => {
               if (event === 'SIGNED_IN' && newSession) {
                 subscription.unsubscribe()
-                router.replace('/dashboard')
+                navigate('/dashboard', { replace: true })
               }
             }
           )
@@ -49,17 +47,17 @@ export default function AuthCallbackPage() {
           // Timeout fallback — if no session after 5s, redirect to login
           setTimeout(() => {
             subscription.unsubscribe()
-            router.replace('/login?error=Authentication+timed+out')
+            navigate('/login?error=Authentication+timed+out', { replace: true })
           }, 5000)
 
           return
         }
 
         // Session exists — go to dashboard
-        router.replace('/dashboard')
+        navigate('/dashboard', { replace: true })
       } catch (error) {
         console.error('Auth callback error:', error)
-        router.replace('/login?error=Authentication+failed')
+        navigate('/login?error=Authentication+failed', { replace: true })
       }
     }
 

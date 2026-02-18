@@ -1,8 +1,6 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -24,7 +22,7 @@ export default function DevLoginPage() {
   const [accounts, setAccounts] = useState<TestAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [loggingIn, setLoggingIn] = useState<string | null>(null)
-  const router = useRouter()
+  const navigate = useNavigate()
   const supabase = createClient()
 
   useEffect(() => {
@@ -81,8 +79,7 @@ export default function DevLoginPage() {
       }
 
       // Success - redirect to dashboard
-      router.push('/dashboard')
-      router.refresh()
+      navigate('/dashboard')
     } catch (error: any) {
       toast.error(error.message)
     } finally {
@@ -90,7 +87,7 @@ export default function DevLoginPage() {
     }
   }
 
-  if (process.env.NODE_ENV === 'production') {
+  if (import.meta.env.PROD) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-background">
         <div className="text-center">

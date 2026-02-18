@@ -1,7 +1,5 @@
-'use client'
+import { Link, useLocation, useNavigate } from 'react-router'
 
-import Link from 'next/link'
-import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   FolderOpen,
@@ -22,7 +20,6 @@ import {
   ArrowLeftRight
 } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
 import { useState, useEffect, useRef } from 'react'
 import { Button } from '@/components/ui/button'
 import { HowardLogo } from '@/components/ui/howard-logo'
@@ -63,8 +60,9 @@ interface Organization {
 }
 
 export function Sidebar({ userRole = 'client', orgName, userName, userEmail, userAvatar, userOrgs = [], isOpen = true, onClose }: SidebarProps) {
-  const pathname = usePathname()
-  const router = useRouter()
+  const location = useLocation()
+  const pathname = location.pathname
+  const navigate = useNavigate()
   const supabase = createClient()
 
   const [showClientSwitcher, setShowClientSwitcher] = useState(false)
@@ -121,7 +119,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
   }
 
   const handleSwitchToOrg = async (org: Organization) => {
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       toast.error('Client switching is only available in development')
       return
     }
@@ -150,8 +148,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       }
 
       // Success - redirect to dashboard
-      router.push('/dashboard')
-      router.refresh()
+      navigate('/dashboard')
     } catch (error: any) {
       toast.error(error.message)
     } finally {
@@ -161,8 +158,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
-    router.push('/login')
-    router.refresh()
+    navigate('/login')
   }
 
 
@@ -340,7 +336,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
           </DropdownMenuTrigger>
           <DropdownMenuContent align="start" className="w-[var(--radix-dropdown-menu-trigger-width)]">
             <DropdownMenuItem asChild>
-              <Link href="/settings" className="flex items-center gap-3">
+              <Link to="/settings" className="flex items-center gap-3">
                 <Settings className="w-4 h-4 text-foreground/80" />
                 <span className="text-sm text-foreground">Account Settings</span>
               </Link>
@@ -425,7 +421,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                           return (
                             <li key={child.href}>
                               <Link
-                                href={child.href}
+                                to={child.href}
                                 className={`relative flex items-center gap-3 px-4 py-2.5 rounded-md transition-all text-sm ${
                                   isChildActive
                                     ? 'bg-primary/15 text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-6 before:bg-primary before:rounded-r'
@@ -443,7 +439,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                   </>
                 ) : (
                   <Link
-                    href={item.href}
+                    to={item.href}
                     className={`relative flex items-center gap-3 px-4 py-3 rounded-md transition-all ${
                       isActive
                         ? 'bg-primary/15 text-foreground font-medium before:absolute before:left-0 before:top-1/2 before:-translate-y-1/2 before:w-1 before:h-8 before:bg-primary before:rounded-r'
@@ -463,7 +459,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
       {/* Dev Tools section */}
       <div className="p-4 border-t border-border">
         {/* Client Switcher (Admin Only, Dev Mode) */}
-        {['admin', 'manager'].includes(userRole) && process.env.NODE_ENV !== 'production' && (
+        {['admin', 'manager'].includes(userRole) && !import.meta.env.PROD && (
           <div>
             <button
               onClick={() => setShowClientSwitcher(!showClientSwitcher)}

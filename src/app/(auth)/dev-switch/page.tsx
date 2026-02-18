@@ -1,9 +1,6 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { createAdminClient } from '@/lib/supabase/admin'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -21,7 +18,7 @@ export default function DevSwitchPage() {
   const [accounts, setAccounts] = useState<TestAccount[]>([])
   const [loading, setLoading] = useState(true)
   const [switching, setSwitching] = useState<string | null>(null)
-  const router = useRouter()
+  const navigate = useNavigate()
   const supabase = createClient()
 
   useEffect(() => {
@@ -60,7 +57,7 @@ export default function DevSwitchPage() {
   }
 
   const quickSwitch = async (userId: string, email: string) => {
-    if (process.env.NODE_ENV === 'production') {
+    if (import.meta.env.PROD) {
       toast.error('This feature is only available in development')
       return
     }
@@ -79,8 +76,7 @@ export default function DevSwitchPage() {
       if (error) {
         toast.error(`Login failed. Make sure this account uses password: ${devPassword}`)
       } else {
-        router.push('/dashboard')
-        router.refresh()
+        navigate('/dashboard')
       }
     } catch (error: any) {
       toast.error(error.message)
@@ -89,7 +85,7 @@ export default function DevSwitchPage() {
     }
   }
 
-  if (process.env.NODE_ENV === 'production') {
+  if (import.meta.env.PROD) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-destructive">Dev only</p>

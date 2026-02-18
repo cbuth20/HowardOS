@@ -4,6 +4,10 @@
 
 @layer base {
   :root {
+    --font-dm-sans: 'DM Sans', system-ui, sans-serif;
+    --font-instrument: 'Instrument Serif', Georgia, serif;
+    --font-jetbrains: 'JetBrains Mono', monospace;
+
     /* Howard Brand – shadcn HSL variable system */
     --background: 40 33% 95%;          /* #F6F4F0 Parchment */
     --foreground: 60 4% 7%;            /* #111110 Ink */

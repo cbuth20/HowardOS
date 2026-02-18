@@ -1,8 +1,6 @@
-'use client'
-
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -16,7 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null)
 
-  const router = useRouter()
+  const navigate = useNavigate()
   const supabase = createClient()
 
   const handleLogin = async (e: React.FormEvent) => {
@@ -32,8 +30,7 @@ export default function LoginPage() {
 
       if (error) throw error
 
-      router.push('/dashboard')
-      router.refresh()
+      navigate('/dashboard')
     } catch (error: any) {
       setMessage({
         type: 'error',

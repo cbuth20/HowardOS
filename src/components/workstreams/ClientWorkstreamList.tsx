@@ -1,7 +1,5 @@
-'use client'
-
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { Plus, ChevronRight, Building2, Search } from 'lucide-react'
 import { WorkstreamWithEntriesAndRollup } from '@/types/entities'
 import { WorkstreamStatusBadge } from './WorkstreamStatusBadge'
@@ -26,7 +24,7 @@ export function ClientWorkstreamList({
   loading = false,
   onSelectWorkstream,
 }: ClientWorkstreamListProps) {
-  const router = useRouter()
+  const navigate = useNavigate()
   const [filters, setFilters] = useState({
     org_id: '',
     status: '',
@@ -48,7 +46,7 @@ export function ClientWorkstreamList({
     if (onSelectWorkstream) {
       onSelectWorkstream(workstreamId)
     } else {
-      router.push(`/workstreams/${workstreamId}`)
+      navigate(`/workstreams/${workstreamId}`)
     }
   }
 
@@ -360,7 +358,7 @@ export function ClientWorkstreamList({
             if (onSelectWorkstream) {
               onSelectWorkstream(result.workstream.id)
             } else {
-              router.push(`/workstreams/${result.workstream.id}`)
+              navigate(`/workstreams/${result.workstream.id}`)
             }
           } catch (error: any) {
             toast.error(error.message || 'Failed to create workstream')

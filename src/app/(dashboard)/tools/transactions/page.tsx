@@ -1,7 +1,5 @@
-'use client'
-
 import { useState, useEffect } from 'react'
-import { useSearchParams } from 'next/navigation'
+import { useSearchParams } from 'react-router'
 import { createClient } from '@/lib/supabase/client'
 import {
   ArrowLeftRight,
@@ -34,7 +32,7 @@ interface Organization {
 }
 
 export default function TransactionsPage() {
-  const searchParams = useSearchParams()
+  const [searchParams] = useSearchParams()
   const supabase = createClient()
 
   const [organizations, setOrganizations] = useState<Organization[]>([])

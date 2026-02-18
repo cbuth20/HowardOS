@@ -1,8 +1,6 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { WelcomeModal } from './WelcomeModal'
-import { useRouter } from 'next/navigation'
+import { useProfile } from '@/lib/api/hooks/useProfile'
 
 interface OnboardingCheckProps {
   user: {
@@ -17,7 +15,7 @@ interface OnboardingCheckProps {
 
 export function OnboardingCheck({ user, orgName }: OnboardingCheckProps) {
   const [showOnboarding, setShowOnboarding] = useState(false)
-  const router = useRouter()
+  const { refreshProfile } = useProfile()
 
   useEffect(() => {
     // Show onboarding if user hasn't completed it
@@ -28,7 +26,7 @@ export function OnboardingCheck({ user, orgName }: OnboardingCheckProps) {
 
   const handleComplete = () => {
     setShowOnboarding(false)
-    router.refresh()
+    refreshProfile()
   }
 
   return (

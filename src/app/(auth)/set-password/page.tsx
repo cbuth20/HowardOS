@@ -1,8 +1,6 @@
-'use client'
-
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useNavigate } from 'react-router'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -20,7 +18,7 @@ export default function SetPasswordPage() {
   const [submitting, setSubmitting] = useState(false)
   const [message, setMessage] = useState<{ type: 'error' | 'success', text: string } | null>(null)
 
-  const router = useRouter()
+  const navigate = useNavigate()
   const supabase = createClient()
 
   useEffect(() => {
@@ -33,7 +31,7 @@ export default function SetPasswordPage() {
 
       if (!user) {
         // Not authenticated, redirect to login
-        router.push('/login')
+        navigate('/login')
         return
       }
 
@@ -46,7 +44,7 @@ export default function SetPasswordPage() {
 
       if (profile?.is_active) {
         // Already active, redirect to dashboard
-        router.push('/dashboard')
+        navigate('/dashboard')
         return
       }
 
@@ -54,7 +52,7 @@ export default function SetPasswordPage() {
       setLoading(false)
     } catch (error) {
       console.error('Auth check error:', error)
-      router.push('/login')
+      navigate('/login')
     }
   }
 
@@ -107,8 +105,7 @@ export default function SetPasswordPage() {
 
       // Redirect to dashboard after a short delay
       setTimeout(() => {
-        router.push('/dashboard')
-        router.refresh()
+        navigate('/dashboard')
       }, 1000)
     } catch (error: any) {
       console.error('Password setup error:', error)
