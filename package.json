@@ -5,7 +5,7 @@
   "scripts": {
     "dev": "npx netlify dev",
     "dev:vite": "vite",
-    "build": "vite build && echo '/* /index.html 200' > dist/_redirects",
+    "build": "vite build && printf '/api/*  /.netlify/functions/:splat  200\\n/*  /index.html  200\\n' > dist/_redirects",
     "preview": "vite preview",
     "type-check": "tsc --noEmit",
     "supabase:gen-types": "supabase gen types typescript --local > src/types/database.types.ts"
