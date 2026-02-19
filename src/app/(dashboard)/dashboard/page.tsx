@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { Link } from 'react-router'
 import { useProfile } from '@/lib/api/hooks/useProfile'
+import { useActiveOrg } from '@/lib/context/ActiveOrgContext'
 import { createClient } from '@/lib/supabase/client'
 import { LoadingSpinner } from '@/components/ui/howard-loading'
 
@@ -22,6 +23,7 @@ interface TaskData {
 
 export default function DashboardPage() {
   const { profile } = useProfile()
+  const { activeOrgId } = useActiveOrg()
   const supabase = createClient()
 
   const [filesCount, setFilesCount] = useState(0)
@@ -29,6 +31,28 @@ export default function DashboardPage() {
   const [recentFiles, setRecentFiles] = useState<FileData[]>([])
   const [recentTasks, setRecentTasks] = useState<TaskData[]>([])
   const [loading, setLoading] = useState(true)
+  const [orgIframeUrl, setOrgIframeUrl] = useState<string | null | undefined>(undefined)
+
+  // When viewing a different org, fetch that org's iframe URL from its client profile
+  useEffect(() => {
+    if (!activeOrgId) {
+      setOrgIframeUrl(undefined)
+      return
+    }
+    supabase
+      .from('profiles')
+      .select('dashboard_iframe_url')
+      .eq('org_id', activeOrgId)
+      .eq('role', 'client')
+      .limit(1)
+      .maybeSingle()
+      .then(({ data }) => setOrgIframeUrl(data?.dashboard_iframe_url ?? null))
+  }, [activeOrgId])
+
+  // Use the org-level iframe URL when switching orgs, otherwise use the user's own
+  const iframeUrl = activeOrgId !== undefined
+    ? orgIframeUrl
+    : profile?.dashboard_iframe_url
 
   useEffect(() => {
     async function fetchDashboardData() {
@@ -111,7 +135,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Analytics Dashboard */}
-            {profile?.dashboard_iframe_url && (
+            {iframeUrl && (
               <div className="mb-8">
                 <div className="bg-card rounded-lg shadow-sm border border-border">
                   <div className="p-6 border-b border-border">
@@ -130,7 +154,7 @@ export default function DashboardPage() {
                       }}
                     >
                       <iframe
-                        src={profile.dashboard_iframe_url}
+                        src={iframeUrl}
                         style={{
                           width: '100%',
                           height: '2000px',

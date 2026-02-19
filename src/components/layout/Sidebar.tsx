@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu'
 import { toast } from 'sonner'
 import type { UserOrgInfo } from './DashboardLayoutClient'
+import { useActiveOrg } from '@/lib/context/ActiveOrgContext'
 
 interface SidebarProps {
   userRole?: string
@@ -64,6 +65,8 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
   const pathname = location.pathname
   const navigate = useNavigate()
   const supabase = createClient()
+
+  const { setActiveOrg } = useActiveOrg()
 
   const [showClientSwitcher, setShowClientSwitcher] = useState(false)
   const [organizations, setOrganizations] = useState<Organization[]>([])
@@ -366,7 +369,10 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                 <DropdownMenuItem
                   key={org.orgId}
                   className="flex items-center gap-2"
-                  onClick={() => navigate(`/clients/organizations?org=${org.orgId}`)}
+                  onClick={() => {
+                    setActiveOrg(org.orgId, org.orgName)
+                    navigate('/dashboard')
+                  }}
                 >
                   <Building2 className="w-4 h-4 text-muted-foreground" />
                   <span className={org.orgName === orgName ? 'font-medium' : ''}>{org.orgName}</span>

@@ -1,6 +1,8 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMemo } from 'react'
 import { useAuth } from '@/lib/auth/AuthProvider'
 import { createClient } from '@/lib/supabase/client'
+import { useActiveOrg } from '@/lib/context/ActiveOrgContext'
 
 export interface ProfileData {
   id: string
@@ -66,6 +68,7 @@ async function fetchProfileData(userId: string) {
  */
 export function useProfile() {
   const { user } = useAuth()
+  const { activeOrgId } = useActiveOrg()
   const queryClient = useQueryClient()
 
   const { data, isLoading, error } = useQuery({
@@ -76,12 +79,29 @@ export function useProfile() {
     gcTime: 10 * 60 * 1000,
   })
 
+  // When the user has selected a different org, override profile.org_id so all
+  // downstream pages and queries automatically see the correct org context.
+  const profile = useMemo(() => {
+    if (!data?.profile) return null
+    const validActiveOrg = activeOrgId
+      ? data.userOrgs.find(o => o.orgId === activeOrgId)
+      : null
+    if (validActiveOrg && validActiveOrg.orgId !== data.profile.org_id) {
+      return {
+        ...data.profile,
+        org_id: validActiveOrg.orgId,
+        organizations: { name: validActiveOrg.orgName },
+      }
+    }
+    return data.profile
+  }, [data?.profile, data?.userOrgs, activeOrgId])
+
   const refreshProfile = async () => {
     await queryClient.invalidateQueries({ queryKey: ['profile', user?.id] })
   }
 
   return {
-    profile: data?.profile ?? null,
+    profile,
     userOrgs: data?.userOrgs ?? [],
     isLoading: !!user && isLoading,
     error,
