@@ -1,6 +1,7 @@
-[build]
-  command = "npm install && npm run build:os"
-  publish = "apps/howard-os-app/dist"
+# Build command and publish directory are set per-site in the Netlify UI:
+#   OS:  npm install && npm run build:os  → apps/howard-os-app/dist
+#   CRM: npm install && npm run build:crm → apps/howard-crm-app/dist
+#   Uni: npm install && npm run build:uni → apps/howard-university-app/dist
 
 [dev]
   command = "vite --config apps/howard-os-app/vite.config.ts"
