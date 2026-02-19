@@ -2,7 +2,7 @@ import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware } from './lib/middleware'
 import { successResponse, errorResponse } from './lib/responses'
 import { createClient } from '@supabase/supabase-js'
-import { sendMagicLinkEmail } from '../../src/lib/email/postmark'
+import { sendMagicLinkEmail } from '../../packages/ui/lib/email/postmark'
 
 // This endpoint doesn't require auth (it's for logging in)
 export const handler = async (event: HandlerEvent) => {

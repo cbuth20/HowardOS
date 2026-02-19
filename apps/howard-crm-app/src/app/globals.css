@@ -1,0 +1,10 @@
+@import '@howard/ui/styles/base.css';
+
+:root {
+  /* Steel Blue accent */
+  --primary: 210 55% 25%;            /* #1C3A5E Steel Blue */
+  --accent: 210 55% 25%;
+  --ring: 210 55% 25%;
+  --sidebar-primary: 210 55% 25%;
+  --sidebar-ring: 210 55% 25%;
+}

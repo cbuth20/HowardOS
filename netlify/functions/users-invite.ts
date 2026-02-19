@@ -2,9 +2,9 @@ import { HandlerEvent } from '@netlify/functions'
 import { randomBytes } from 'crypto'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import { successResponse } from './lib/responses'
-import { InviteUserSchema } from '../../src/types/schemas'
-import { createAdminClient } from '../../src/lib/supabase/admin'
-import { sendInvitationEmail } from '../../src/lib/email/postmark'
+import { InviteUserSchema } from '../../packages/ui/types/schemas'
+import { createAdminClient } from '../../packages/ui/lib/supabase/admin'
+import { sendInvitationEmail } from '../../packages/ui/lib/email/postmark'
 
 function generateTempPassword(): string {
   // Generate a 16-char password to avoid leaked password database conflicts

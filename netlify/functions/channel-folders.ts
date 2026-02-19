@@ -1,7 +1,7 @@
 import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware, AuthContext, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
-import { CreateChannelFolderSchema } from '../../src/types/schemas'
+import { CreateChannelFolderSchema } from '../../packages/ui/types/schemas'
 
 const FOLDER_SELECT_QUERY = `
   *,

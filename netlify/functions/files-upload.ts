@@ -1,7 +1,7 @@
 import { HandlerEvent, HandlerResponse } from '@netlify/functions'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import busboy from 'busboy'
-import { sendFileNotificationEmail } from '../../src/lib/email/postmark'
+import { sendFileNotificationEmail } from '../../packages/ui/lib/email/postmark'
 
 export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, supabase, supabaseAdmin }: AuthContext): Promise<HandlerResponse> => {
   // Parse multipart form data

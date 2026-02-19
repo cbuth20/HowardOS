@@ -1,6 +1,6 @@
 import { Handler, HandlerEvent } from '@netlify/functions'
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
-import { Database } from '../../../src/types/database.types'
+import { Database } from '../../../packages/ui/types/database.types'
 
 export interface AuthContext {
   user: {

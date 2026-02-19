@@ -1,8 +1,8 @@
 import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware, AuthContext, isTeamRole, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
-import { CreateTaskSchema, UpdateTaskSchema } from '../../src/types/schemas'
-import { sendTaskNotificationEmail } from '../../src/lib/email/postmark'
+import { CreateTaskSchema, UpdateTaskSchema } from '../../packages/ui/types/schemas'
+import { sendTaskNotificationEmail } from '../../packages/ui/lib/email/postmark'
 
 const TASK_SELECT_QUERY = `
   *,

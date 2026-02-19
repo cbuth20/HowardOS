@@ -1,0 +1,10 @@
+@import '@howard/ui/styles/base.css';
+
+:root {
+  /* Evergreen accent */
+  --primary: 155 36% 17%;            /* #1B3A2D Evergreen */
+  --accent: 155 36% 17%;             /* #1B3A2D Evergreen */
+  --ring: 155 36% 17%;               /* #1B3A2D Evergreen */
+  --sidebar-primary: 155 36% 17%;    /* Evergreen */
+  --sidebar-ring: 155 36% 17%;
+}

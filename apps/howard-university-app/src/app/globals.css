@@ -1,0 +1,10 @@
+@import '@howard/ui/styles/base.css';
+
+:root {
+  /* Warm Cognac accent */
+  --primary: 30 55% 28%;             /* #6E4A1F Warm Cognac */
+  --accent: 30 55% 28%;
+  --ring: 30 55% 28%;
+  --sidebar-primary: 30 55% 28%;
+  --sidebar-ring: 30 55% 28%;
+}

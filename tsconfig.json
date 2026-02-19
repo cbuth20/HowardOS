@@ -12,11 +12,14 @@
     "resolveJsonModule": true,
     "isolatedModules": true,
     "jsx": "react-jsx",
-    "incremental": true,
-    "paths": {
-      "@/*": ["./src/*"]
-    }
+    "incremental": true
   },
-  "include": ["src/vite-env.d.ts", "**/*.ts", "**/*.tsx"],
+  "references": [
+    { "path": "./packages/ui" },
+    { "path": "./apps/howard-os-app" },
+    { "path": "./apps/howard-crm-app" },
+    { "path": "./apps/howard-university-app" }
+  ],
+  "include": [],
   "exclude": ["node_modules", "dist"]
 }

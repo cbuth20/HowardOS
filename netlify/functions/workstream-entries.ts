@@ -5,7 +5,7 @@ import {
   CreateWorkstreamEntrySchema,
   UpdateWorkstreamEntrySchema,
   BulkCreateEntriesSchema,
-} from '../../src/types/schemas'
+} from '../../packages/ui/types/schemas'
 
 /**
  * GET /api/workstream-entries - List entries (filtered by workstream/vertical/status)

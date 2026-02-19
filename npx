@@ -1,0 +1,8 @@
+
+We've detected multiple projects inside your repository
+? Select the project you want to work with (Use arrow keys or type to search)
+❯ howard-crm-app  apps/howard-crm-app  --filter howard-crm-app 
+  howard-os-app  apps/howard-os-app  --filter howard-os-app 
+  howard-university-app  apps/howard-university-app  --filter 
+howard-university-app 
+  @howard/ui  packages/ui  --filter @howard/ui [5A[47D[77C[5B

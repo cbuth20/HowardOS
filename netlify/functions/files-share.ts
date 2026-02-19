@@ -1,8 +1,8 @@
 import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware, AuthContext, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
-import { ShareFileSchema } from '../../src/types/schemas'
-import { sendFileNotificationEmail } from '../../src/lib/email/postmark'
+import { ShareFileSchema } from '../../packages/ui/types/schemas'
+import { sendFileNotificationEmail } from '../../packages/ui/lib/email/postmark'
 
 export const handler = withMiddleware(async (event: HandlerEvent, { user, profile, supabase }: AuthContext) => {
   const method = event.httpMethod

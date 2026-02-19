@@ -1,0 +1,114 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --font-dm-sans: 'DM Sans', system-ui, sans-serif;
+    --font-instrument: 'Instrument Serif', Georgia, serif;
+    --font-jetbrains: 'JetBrains Mono', monospace;
+
+    /* Howard Brand – shared HSL variable system */
+    --background: 40 33% 95%;          /* #F6F4F0 Parchment */
+    --foreground: 60 4% 7%;            /* #111110 Ink */
+
+    --card: 0 0% 100%;                 /* #FFFFFF White */
+    --card-foreground: 60 4% 7%;       /* #111110 Ink */
+
+    --popover: 0 0% 100%;              /* #FFFFFF White */
+    --popover-foreground: 60 4% 7%;    /* #111110 Ink */
+
+    --primary-foreground: 40 33% 95%;  /* #F6F4F0 Parchment */
+
+    --secondary: 40 20% 97%;
+    --secondary-foreground: 60 4% 7%;  /* #111110 Ink */
+
+    --muted: 37 20% 91%;               /* #EDEAE4 Stone */
+    --muted-foreground: 60 3% 41%;     /* #6B6B66 Slate */
+
+    --accent-foreground: 40 33% 95%;   /* #F6F4F0 Parchment */
+
+    --destructive: 4 32% 51%;
+    --destructive-foreground: 40 33% 95%;
+
+    --border: 37 8% 81%;               /* #D4D0C8 Ash */
+    --input: 37 8% 81%;                /* #D4D0C8 Ash */
+    --radius: 0.75rem;
+
+    /* Chart colors */
+    --chart-1: 155 36% 17%;
+    --chart-2: 155 29% 23%;
+    --chart-3: 37 20% 91%;
+    --chart-4: 60 3% 41%;
+    --chart-5: 37 8% 81%;
+
+    /* Sidebar (matches main theme) */
+    --sidebar-background: 60 4% 7%;          /* Ink */
+    --sidebar-foreground: 40 33% 95%;        /* Parchment */
+    --sidebar-primary-foreground: 40 33% 95%;
+    --sidebar-accent: 60 4% 10%;
+    --sidebar-accent-foreground: 40 33% 95%;
+    --sidebar-border: 60 3% 20%;
+  }
+
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "rlig" 1, "calt" 1;
+    font-weight: 400;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-sans font-semibold;
+  }
+
+  h1 {
+    @apply text-4xl;
+  }
+
+  h2 {
+    @apply text-3xl;
+  }
+
+  h3 {
+    @apply text-2xl;
+  }
+
+  h4 {
+    @apply text-xl;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  @keyframes progress-bar {
+    0% {
+      transform: scaleX(0);
+    }
+    50% {
+      transform: scaleX(0.6);
+    }
+    100% {
+      transform: scaleX(1);
+    }
+  }
+
+  .animate-progress-bar {
+    animation: progress-bar 500ms ease-out;
+  }
+}

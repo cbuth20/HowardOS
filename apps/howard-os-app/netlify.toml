@@ -1,0 +1,47 @@
+[build]
+  command = "npm run build"
+  publish = "dist"
+  base = "apps/howard-os-app"
+
+[dev]
+  command = "npm run dev:vite"
+  port = 8888
+  targetPort = 3000
+  framework = "#custom"
+  autoLaunch = false
+
+[functions]
+  directory = "../../netlify/functions"
+  node_bundler = "esbuild"
+
+# HTTPS redirect
+[[redirects]]
+  from = "http://*/*"
+  to = "https://:splat"
+  status = 301
+  force = true
+
+# Redirect API requests to Netlify Functions
+[[redirects]]
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Headers for security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=28800, immutable"
+
+[[headers]]
+  for = "/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=28800, immutable"

@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from './lib/responses'
 import {
   CreateWorkstreamSchema,
   UpdateWorkstreamSchema,
-} from '../../src/types/schemas'
+} from '../../packages/ui/types/schemas'
 
 /**
  * GET /api/client-workstreams - List workstreams (filtered by role/org)

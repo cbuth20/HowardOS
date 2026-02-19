@@ -1,7 +1,7 @@
 import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware, AuthContext, isTeamRole, isAdminOrManagerRole } from './lib/middleware'
 import { successResponse } from './lib/responses'
-import { CreateFileChannelSchema, UpdateFileChannelSchema } from '../../src/types/schemas'
+import { CreateFileChannelSchema, UpdateFileChannelSchema } from '../../packages/ui/types/schemas'
 
 const CHANNEL_SELECT_QUERY = `
   *,

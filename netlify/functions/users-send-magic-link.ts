@@ -1,8 +1,8 @@
 import { HandlerEvent } from '@netlify/functions'
 import { withMiddleware, AuthContext } from './lib/middleware'
 import { successResponse } from './lib/responses'
-import { createAdminClient } from '../../src/lib/supabase/admin'
-import { sendMagicLinkEmail } from '../../src/lib/email/postmark'
+import { createAdminClient } from '../../packages/ui/lib/supabase/admin'
+import { sendMagicLinkEmail } from '../../packages/ui/lib/email/postmark'
 
 export const handler = withMiddleware(async (event: HandlerEvent, { profile, supabase }: AuthContext) => {
   const body = JSON.parse(event.body || '{}')

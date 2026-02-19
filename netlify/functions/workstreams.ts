@@ -4,7 +4,7 @@ import { successResponse, errorResponse } from './lib/responses'
 import {
   CreateWorkstreamTemplateSchema,
   UpdateWorkstreamTemplateSchema,
-} from '../../src/types/schemas'
+} from '../../packages/ui/types/schemas'
 
 /**
  * GET /api/workstreams - List all templates (with filters)

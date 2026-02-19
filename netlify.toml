@@ -1,11 +1,12 @@
 [build]
-  command = "npm run build"
-  publish = "dist"
+  command = "npm install && npm run build:os"
+  publish = "apps/howard-os-app/dist"
 
 [dev]
-  command = "npm run dev:vite"
+  command = "vite --config apps/howard-os-app/vite.config.ts"
   port = 8888
   targetPort = 3000
+  framework = "#custom"
   autoLaunch = false
 
 [functions]
