@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useLocation } from 'react-router'
 import { useProfile } from '@/lib/api/hooks/useProfile'
 import { createClient } from '@/lib/supabase/client'
 
@@ -9,11 +10,13 @@ import { Input } from '@/components/ui/input'
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion'
 import { OrganizationUsers } from '@/components/clients/OrganizationUsers'
 import { CreateOrganizationModal } from '@/components/clients/CreateOrganizationModal'
+import { ConfirmDialog } from '@/components/ui/confirm-dialog'
 import { authFetch } from '@/lib/utils/auth-fetch'
 import {
   Building2,
   Loader2,
   Save,
+  Trash2,
   Upload,
 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -32,10 +35,13 @@ interface Organization {
 
 export default function OrganizationsPage() {
   const { profile } = useProfile()
+  const location = useLocation()
+  const orgFromQuery = new URLSearchParams(location.search).get('org') || undefined
+
   const [organizations, setOrganizations] = useState<Organization[]>([])
   const [loading, setLoading] = useState(true)
   const [showCreateOrgModal, setShowCreateOrgModal] = useState(false)
-  const [defaultOpenOrg, setDefaultOpenOrg] = useState<string | undefined>(undefined)
+  const [defaultOpenOrg, setDefaultOpenOrg] = useState<string | undefined>(orgFromQuery)
 
   // Per-org settings state keyed by org id
   const [dashboardUrls, setDashboardUrls] = useState<Record<string, string>>({})
@@ -43,10 +49,21 @@ export default function OrganizationsPage() {
   const [uploadingLogoOrgId, setUploadingLogoOrgId] = useState<string | null>(null)
   const [loadedOrgSettings, setLoadedOrgSettings] = useState<Set<string>>(new Set())
 
+  // Delete org state
+  const [deleteOrgId, setDeleteOrgId] = useState<string | null>(null)
+  const [deletingOrgId, setDeletingOrgId] = useState<string | null>(null)
+
   const supabase = createClient()
 
   const currentProfile = profile ? { id: profile.id, org_id: profile.org_id, role: profile.role } : null
   const userRole = profile?.role || ''
+
+  useEffect(() => {
+    if (orgFromQuery) {
+      setDefaultOpenOrg(orgFromQuery)
+      loadOrgSettings(orgFromQuery)
+    }
+  }, [orgFromQuery])
 
   useEffect(() => {
     if (currentProfile) {
@@ -219,6 +236,32 @@ export default function OrganizationsPage() {
     }
   }
 
+  const handleDeleteOrg = async () => {
+    if (!deleteOrgId) return
+    setDeletingOrgId(deleteOrgId)
+    setDeleteOrgId(null)
+    try {
+      const response = await authFetch('/api/organizations-delete', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ orgId: deleteOrgId }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        throw new Error(data.error || data.message || 'Failed to delete organization')
+      }
+
+      toast.success('Organization deleted')
+      loadOrganizations()
+    } catch (error: any) {
+      console.error('Error deleting org:', error)
+      toast.error(error.message || 'Failed to delete organization')
+    } finally {
+      setDeletingOrgId(null)
+    }
+  }
+
   const isAdminManager = ['admin', 'manager'].includes(userRole)
 
   if (loading) {
@@ -304,7 +347,25 @@ export default function OrganizationsPage() {
                       {/* Settings Section — admin/manager only */}
                       {isAdminManager && (
                         <div className="mb-6 p-4 bg-muted/30 rounded-lg border border-border">
-                          <h3 className="text-sm font-medium text-foreground mb-3">Settings</h3>
+                          <div className="flex items-center justify-between mb-3">
+                            <h3 className="text-sm font-medium text-foreground">Settings</h3>
+                            {userRole === 'admin' && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-destructive hover:text-destructive hover:bg-destructive/10 h-7 px-2"
+                                disabled={deletingOrgId === org.id}
+                                onClick={() => setDeleteOrgId(org.id)}
+                              >
+                                {deletingOrgId === org.id ? (
+                                  <Loader2 className="w-4 h-4 animate-spin" />
+                                ) : (
+                                  <Trash2 className="w-4 h-4" />
+                                )}
+                                <span className="ml-1 text-xs">Delete Org</span>
+                              </Button>
+                            )}
+                          </div>
                           <div className="flex items-center gap-4 flex-wrap">
                             {/* Logo Upload */}
                             <div className="flex items-center gap-3">
@@ -404,6 +465,17 @@ export default function OrganizationsPage() {
           onComplete={handleCreateComplete}
         />
       )}
+
+      {/* Delete Organization Confirmation */}
+      <ConfirmDialog
+        open={!!deleteOrgId}
+        onOpenChange={(open) => { if (!open) setDeleteOrgId(null) }}
+        title="Delete Organization"
+        description={`Are you sure you want to delete "${organizations.find(o => o.id === deleteOrgId)?.name}"? This will permanently remove the organization and all associated data.`}
+        confirmLabel="Delete Organization"
+        variant="destructive"
+        onConfirm={handleDeleteOrg}
+      />
     </>
   )
 }

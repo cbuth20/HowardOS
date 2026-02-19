@@ -366,7 +366,7 @@ export function Sidebar({ userRole = 'client', orgName, userName, userEmail, use
                 <DropdownMenuItem
                   key={org.orgId}
                   className="flex items-center gap-2"
-                  disabled={org.orgName === orgName}
+                  onClick={() => navigate(`/clients/organizations?org=${org.orgId}`)}
                 >
                   <Building2 className="w-4 h-4 text-muted-foreground" />
                   <span className={org.orgName === orgName ? 'font-medium' : ''}>{org.orgName}</span>
